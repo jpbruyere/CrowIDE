@@ -464,7 +464,7 @@ namespace Crow.Coding
 
 					using (Surface ol = new ImageSurface (Format.Argb32, cb.Width, cb.Height)) {
 						using (Context ctx = new Context (ol)) {
-							ctx.SetSourceColor (Color.Black);
+							ctx.SetSourceColor (Colors.Black);
 							drawDesignOverlay (ctx, g, cb, hr, 0.4 / z, 6.5);
 						}
 							
@@ -479,7 +479,7 @@ namespace Crow.Coding
 			}
 			if (HoverWidget != null) {
 				hr = HoverWidget.ScreenCoordinates (HoverWidget.getSlot ());
-				gr.SetSourceColor (Color.SkyBlue);
+				gr.SetSourceColor (Colors.SkyBlue);
 				//gr.SetDash (new double[]{ 5.0, 3.0 }, 0.0);
 				gr.Rectangle (hr, 0.4 / z);
 			}
@@ -489,7 +489,7 @@ namespace Crow.Coding
 		void drawIcon (Context gr, Picture pic, Rectangle r) {
 //			gr.SetSourceColor (Color.Black);
 //			CairoHelpers.CairoRectangle (gr, r.Inflated (1), 2, 1.0);
-			gr.SetSourceColor (Color.White);
+			gr.SetSourceColor (Colors.White);
 			CairoHelpers.CairoRectangle (gr, r.Inflated (1), 2);
 			gr.Fill ();
 			gr.Operator = Operator.Clear;

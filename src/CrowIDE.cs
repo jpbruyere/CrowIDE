@@ -18,7 +18,7 @@ namespace Crow.Coding
 {
 	public class CrowIDE : Interface
 	{
-		public static string DEFAULT_TOOLS_VERSION = "Current";
+		public static string DEFAULT_TOOLS_VERSION = "15.0";
 		public static CrowIDE MainWin;
 
 		#region Commands
@@ -143,9 +143,9 @@ namespace Crow.Coding
 
 		public CrowIDE () : base (1024, 800) { }
 
+		protected override void OnInitialized () {
+			base.OnInitialized ();
 
-		protected override void Startup ()
-		{
 			initIde ();
 
 			reloadWinConfigs ();
@@ -185,7 +185,7 @@ namespace Crow.Coding
 			Workspace.WorkspaceFailed += (sender, e) => Console.WriteLine ($"Workspace error: {e.Diagnostic}");
 			ProgressLogger = new ProgressLog ();
 			projectCollection = new ProjectCollection (null, new ILogger [] { new IdeLogger (this) }, ToolsetDefinitionLocations.Default) {
-				DefaultToolsVersion = DEFAULT_TOOLS_VERSION,
+				//DefaultToolsVersion = DEFAULT_TOOLS_VERSION,
 
 			};
 
@@ -209,7 +209,7 @@ namespace Crow.Coding
 
 			string filePath = fd.SelectedFileFullPath;
 
-			try {
+			//try {
 				string ext = Path.GetExtension (filePath);
 				if (string.Equals (ext, ".sln", StringComparison.InvariantCultureIgnoreCase)) {
 					CurrentSolution = new SolutionView (this, filePath);
@@ -217,9 +217,9 @@ namespace Crow.Coding
 					//				}else if (string.Equals (ext, ".csproj", StringComparison.InvariantCultureIgnoreCase)) {
 					//					currentProject = new Project (filePath);
 				}
-			} catch (Exception ex) {
+			/*} catch (Exception ex) {
 				LoadIMLFragment ("<MessageBox Message='" + ex.Message + "\n" + "' MsgType='Error'/>");
-			}
+			}*/
 		}
 
 

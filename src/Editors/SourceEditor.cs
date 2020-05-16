@@ -19,22 +19,22 @@ namespace Crow.Coding
 		#region CTOR
 		public SourceEditor (): base()
 		{
-			formatting.Add ((int)XMLParser.TokenType.AttributeName, new TextFormatting (Color.DarkSlateGrey, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementName, new TextFormatting (Color.DarkBlue, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementStart, new TextFormatting (Color.Black, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementEnd, new TextFormatting (Color.Black, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementClosing, new TextFormatting (Color.Black, Color.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.AttributeName, new TextFormatting (Colors.DarkSlateGrey, Colors.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementName, new TextFormatting (Colors.DarkBlue, Colors.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementStart, new TextFormatting (Colors.Black, Colors.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementEnd, new TextFormatting (Colors.Black, Colors.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.ElementClosing, new TextFormatting (Colors.Black, Colors.Transparent));
 
-			formatting.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormatting (Color.Crimson, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormatting (Color.Crimson, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormatting (Color.FireBrick, Color.Transparent, false, true));
-			formatting.Add ((int)XMLParser.TokenType.XMLDecl, new TextFormatting (Color.ForestGreen, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.Content, new TextFormatting (Color.DimGrey, Color.Transparent, false, true));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormatting (Colors.Crimson, Colors.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormatting (Colors.Crimson, Colors.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormatting (Colors.FireBrick, Colors.Transparent, false, true));
+			formatting.Add ((int)XMLParser.TokenType.XMLDecl, new TextFormatting (Colors.ForestGreen, Colors.Transparent));
+			formatting.Add ((int)XMLParser.TokenType.Content, new TextFormatting (Colors.DimGrey, Colors.Transparent, false, true));
 
-			formatting.Add ((int)BufferParser.TokenType.BlockComment, new TextFormatting (Color.Grey, Color.Transparent, false, true));
-			formatting.Add ((int)BufferParser.TokenType.LineComment, new TextFormatting (Color.Grey, Color.Transparent, false, true));
-			formatting.Add ((int)BufferParser.TokenType.OperatorOrPunctuation, new TextFormatting (Color.Black, Color.Transparent));
-			formatting.Add ((int)BufferParser.TokenType.Keyword, new TextFormatting (Color.Teal, Color.Transparent));
+			formatting.Add ((int)BufferParser.TokenType.BlockComment, new TextFormatting (Colors.Grey, Colors.Transparent, false, true));
+			formatting.Add ((int)BufferParser.TokenType.LineComment, new TextFormatting (Colors.Grey, Colors.Transparent, false, true));
+			formatting.Add ((int)BufferParser.TokenType.OperatorOrPunctuation, new TextFormatting (Colors.Black, Colors.Transparent));
+			formatting.Add ((int)BufferParser.TokenType.Keyword, new TextFormatting (Colors.Teal, Colors.Transparent));
 			//formatting.Add ((int)BufferParser.TokenType.Keyword, new TextFormatting (Color.DarkCyan, Color.Transparent));
 
 			parsing.Add (".crow", "Crow.Coding.XMLParser");
@@ -528,19 +528,19 @@ namespace Crow.Coding
 			double y = cb.Y + (fe.Ascent+fe.Descent) * i, x = cb.X;
 
 			//Draw line numbering
-			Color mgFg = Color.Jet;
-			Color mgBg = Color.Grey;
+			Color mgFg = Colors.Jet;
+			Color mgBg = Colors.Grey;
 			if (PrintLineNumbers){
 				Rectangle mgR = new Rectangle ((int)x, (int)y, leftMargin - leftMarginGap, (int)Math.Ceiling((fe.Ascent+fe.Descent)));
 				if (cl.exception != null) {
-					mgBg = Color.Red;
+					mgBg = Colors.Red;
 					if (buffer.CurrentLine == lineIndex)
-						mgFg = Color.White;
+						mgFg = Colors.White;
 					else
-						mgFg = Color.LightGrey;
+						mgFg = Colors.LightGrey;
 				}else if (buffer.CurrentLine == lineIndex && HasFocus) {
-					mgFg = Color.Black;
-					mgBg = Color.DarkGrey;
+					mgFg = Colors.Black;
+					mgBg = Colors.DarkGrey;
 				}
 				string strLN = (lineIndex+1).ToString ();
 				gr.SetSourceColor (mgBg);
@@ -560,7 +560,7 @@ namespace Crow.Coding
 				Rectangle rFld = new Rectangle (cb.X + leftMargin - leftMarginGap - foldMargin,
 					(int)(y + (fe.Ascent + fe.Descent) / 2.0 - foldSize / 2.0), foldSize, foldSize);
 
-				gr.SetSourceColor (Color.Black);
+				gr.SetSourceColor (Colors.Black);
 				gr.LineWidth = 1.0;
 
 				int level = 0;
@@ -591,15 +591,15 @@ namespace Crow.Coding
 					closingNode = false;
 				}
 				gr.SetDash (new double[]{ 1.5 },0.0);
-				gr.SetSourceColor (Color.Grey);
+				gr.SetSourceColor (Colors.Grey);
 				gr.Stroke ();
 				gr.SetDash (new double[]{}, 0.0);
 
 				if (cl.IsFoldable) {
 					gr.Rectangle (rFld);
-					gr.SetSourceColor (Color.White);
+					gr.SetSourceColor (Colors.White);
 					gr.Fill();
-					gr.SetSourceColor (Color.Black);
+					gr.SetSourceColor (Colors.Black);
 					gr.Rectangle (rFld, 1.0);
 					if (cl.IsFolded) {
 						gr.MoveTo (rFld.Center.X + 0.5, rFld.Y + 2);
@@ -900,14 +900,14 @@ namespace Crow.Coding
 		{
 			base.onMouseEnter (sender, e);
 			if (e.X - ScreenCoordinates(Slot).X < leftMargin + ClientRectangle.X)
-				IFace.MouseCursor = MouseCursor.Arrow;
+				IFace.MouseCursor = MouseCursor.arrow;
 			else
-				IFace.MouseCursor = MouseCursor.IBeam;
+				IFace.MouseCursor = MouseCursor.ibeam;
 		}
 		public override void onMouseLeave (object sender, MouseMoveEventArgs e)
 		{
 			base.onMouseLeave (sender, e);
-			IFace.MouseCursor = MouseCursor.Arrow;
+			IFace.MouseCursor = MouseCursor.arrow;
 		}
 		public override void onMouseMove (object sender, MouseMoveEventArgs e)
 		{
@@ -919,9 +919,9 @@ namespace Crow.Coding
 
 			if (!IFace.IsDown (MouseButton.Left)) {
 				if (mouseLocalPos.X < leftMargin)
-					IFace.MouseCursor = MouseCursor.Arrow;
+					IFace.MouseCursor = MouseCursor.arrow;
 				else
-					IFace.MouseCursor = MouseCursor.IBeam;
+					IFace.MouseCursor = MouseCursor.ibeam;
 				return;
 			}
 

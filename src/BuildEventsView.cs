@@ -172,25 +172,25 @@ namespace Crow
 					BuildMessageEventArgs msg = evt as BuildMessageEventArgs;
 					switch (msg.Importance) {
 					case MessageImportance.High:
-						gr.SetSourceColor (Color.White);
+						gr.SetSourceColor (Colors.White);
 						break;
 					case MessageImportance.Normal:
-						gr.SetSourceColor (Color.Grey);
+						gr.SetSourceColor (Colors.Grey);
 						break;
 					case MessageImportance.Low:
-						gr.SetSourceColor (Color.Jet);
+						gr.SetSourceColor (Colors.Jet);
 						break;
 					}
 				} else if (evt is BuildStartedEventArgs)
-					gr.SetSourceColor (Color.White);
+					gr.SetSourceColor (Colors.White);
 				else if (evt is BuildFinishedEventArgs)
-					gr.SetSourceColor (Color.White);
+					gr.SetSourceColor (Colors.White);
 				else if (evt is BuildErrorEventArgs)
-					gr.SetSourceColor (Color.Red);
+					gr.SetSourceColor (Colors.Red);
 				else if (evt is BuildEventArgs)
-					gr.SetSourceColor (Color.Yellow);
+					gr.SetSourceColor (Colors.Yellow);
 				else if (evt is BuildStatusEventArgs)
-					gr.SetSourceColor (Color.Green);										
+					gr.SetSourceColor (Colors.Green);										
 
 				string[] lines = Regex.Split (evt.Message, "\r\n|\r|\n|\\\\n");
 

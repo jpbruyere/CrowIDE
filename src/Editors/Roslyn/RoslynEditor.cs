@@ -25,24 +25,24 @@ namespace Crow.Coding
 		#region CTOR
 		public RoslynEditor (): base()
 		{
-			formatting ["default"] = new TextFormatting (Color.Jet, Color.Transparent);
-			formatting ["TypeSyntax"] = new TextFormatting (Color.DarkCyan, Color.Transparent);
-			formatting ["DocumentationCommentTrivia"] = new TextFormatting (Color.GreenYellow, Color.Transparent);
-			formatting ["DisabledTextTrivia"] = new TextFormatting (Color.Grey, Color.Transparent);
-			formatting ["Trivia"] = new TextFormatting (Color.Green, Color.Transparent);
-			formatting ["Punctuation"] = new TextFormatting (Color.Black, Color.Transparent, false);
-			formatting ["Name"] = new TextFormatting (Color.Jet, Color.Transparent);
-			formatting ["LiteralExpression"] = new TextFormatting (Color.FireBrick, Color.Transparent, false, true);
-			formatting ["PredefinedType"] = new TextFormatting (Color.DarkCyan, Color.Transparent, false);
-			formatting ["PrimaryFunction"] = new TextFormatting (Color.SteelBlue, Color.Transparent, true);
-			formatting ["ContextualKeyword"] = new TextFormatting (Color.DarkBlue, Color.Transparent, true);
-			formatting ["keyword"] = new TextFormatting (Color.Blue, Color.Transparent);
-			formatting ["GlobalMemberDeclaration"] = new TextFormatting (Color.Red, Color.Transparent);
-			formatting ["InstanceExpression"] = new TextFormatting (Color.Jet, Color.Transparent);
-			formatting ["InstanceExpression"] = new TextFormatting (Color.Jet, Color.Transparent);
-			formatting ["NamespaceMemberDeclaration"] = new TextFormatting (Color.Jet, Color.Transparent);
-			formatting ["PreprocessorDirective"] = new TextFormatting (Color.DeepPink, Color.Transparent, true);
-			formatting ["TypeDeclaration"] = new TextFormatting (Color.Lavender, Color.Transparent);
+			formatting ["default"] = new TextFormatting (Colors.Jet, Colors.Transparent);
+			formatting ["TypeSyntax"] = new TextFormatting (Colors.DarkCyan, Colors.Transparent);
+			formatting ["DocumentationCommentTrivia"] = new TextFormatting (Colors.GreenYellow, Colors.Transparent);
+			formatting ["DisabledTextTrivia"] = new TextFormatting (Colors.Grey, Colors.Transparent);
+			formatting ["Trivia"] = new TextFormatting (Colors.Green, Colors.Transparent);
+			formatting ["Punctuation"] = new TextFormatting (Colors.Black, Colors.Transparent, false);
+			formatting ["Name"] = new TextFormatting (Colors.Jet, Colors.Transparent);
+			formatting ["LiteralExpression"] = new TextFormatting (Colors.FireBrick, Colors.Transparent, false, true);
+			formatting ["PredefinedType"] = new TextFormatting (Colors.DarkCyan, Colors.Transparent, false);
+			formatting ["PrimaryFunction"] = new TextFormatting (Colors.SteelBlue, Colors.Transparent, true);
+			formatting ["ContextualKeyword"] = new TextFormatting (Colors.DarkBlue, Colors.Transparent, true);
+			formatting ["keyword"] = new TextFormatting (Colors.Blue, Colors.Transparent);
+			formatting ["GlobalMemberDeclaration"] = new TextFormatting (Colors.Red, Colors.Transparent);
+			formatting ["InstanceExpression"] = new TextFormatting (Colors.Jet, Colors.Transparent);
+			formatting ["InstanceExpression"] = new TextFormatting (Colors.Jet, Colors.Transparent);
+			formatting ["NamespaceMemberDeclaration"] = new TextFormatting (Colors.Jet, Colors.Transparent);
+			formatting ["PreprocessorDirective"] = new TextFormatting (Colors.DeepPink, Colors.Transparent, true);
+			formatting ["TypeDeclaration"] = new TextFormatting (Colors.Lavender, Colors.Transparent);
 
 			/*formatting ["constant"] = new TextFormatting (Color.Blue, Color.Transparent, true);
 			formatting ["primitive"] = new TextFormatting (Color.DarkCyan, Color.Transparent);
@@ -683,14 +683,14 @@ namespace Crow.Coding
 		{
 			base.onMouseEnter (sender, e);
 			if (e.X - ScreenCoordinates(Slot).X < leftMargin + ClientRectangle.X)
-				IFace.MouseCursor = MouseCursor.Arrow;
+				IFace.MouseCursor = MouseCursor.arrow;
 			else
-				IFace.MouseCursor = MouseCursor.IBeam;
+				IFace.MouseCursor = MouseCursor.ibeam;
 		}
 		public override void onMouseLeave (object sender, MouseMoveEventArgs e)
 		{
 			base.onMouseLeave (sender, e);
-			IFace.MouseCursor = MouseCursor.Arrow;
+			IFace.MouseCursor = MouseCursor.arrow;
 		}
 		public override void onMouseMove (object sender, MouseMoveEventArgs e)
 		{
@@ -713,9 +713,9 @@ namespace Crow.Coding
 				RegisterForRedraw ();
 			} else {
 				if (mouseLocalPos.X < leftMargin)
-					IFace.MouseCursor = MouseCursor.Arrow;
+					IFace.MouseCursor = MouseCursor.arrow;
 				else
-					IFace.MouseCursor = MouseCursor.IBeam;
+					IFace.MouseCursor = MouseCursor.ibeam;
 				return;
 			}
 

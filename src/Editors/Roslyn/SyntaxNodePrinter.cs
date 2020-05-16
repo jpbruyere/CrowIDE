@@ -138,11 +138,11 @@ namespace Crow.Coding
 					else
 						mgFg = Color.LightGrey;
 				}else */
-				Color mgFg = Color.Jet;
-				Color mgBg = Color.Grey;
+				Color mgFg = Colors.Jet;
+				Color mgBg = Colors.Grey;
 				if (editor.CurrentLine == currentLine && editor.HasFocus) {
-					mgFg = Color.Black;
-					mgBg = Color.DarkGrey;
+					mgFg = Colors.Black;
+					mgBg = Colors.DarkGrey;
 				}
 				string strLN = (currentLine + 1).ToString ();
 				ctx.SetSourceColor (mgBg);
@@ -159,7 +159,7 @@ namespace Crow.Coding
 				Rectangle rFld = new Rectangle (bounds.X + editor.leftMargin - RoslynEditor.leftMarginGap - editor.foldMargin,
 					(int)(y + (fe.Ascent + fe.Descent) / 2.0 - RoslynEditor.foldSize / 2.0), RoslynEditor.foldSize, RoslynEditor.foldSize);
 
-				ctx.SetSourceColor (Color.Black);
+				ctx.SetSourceColor (Colors.Black);
 				ctx.LineWidth = 1.0;
 
 				int level = 0;
@@ -192,9 +192,9 @@ namespace Crow.Coding
 
 				if (foldable) {
 					ctx.Rectangle (rFld);
-					ctx.SetSourceColor (Color.White);
+					ctx.SetSourceColor (Colors.White);
 					ctx.Fill ();
-					ctx.SetSourceColor (Color.Black);
+					ctx.SetSourceColor (Colors.Black);
 					ctx.Rectangle (rFld, 1.0);
 					/*if (cl.IsFolded) {
 						gr.MoveTo (rFld.Center.X + 0.5, rFld.Y + 2);
@@ -282,6 +282,7 @@ namespace Crow.Coding
 
 			ctx.SelectFontFace (editor.Font.Name, fts, ftw);
 			ctx.SetSourceColor (tf.Foreground);
+			Console.WriteLine (tf.Foreground);
 
 			int diffX = currentCol - editor.ScrollX;
 

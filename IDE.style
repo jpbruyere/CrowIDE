@@ -1,6 +1,6 @@
 ﻿//test
 Label {    
-    Foreground="Jet";
+    //Foreground="Jet";
 }
 icon {
 	Width="14";

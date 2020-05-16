@@ -6,31 +6,39 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Crow.Coding
 {
 	public static class Startup
 	{
+
 #if NET472
 		public static string sdkFolder = "/usr/lib/mono/msbuild/Current/bin/";
 		public static string msbuildRoot = sdkFolder;
+		static string msbuildFolder = sdkFolder;
 
 #else
 		public static string sdkFolder = "/usr/share/dotnet/sdk";
 		public static string msbuildRoot = Path.Combine (sdkFolder, "3.1.201/");
 #endif
-		static string msbuildFolder;
+
 
 		[STAThread]
 		static void Main ()
 		{
-			configureDefaultSDKPathes ();
+//			configureDefaultSDKPathes ();
 
 			msbuildRoot = Path.Combine (sdkFolder, msbuildFolder);
 
 			AppDomain currentDomain = AppDomain.CurrentDomain;
 			currentDomain.AssemblyResolve += msbuildAssembliesResolve;
 
+#if NETCORE
+			NativeLibrary.SetDllImportResolver (Assembly.GetAssembly(typeof(Glfw.Glfw3)),
+				(libraryName, assembly, searchPath) => NativeLibrary.Load (libraryName == "glfw3" ?
+					Environment.OSVersion.Platform == PlatformID.Unix ? "glfw" : "glfw3" : libraryName, assembly, searchPath));
+#endif
 			start ();
 
 		}
@@ -88,7 +96,7 @@ namespace Crow.Coding
 				if (SDKVersion.TryParse (dirName, out SDKVersion vers))
 					versions.Add (vers);
 			}
-			versions.Sort ((a, b) => a.ToInt.CompareTo (b));
+			versions.Sort ((a, b) => a.ToInt.CompareTo (b.ToInt));
 			msbuildFolder = versions.Last ().ToString ();
 			Configuration.Global.Set ("msbuildFolder", msbuildFolder);
 		}
