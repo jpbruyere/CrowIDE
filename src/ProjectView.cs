@@ -12,6 +12,7 @@ using Microsoft.Build.Execution;
 using System.Reflection;
 using Microsoft.Build.Evaluation;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Crow.Coding
 {
@@ -21,6 +22,7 @@ namespace Crow.Coding
 		ProjectInSolution solutionProject;
 		Project project;
 
+
 		Crow.Command cmdSave, cmdOpen, cmdCompile, cmdSetAsStartProj, cmdNewFile;
 
 		#region CTOR
@@ -28,8 +30,6 @@ namespace Crow.Coding
 		{
 			solutionProject = sp;
 			solution = sol;
-
-			ProjectRootElement projectRootElt = ProjectRootElement.Open (solutionProject.AbsolutePath);			
 
 			project = new Project (solutionProject.AbsolutePath, null, null, sol.IDE.projectCollection);
 
@@ -44,23 +44,15 @@ namespace Crow.Coding
 
 			project.ReevaluateIfNecessary ();
 
+			//using (StreamWriter sw = new StreamWriter ("/tmp/test/crowide.txt", false)) {
+			//	foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies ()) {
+			//		if (a.IsDynamic)
+			//			continue;
+			//		sw.WriteLine (a.Location);
+			//	}
+			//}
 
-			cmdSave = new Crow.Command (new Action (() => Save ())) { Caption = "Save", Icon = new SvgPicture ("#Icons.save.svg"), CanExecute = true };
-			cmdOpen = new Crow.Command (new Action (() => populateTreeNodes ())) { Caption = "Open", Icon = new SvgPicture ("#Icons.open.svg"), CanExecute = false };
-			cmdCompile = new Crow.Command (new Action (() => Compile ("Restore"))) {
-				Caption = "Restore",
-			};
-			cmdSetAsStartProj = new Crow.Command (new Action (() => setAsStartupProject ())) {
-				Caption = "Set as Startup Project"
-			};
-			cmdNewFile = new Crow.Command (new Action (() => AddNewFile ())) {
-				Caption = "Add New File",
-				Icon = new SvgPicture ("#Icons.blank-file.svg"),
-				CanExecute = true
-			};
-
-			Commands = new ObservableList<Crow.Command> (new Crow.Command [] { cmdOpen, cmdSave, cmdSetAsStartProj, cmdCompile, cmdNewFile });
-
+			initCommands ();
 			populateTreeNodes ();
 		}
 		#endregion
@@ -158,6 +150,24 @@ namespace Crow.Coding
 
 			}
 		}
+
+		void initCommands () {
+			cmdSave = new Crow.Command (new Action (() => Save ())) { Caption = "Save", Icon = new SvgPicture ("#Icons.save.svg"), CanExecute = true };
+			cmdOpen = new Crow.Command (new Action (() => populateTreeNodes ())) { Caption = "Open", Icon = new SvgPicture ("#Icons.open.svg"), CanExecute = false };
+			cmdCompile = new Crow.Command (new Action (() => Compile ("Restore"))) {
+				Caption = "Restore",
+			};
+			cmdSetAsStartProj = new Crow.Command (new Action (() => setAsStartupProject ())) {
+				Caption = "Set as Startup Project"
+			};
+			cmdNewFile = new Crow.Command (new Action (() => AddNewFile ())) {
+				Caption = "Add New File",
+				Icon = new SvgPicture ("#Icons.blank-file.svg"),
+				CanExecute = true
+			};
+
+			Commands = new ObservableList<Crow.Command> (new Crow.Command[] { cmdOpen, cmdSave, cmdSetAsStartProj, cmdCompile, cmdNewFile });
+		}
 		void populateTreeNodes ()
 		{
 			ProjectNode root = new ProjectNode (this, ItemType.VirtualGroup, RootNamespace);
@@ -178,6 +188,8 @@ namespace Crow.Coding
 
 				switch (pn.ItemType) {
 				case "ProjectReferenceTargets":
+					if (Commands.Any (c => c.Caption == pn.EvaluatedInclude))
+						break;
 					Commands.Add (new Crow.Command (new Action (() => Compile (pn.EvaluatedInclude))) {
 						Caption = pn.EvaluatedInclude,
 					});
@@ -275,26 +287,28 @@ namespace Crow.Coding
 		//    }
 		//    return tmp;
 		//}
-		public void Compile (string target = "Build")
-		{
+		public async Task<bool> Compile (string target = "Build") { 
+		//public bool Compile (string target = "Build") {
 			/*var nativeSharedMethod = typeof (SolutionFile).Assembly.GetType ("Microsoft.Build.Shared.NativeMethodsShared");
 			var isMonoField = nativeSharedMethod.GetField ("_isMono", BindingFlags.Static | BindingFlags.NonPublic);
 			isMonoField.SetValue (null, true);
 
 			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", "/usr/share/dotnet/sdk/3.1.101/MSBuild.dll");*/
-			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
+
+			bool result = false;
+			await Task.Run (() => {
+				ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (solution.IDE.projectCollection.LoadedProjects.First(p=>p == project));
+				result = pi.Build (new string[] { target }, solution.buildParams.Loggers);
+				NotifyValueChanged ("EvaluatedProperties", pi.Properties.OrderBy(a=>a.Name).ToList());
+			});
+
+			/*
+			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (solution.IDE.projectCollection.LoadedProjects.First (p => p == project));
+			result = pi.Build (new string[] { target }, solution.buildParams.Loggers);
+			*/
+			return result;
+
 			//ProjectInstance pi = new ProjectInstance (project.FullPath, solution.globalProperties, solution.toolsVersion);
-
-			/*ILogger logger = new Microsoft.Build.Logging.ConsoleLogger {
-				Verbosity = LoggerVerbosity.Diagnostic
-			};*/
-
-			if (pi.Build (new string [] { target }, solution.buildParams.Loggers))
-				Console.WriteLine ("success");
-			else
-				Console.WriteLine ("error");
-
-
 		}
 		//    if (ParentProject != null)
 		//        ParentProject.Compile ();

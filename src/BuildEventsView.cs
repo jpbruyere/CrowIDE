@@ -22,7 +22,9 @@ namespace Crow
 		bool scrollOnOutput;
 		uint visibleLines = 1;
 		uint lineCount = 0;
+
 		FontExtents fe;
+		LoggerVerbosity verbosity;
 
 		[DefaultValue(true)]
 		public virtual bool ScrollOnOutput {
@@ -33,6 +35,16 @@ namespace Crow
 				scrollOnOutput = value;
 				NotifyValueChanged ("ScrollOnOutput", scrollOnOutput);
 
+			}
+		}
+		[DefaultValue (LoggerVerbosity.Normal)]
+		public LoggerVerbosity Verbosity {
+			get => verbosity;
+			set {
+				if (verbosity == value)
+					return;
+				verbosity = value;
+				NotifyValueChanged ("Verbosity", verbosity);
 			}
 		}
 		public virtual ObservableList<BuildEventArgs> Events {
@@ -86,7 +98,14 @@ namespace Crow
 		void Lines_ListAdd (object sender, ListChangedEventArg e)
 		{
 			BuildEventArgs bea = e.Element as BuildEventArgs;
-			lock (eventsDic)
+
+			if (bea is BuildMessageEventArgs) {
+				BuildMessageEventArgs m = bea as BuildMessageEventArgs;
+				if (m.Importance == MessageImportance.Low)
+					Console.WriteLine ("ADDING LOW MSG");
+			}
+
+				lock (eventsDic)
 				eventsDic.Add (lineCount);
 			string msg = bea.Message;
 			lineCount += string.IsNullOrEmpty(msg) ? 1 : (uint)Regex.Split (msg, "\r\n|\r|\n|\\\\n").Length;
@@ -125,8 +144,7 @@ namespace Crow
 				MaxScrollY = (int)(lineCount - visibleLines);
 			}
 		}
-		protected override void onDraw (Cairo.Context gr)
-		{
+		protected override void onDraw (Cairo.Context gr) {
 			base.onDraw (gr);
 
 			if (events == null)
@@ -142,12 +160,12 @@ namespace Crow
 
 			int spaces = 0;
 
-			uint [] evts;
+			uint[] evts;
 			lock (eventsDic)
 				evts = eventsDic.ToArray ();
 
 			int idx = Array.BinarySearch (evts, (uint)ScrollY);
-			if (idx < 0) 
+			if (idx < 0)
 				idx = ~idx - 1;
 			if (idx < 0)
 				return;
@@ -172,25 +190,27 @@ namespace Crow
 					BuildMessageEventArgs msg = evt as BuildMessageEventArgs;
 					switch (msg.Importance) {
 					case MessageImportance.High:
-						gr.SetSourceColor (Colors.White);
+						gr.SetSourceColor (Colors.Cyan);
 						break;
 					case MessageImportance.Normal:
-						gr.SetSourceColor (Colors.Grey);
+						gr.SetSourceColor (Colors.DarkCyan);
 						break;
 					case MessageImportance.Low:
 						gr.SetSourceColor (Colors.Jet);
 						break;
 					}
-				} else if (evt is BuildStartedEventArgs)
-					gr.SetSourceColor (Colors.White);
-				else if (evt is BuildFinishedEventArgs)
+				} else if (evt is BuildStartedEventArgs || evt is BuildFinishedEventArgs)
 					gr.SetSourceColor (Colors.White);
 				else if (evt is BuildErrorEventArgs)
 					gr.SetSourceColor (Colors.Red);
-				else if (evt is BuildEventArgs)
+				else if (evt is BuildWarningEventArgs)
 					gr.SetSourceColor (Colors.Yellow);
-				else if (evt is BuildStatusEventArgs)
-					gr.SetSourceColor (Colors.Green);										
+				else if (evt is TargetStartedEventArgs || evt is TargetFinishedEventArgs)
+					gr.SetSourceColor (Colors.CornflowerBlue);
+				else if (evt is TaskStartedEventArgs || evt is TaskFinishedEventArgs)
+					gr.SetSourceColor (Colors.Pink);
+				else if (evt is ProjectStartedEventArgs || evt is ProjectFinishedEventArgs)
+					gr.SetSourceColor (Colors.LightBlue);
 
 				string[] lines = Regex.Split (evt.Message, "\r\n|\r|\n|\\\\n");
 

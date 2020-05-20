@@ -2,20 +2,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 <!--		<TargetFramework>netcoreapp3.1</TargetFramework>-->
-		<TargetFramework>net472</TargetFramework>
 		<OutputType>Exe</OutputType>
-		<StartupObject>Crow.Coding.Startup</StartupObject>
+		<TargetFramework>net472</TargetFramework>				
 		<AssemblyVersion>$(CrowVersion)</AssemblyVersion>
 		<EnableDefaultItems>false</EnableDefaultItems>
-		<SelfContained>false</SelfContained>
-		<UseAppHost>false</UseAppHost>
+<!--		<SelfContained>false</SelfContained>
+		<UseAppHost>false</UseAppHost>-->
 		<OutputPath>$(SolutionDir)build\$(Configuration)\</OutputPath>
 		<IntermediateOutputPath>$(SolutionDir)build\obj\$(Configuration)\</IntermediateOutputPath>		
 	</PropertyGroup>
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-		<DebugType>full</DebugType>
-		<DefineConstants>TRACE;DEBUG;NETCOREAPP;NETCOREAPP3_1</DefineConstants>
-	</PropertyGroup>
+
 
 	<ItemGroup>
 		<!--<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.10.0" />-->
@@ -37,19 +33,19 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-	  <PackageReference Include="Microsoft.Build" Version="15.*">
-			<IncludeAssets>compile</IncludeAssets>
+		<PackageReference Include="Microsoft.Build" Version="16.*">
+<!--			<IncludeAssets>compile</IncludeAssets>-->
 		</PackageReference>
-	  <PackageReference Include="Microsoft.Build.Framework" Version="15.*">
-			<IncludeAssets>compile</IncludeAssets>
+	  <PackageReference Include="Microsoft.Build.Framework" Version="16.*">
+<!--			<IncludeAssets>compile</IncludeAssets>-->
 		</PackageReference>
-	  <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.*">
-			<IncludeAssets>compile</IncludeAssets>
+	  <PackageReference Include="Microsoft.Build.Tasks.Core" Version="16.*">
+<!--			<IncludeAssets>compile</IncludeAssets>-->
 		</PackageReference>
-	  <PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.*">
-			<IncludeAssets>compile</IncludeAssets>
+	  <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.*">
+<!--			<IncludeAssets>compile</IncludeAssets>-->
 		</PackageReference>
-	  <PackageReference Include="Crow" Version="0.9.5-beta" />
+	  
 	  <PackageReference Include="SQLitePCLRaw.core" Version="2.0.3" />		
 		
 	</ItemGroup>
@@ -60,16 +56,9 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="3.6.0-4.final" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.6.0-4.final" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="3.6.0-4.final" />
-		<PackageReference Include="Microsoft.VisualStudio.TestPlatform.ObjectModel" />
+<!--		<PackageReference Include="Microsoft.VisualStudio.TestPlatform.ObjectModel" />-->
 	</ItemGroup>
-	
 	<ItemGroup>
-		<Folder Include="src\msbuild\" />			
-	</ItemGroup>
-	
-	<ItemGroup>
-	  <Reference Include="System.Threading.Tasks.Dataflow">
-	    <HintPath>..\..\..\usr\share\dotnet\packs\Microsoft.NETCore.App.Ref\3.1.0\ref\netcoreapp3.1\System.Threading.Tasks.Dataflow.dll</HintPath>
-	  </Reference>
+		<PackageReference Include="Crow" Version="0.9.5-beta" />
 	</ItemGroup>
 </Project>

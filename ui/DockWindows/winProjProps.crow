@@ -1,0 +1,14 @@
+﻿<?xml version="1.0"?>
+<DockWindow Name="winProjProps" Caption="ProjectProps" >
+	<VerticalStack DataSource="{CurrentProject}" >
+		<Label Text="{ProjectGuid}"/>
+		<ListBox Data="{EvaluatedProperties}">
+			<ItemTemplate>
+				<HorizontalStack Height="Fit">
+					<Label Text="{Name}" Width="200" Foreground="CornflowerBlue"/>
+					<Label Text="{EvaluatedValue}" Width="Stretched"/>
+				</HorizontalStack>
+			</ItemTemplate>
+		</ListBox>
+	</VerticalStack>
+</DockWindow >

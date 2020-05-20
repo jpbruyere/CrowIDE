@@ -3,6 +3,7 @@
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -18,7 +19,7 @@ namespace Crow.Coding
 {
 	public class CrowIDE : Interface
 	{
-		public static string DEFAULT_TOOLS_VERSION = "15.0";
+		public static string DEFAULT_TOOLS_VERSION = "Current";
 		public static CrowIDE MainWin;
 
 		#region Commands
@@ -44,7 +45,7 @@ namespace Crow.Coding
 
 		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, cmdCloseSolution, CMDQuit,
 		CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDHelp, CMDAbout, CMDOptions,
-		CMDViewGTExp, CMDViewProps, CMDViewProj, CMDViewProjProps, CMDViewErrors, CMDViewLog, CMDViewSolution, CMDViewEditor, CMDViewProperties,
+		CMDViewGTExp, CMDViewProps, CMDViewProj, CMDViewProjProps, CMDViewErrors, CMDViewLog, CMDViewSolution, CMDViewEditor, CMDViewProperties, CMDViewProjProps2,
 		CMDViewToolbox, CMDViewSchema, CMDViewStyling,CMDViewDesign, CMDViewSyntaxTree,
 		CMDBuild, CMDClean, CMDRestore;
 
@@ -87,6 +88,8 @@ namespace Crow.Coding
 			{ Caption = "Graphic Tree Explorer", CanExecute = true};
 			CMDViewSyntaxTree = new Command (new Action (() => loadWindow ("#ui.winSyntaxTree.crow", currentSolution)))
 			{ Caption = "Syntax Tree", CanExecute = true };
+			CMDViewProjProps2 = new Command (new Action (() => loadWindow ("#ui.winProjProps.crow", this)))
+			{ Caption = "Project Properties", CanExecute = true };
 
 			CMDBuild = new Command(new Action(() => CurrentSolution?.Build ("Build")))
 			{ Caption = "Compile Solution", CanExecute = false};
@@ -141,7 +144,9 @@ namespace Crow.Coding
 		SolutionView currentSolution;
 		ProjectView currentProject;
 
-		public CrowIDE () : base (1024, 800) { }
+		public CrowIDE () : base (1024, 800) {
+			Interface.UPDATE_INTERVAL = 10;
+		}
 
 		protected override void OnInitialized () {
 			base.OnInitialized ();
@@ -179,18 +184,29 @@ namespace Crow.Coding
 			return true;
 		}
 
-		void initIde() {
-			var host = MefHostServices.Create (MSBuildMefHostServices.DefaultAssemblies);
-			Workspace = MSBuildWorkspace.Create (host);
-			Workspace.WorkspaceFailed += (sender, e) => Console.WriteLine ($"Workspace error: {e.Diagnostic}");
-			ProgressLogger = new ProgressLog ();
-			projectCollection = new ProjectCollection (null, new ILogger [] { new IdeLogger (this) }, ToolsetDefinitionLocations.Default) {
-				//DefaultToolsVersion = DEFAULT_TOOLS_VERSION,
+		public Dictionary<string, string> Properties;
+		IdeLogger logger;
 
+		void initIde() {
+			Properties = new Dictionary<string, string> {
+				{ "RoslynTargetsPath", Path.Combine (Startup.msbuildRoot, "Roslyn/") },
+				{ "MSBuildSDKsPath", Path.Combine (Startup.msbuildRoot, "Sdks/") },
+				{ "RestoreConfigFile", Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget/NuGet/NuGet.Config") }
 			};
 
-			projectCollection.SetGlobalProperty ("RestoreConfigFile",
-				Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile),".nuget/NuGet/NuGet.Config"));
+			var host = MefHostServices.Create (MSBuildMefHostServices.DefaultAssemblies);
+
+			Workspace = MSBuildWorkspace.Create (Properties, host);
+			Workspace.WorkspaceFailed += (sender, e) => Console.WriteLine ($"Workspace error: {e.Diagnostic}");
+
+			ProgressLogger = new ProgressLog ();
+			logger = new IdeLogger (this);
+
+			projectCollection = new ProjectCollection (Properties, new ILogger [] { logger }, ToolsetDefinitionLocations.Default) {
+				//DefaultToolsVersion = DEFAULT_TOOLS_VERSION,
+			};
+
+			Microsoft.Build.Execution.BuildManager.DefaultBuildManager.ResetCaches ();
 
 			initCommands ();
 
@@ -278,12 +294,11 @@ namespace Crow.Coding
 			}
 		}
 		public LoggerVerbosity MainLoggerVerbosity {
-			get => projectCollection == null ? LoggerVerbosity.Normal : projectCollection.Loggers.First ().Verbosity;
+			get => logger.Verbosity;
 			set {
 				if (MainLoggerVerbosity == value)
 					return;
-				if (projectCollection != null)
-					projectCollection.Loggers.First ().Verbosity = value;
+				logger.Verbosity = value;
 				NotifyValueChanged ("MainLoggerVerbosity", MainLoggerVerbosity);
 			}
 		}

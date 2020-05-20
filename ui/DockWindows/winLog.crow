@@ -10,7 +10,7 @@
 			<EnumSelector Caption="Verbosity" EnumValue="{²MainLoggerVerbosity}" Fit="true"/>
 		</HorizontalStack>
 		<HorizontalStack >
-			<BuildEventsView MouseWheelSpeed="6" Events="{BuildEvents}" Focusable="true" Name="log" Background="Black"/>		
+			<BuildEventsView Verbosity="{MainLoggerVerbosity}" Name="log" MouseWheelSpeed="6" Events="{BuildEvents}" Focusable="true" Background="Black"/>		
 			<ScrollBar Name="scrollbarY" Value="{²../log.ScrollY}"				   
 				CursorSize="{../log.ChildHeightRatio}"
 				Maximum="{../log.MaxScrollY}" Orientation="Vertical"/>

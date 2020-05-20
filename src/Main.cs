@@ -16,7 +16,6 @@ namespace Crow.Coding
 #if NET472
 		public static string sdkFolder = "/usr/lib/mono/msbuild/Current/bin/";
 		public static string msbuildRoot = sdkFolder;
-		static string msbuildFolder = sdkFolder;
 
 #else
 		public static string sdkFolder = "/usr/share/dotnet/sdk";
@@ -27,40 +26,27 @@ namespace Crow.Coding
 		[STAThread]
 		static void Main ()
 		{
-//			configureDefaultSDKPathes ();
-
-			msbuildRoot = Path.Combine (sdkFolder, msbuildFolder);
-
 			AppDomain currentDomain = AppDomain.CurrentDomain;
 			currentDomain.AssemblyResolve += msbuildAssembliesResolve;
-
-#if NETCORE
-			NativeLibrary.SetDllImportResolver (Assembly.GetAssembly(typeof(Glfw.Glfw3)),
-				(libraryName, assembly, searchPath) => NativeLibrary.Load (libraryName == "glfw3" ?
-					Environment.OSVersion.Platform == PlatformID.Unix ? "glfw" : "glfw3" : libraryName, assembly, searchPath));
-#endif
-			start ();
-
-		}
-		static void start()
-		{
-		
 #if NET472
-			var nativeSharedMethod = typeof (Microsoft.Build.Construction.SolutionFile).Assembly.GetType ("Microsoft.Build.Shared.NativeMethodsShared");
+			/*var nativeSharedMethod = typeof (Microsoft.Build.Construction.SolutionFile).Assembly.GetType ("Microsoft.Build.Shared.NativeMethodsShared");
 			var isMonoField = nativeSharedMethod.GetField ("_isMono", BindingFlags.Static | BindingFlags.NonPublic);
-			isMonoField.SetValue (null, true);
-
-			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", Path.Combine (msbuildRoot, "MSBuild.dll"));
+			isMonoField.SetValue (null, true);*/
 #endif
-			Environment.SetEnvironmentVariable ("MSBUILD_NUGET_PATH", "/home/jp/.nuget/packages");
+			Start ();
+		}
+
+		static void Start() {
+			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", Path.Combine (msbuildRoot, "MSBuild.dll"));
+			Environment.SetEnvironmentVariable ("MSBUILD_NUGET_PATH", Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget/packages"));
 			Environment.SetEnvironmentVariable ("FrameworkPathOverride", "/usr/lib/mono/4.5/");
 
 			using (CrowIDE app = new CrowIDE ()) {
 				app.Run ();
 				app.saveWinConfigs ();
 			}
-
 		}
+
 		static Assembly msbuildAssembliesResolve (object sender, ResolveEventArgs args)
 		{
 			string assemblyPath = Path.Combine (msbuildRoot, new AssemblyName (args.Name).Name + ".dll");
@@ -87,7 +73,7 @@ namespace Crow.Coding
 				}
 				Configuration.Global.Set ("SDKFolder", sdkFolder);
 			}
-			msbuildFolder = Configuration.Global.Get<string> ("msbuildFolder");
+			string msbuildFolder = Configuration.Global.Get<string> ("msbuildFolder");
 			if (!string.IsNullOrEmpty (msbuildFolder) && Directory.Exists(msbuildFolder))
 				return;
 			List<SDKVersion> versions = new List<SDKVersion> ();

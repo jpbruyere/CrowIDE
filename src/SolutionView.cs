@@ -70,7 +70,7 @@ namespace Crow.Coding
 			ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
 			ActivePlatform = solutionFile.GetDefaultPlatformName ();
 
-			ide.projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (path) + "/");
+			ide.Properties.Add ("SolutionDir", Path.GetDirectoryName (path) + "/");
 			//ide.projectCollection.HostServices
 			buildParams = new BuildParameters (ide.projectCollection) {
 				Loggers = ide.projectCollection.Loggers,
@@ -81,10 +81,6 @@ namespace Crow.Coding
 
 			BuildManager.DefaultBuildManager.ResetCaches ();
 
-#if NET472
-			ide.projectCollection.SetGlobalProperty ("RoslynTargetsPath", Path.Combine (Startup.msbuildRoot, "Roslyn/"));
-			ide.projectCollection.SetGlobalProperty ("MSBuildSDKsPath", Path.Combine (Startup.msbuildRoot, "Sdks/"));
-#endif
 			//------------
 
 			foreach (ProjectInSolution pis in solutionFile.ProjectsInOrder) {
@@ -348,6 +344,8 @@ namespace Crow.Coding
 		{
 			Console.WriteLine ($"solution.onSelectedItemChanged: {e.NewValue}");
 			SelectedItem = e.NewValue as TreeNode;
+			if (e.NewValue is ProjectView pv)
+				IDE.CurrentProject = pv;
 		}
 
 	}

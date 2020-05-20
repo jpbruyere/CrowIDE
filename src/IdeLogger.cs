@@ -2,6 +2,7 @@
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 using System;
+using System.Reflection;
 using Crow;
 using Microsoft.Build.Framework;
 
@@ -13,6 +14,7 @@ namespace Crow.Coding
 		public string Parameters { get; set; }
 
 		CrowIDE ide;
+		IEventSource eventSource;
 
 		public IdeLogger (CrowIDE ide)
 		{
@@ -21,60 +23,48 @@ namespace Crow.Coding
 
 		public void Initialize (IEventSource eventSource)
 		{
-			eventSource.BuildStarted += EventSource_BuildStarted; ;
+			this.eventSource = eventSource;
+			eventSource.AnyEventRaised += EventSource_AnyEventRaised;
+		}
 
-			switch (Verbosity) {
-			case LoggerVerbosity.Quiet:
-				eventSource.BuildFinished += EventSource_BuildFinished;
-				break;
-			case LoggerVerbosity.Minimal:
-				eventSource.MessageRaised += (sender, e) => { if (e.Importance == MessageImportance.High) ide.BuildEvents.Add (e); };
-				break;
-			case LoggerVerbosity.Normal:
-				eventSource.MessageRaised += (sender, e) => { if (e.Importance != MessageImportance.Low) ide.BuildEvents.Add (e); };
-				eventSource.ProjectStarted += EventSource_ProjectStarted;
-				eventSource.ProjectFinished += EventSource_ProjectFinished;
-				break;
-			case LoggerVerbosity.Detailed:
-				break;
-			case LoggerVerbosity.Diagnostic:
-				eventSource.AnyEventRaised += (sender, e) => { ide.BuildEvents.Add (e); };
-				eventSource.MessageRaised += (sender, e) => { ide.BuildEvents.Add (e); };
-				break;			
+		void EventSource_AnyEventRaised (object sender, BuildEventArgs e) {
+			if (e is BuildStartedEventArgs)
+				ide.BuildEvents.Clear ();
+
+			if (e is BuildMessageEventArgs msg) {
+				if (msg.Importance == MessageImportance.Normal) {
+					if (Verbosity < LoggerVerbosity.Normal)
+						return;
+				} else if (msg.Importance == MessageImportance.Low) {
+					if (Verbosity < LoggerVerbosity.Diagnostic)
+						return;
+				}
+			}else if (!(e is BuildErrorEventArgs)) {
+				if (Verbosity < LoggerVerbosity.Diagnostic) {
+					if (e is TaskStartedEventArgs)
+						return;
+					if (Verbosity < LoggerVerbosity.Detailed) {
+						if (e is TargetStartedEventArgs || e is TaskFinishedEventArgs)
+							return;
+					}
+					if (Verbosity < LoggerVerbosity.Normal) {
+						if (e is ProjectStartedEventArgs  || e is TargetFinishedEventArgs)
+							return;
+					}
+					if (Verbosity < LoggerVerbosity.Minimal) {
+						if (e is ProjectFinishedEventArgs)
+							return;
+					}
+				}
 			}
 
-			eventSource.BuildFinished += EventSource_BuildFinished;
-
-			eventSource.ErrorRaised += EventSource_ErrorRaised;
-		}
-
-		void EventSource_BuildStarted (object sender, BuildStartedEventArgs e)
-		{
-			ide.BuildEvents.Clear ();
 			ide.BuildEvents.Add (e);
 		}
-		void EventSource_BuildFinished (object sender, BuildFinishedEventArgs e)
-		{
-			ide.BuildEvents.Add (e);
-		}
-
-		void EventSource_ProjectStarted (object sender, ProjectStartedEventArgs e)
-		{
-			ide.BuildEvents.Add (e);
-		}
-		void EventSource_ProjectFinished (object sender, ProjectFinishedEventArgs e)
-		{
-			ide.BuildEvents.Add (e);
-		}
-		void EventSource_ErrorRaised (object sender, BuildErrorEventArgs e)
-		{
-			ide.BuildEvents.Add (e);
-		}
-
 
 
 		public void Shutdown ()
 		{
+			eventSource.AnyEventRaised -= EventSource_AnyEventRaised;
 		}
 	}
 }

@@ -60,7 +60,7 @@ namespace Crow.Coding
 			icoMove = new SvgPicture ("#Icons.move-arrows.svg");
 
             //			icoStyle = new SvgPicture ();
-            //			icoStyle.Load (IFace, "#CrowIDE.icons.palette.svg");
+            //			icoStyle.Load (IFace, "#Icons.palette.svg");
         }
 
         [DefaultValue(true)]
