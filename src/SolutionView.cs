@@ -70,7 +70,7 @@ namespace Crow.Coding
 			ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
 			ActivePlatform = solutionFile.GetDefaultPlatformName ();
 
-			ide.projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (path) + "/");
+			ide.projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (path) + Path.DirectorySeparatorChar);
 			//ide.projectCollection.HostServices
 			buildParams = new BuildParameters (ide.projectCollection) {
 				Loggers = ide.projectCollection.Loggers,
@@ -81,10 +81,13 @@ namespace Crow.Coding
 
 			BuildManager.DefaultBuildManager.ResetCaches ();
 
-#if NET472
-			ide.projectCollection.SetGlobalProperty ("RoslynTargetsPath", Path.Combine (Startup.msbuildRoot, "Roslyn/"));
-			ide.projectCollection.SetGlobalProperty ("MSBuildSDKsPath", Path.Combine (Startup.msbuildRoot, "Sdks/"));
-#endif
+
+			//ide.projectCollection.SetGlobalProperty ("RoslynTargetsPath", Path.Combine (Startup.msbuildRoot, @"Roslyn\"));
+			//ide.projectCollection.SetGlobalProperty ("MSBuildSDKsPath", Path.Combine (Startup.msbuildRoot, @"Sdks\"));
+			//ide.projectCollection.SetGlobalProperty ("MSBuildExtensionsPath", @"C:\Program Files\dotnet\sdk\5.0.100");
+			//ide.projectCollection.SetGlobalProperty ("MSBuildBinPath", @"C:\Program Files\dotnet\sdk\5.0.100");
+			//ide.projectCollection. ("MSBuildToolsPath", @"C:\Program Files\dotnet\sdk\5.0.100");
+			//ide.projectCollection.to
 			//------------
 
 			foreach (ProjectInSolution pis in solutionFile.ProjectsInOrder) {
@@ -102,8 +105,8 @@ namespace Crow.Coding
 					break;
 				case SolutionProjectType.EtpSubProject:
 					break;
-				case SolutionProjectType.SharedProject:
-					break;
+				/*case SolutionProjectType.SharedProject:
+					break;*/
 				}
 			}
 

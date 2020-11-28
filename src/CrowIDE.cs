@@ -18,7 +18,7 @@ namespace Crow.Coding
 {
 	public class CrowIDE : Interface
 	{
-		public static string DEFAULT_TOOLS_VERSION = "15.0";
+		public static string DEFAULT_TOOLS_VERSION = "Current";
 		public static CrowIDE MainWin;
 
 		#region Commands
@@ -180,6 +180,9 @@ namespace Crow.Coding
 		}
 
 		void initIde() {
+
+
+
 			var host = MefHostServices.Create (MSBuildMefHostServices.DefaultAssemblies);
 			Workspace = MSBuildWorkspace.Create (host);
 			Workspace.WorkspaceFailed += (sender, e) => Console.WriteLine ($"Workspace error: {e.Diagnostic}");
@@ -187,10 +190,16 @@ namespace Crow.Coding
 			projectCollection = new ProjectCollection (null, new ILogger [] { new IdeLogger (this) }, ToolsetDefinitionLocations.Default) {
 				//DefaultToolsVersion = DEFAULT_TOOLS_VERSION,
 
-			};
+			};			
 
-			projectCollection.SetGlobalProperty ("RestoreConfigFile",
-				Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile),".nuget/NuGet/NuGet.Config"));
+			//projectCollection.AddToolset (new Toolset (Microsoft.Build.Utilities.ToolLocationHelper.CurrentToolsVersion,
+//				Path.GetDirectoryName (msbuildRoot), projectCollection, string.Empty));
+
+			projectCollection.SetGlobalProperty ("RestoreConfigFile", Path.Combine (
+							Path.Combine (
+								Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "NuGet"),
+								"NuGet.Config"));
+
 
 			initCommands ();
 
@@ -265,7 +274,7 @@ namespace Crow.Coding
 				if (LastOpenSolution == value)
 					return;
 				Crow.Configuration.Global.Set ("LastOpenSolution", value);
-				NotifyValueChanged ("LastOpenSolution", value);
+				NotifyValueChanged (value);
 			}
 		}
 		public bool ReopenLastSolution {
@@ -274,7 +283,7 @@ namespace Crow.Coding
 				if (ReopenLastSolution == value)
 					return;
 				Crow.Configuration.Global.Set ("ReopenLastSolution", value);
-				NotifyValueChanged ("ReopenLastSolution", value);
+				NotifyValueChanged (value);
 			}
 		}
 		public LoggerVerbosity MainLoggerVerbosity {

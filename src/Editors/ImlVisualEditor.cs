@@ -177,9 +177,9 @@ namespace Crow.Coding
 			get { return imlVE.GraphicTree; }
 		}
 
-		[XmlIgnore]public List<LQIList> LQIs {
+		/*[XmlIgnore]public List<LQIList> LQIs {
 			get { return imlVE.LQIs; }
-		}
+		}*/
 
 		#region editor overrides
 		public override ProjectFileNode ProjectNode {
@@ -413,10 +413,10 @@ namespace Crow.Coding
 				imlVE.IsDirty = false;
 			}
 			/*if (Error == null) {
-				gr.SetSourceColor (Color.Black);
+				gr.SetSource (Color.Black);
 				gr.Rectangle (cb, 1.0 / z);
 			} else {
-				gr.SetSourceColor (Color.LavenderBlush);
+				gr.SetSource (Color.LavenderBlush);
 				gr.Rectangle (cb, 2.0 / z);
 				string[] lerrs = Error.ToString ().Split ('\n');
 				Point p = cb.Center;
@@ -464,7 +464,7 @@ namespace Crow.Coding
 
 					using (Surface ol = new ImageSurface (Format.Argb32, cb.Width, cb.Height)) {
 						using (Context ctx = new Context (ol)) {
-							ctx.SetSourceColor (Colors.Black);
+							ctx.SetSource (Colors.Black);
 							drawDesignOverlay (ctx, g, cb, hr, 0.4 / z, 6.5);
 						}
 							
@@ -479,7 +479,7 @@ namespace Crow.Coding
 			}
 			if (HoverWidget != null) {
 				hr = HoverWidget.ScreenCoordinates (HoverWidget.getSlot ());
-				gr.SetSourceColor (Colors.SkyBlue);
+				gr.SetSource (Colors.SkyBlue);
 				//gr.SetDash (new double[]{ 5.0, 3.0 }, 0.0);
 				gr.Rectangle (hr, 0.4 / z);
 			}
@@ -487,9 +487,9 @@ namespace Crow.Coding
 		}
 
 		void drawIcon (Context gr, Picture pic, Rectangle r) {
-//			gr.SetSourceColor (Color.Black);
+//			gr.SetSource (Color.Black);
 //			CairoHelpers.CairoRectangle (gr, r.Inflated (1), 2, 1.0);
-			gr.SetSourceColor (Colors.White);
+			gr.SetSource (Colors.White);
 			CairoHelpers.CairoRectangle (gr, r.Inflated (1), 2);
 			gr.Fill ();
 			gr.Operator = Operator.Clear;
@@ -543,7 +543,7 @@ namespace Crow.Coding
 
 			//				hr.Inflate (2);
 			//gr.SetDash (new double[]{ 1.0, 4.0 }, 0.0);
-			//gr.SetSourceColor (Color.Grey);
+			//gr.SetSource (Color.Grey);
 //			gr.Rectangle (hr,coteStroke);
 //			gr.Stroke ();
 			gr.Operator = Operator.Over;			
@@ -601,7 +601,7 @@ namespace Crow.Coding
 			dumy.EndDrag += dumyOnEndDrag;
 			dumy.Drop += dumyOnDrop;
 			dumy.IsDragged = true;
-			IFace.ActiveWidget = dumy;
+			//IFace.ActiveWidget = dumy;
 			e.DragSource.IsDragged = false;
 			IFace.DragAndDropOperation.DragSource = dumy;
 			draggedObj = SelectedItem;

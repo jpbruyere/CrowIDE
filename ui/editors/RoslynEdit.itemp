@@ -2,7 +2,7 @@
 <TabItem QueryClose="OnQueryClose" IsSelected="{²IsSelected}" Template="#ui.EditTabItem.template">
 	<VerticalStack>
 		<HorizontalStack >
-			<RoslynEditor Focusable="true" Name="editor" Font="monospace, 10" VerticalAlignment="Top" Margin="0"
+			<RoslynEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"
 					CurrentLine="{²CurrentLine}" CurrentColumn="{²CurrentColumn}" HasFocus="{IsSelected}"
 					Foreground="Jet" Background="White" Width="Stretched" Height="Stretched"
 					ProjectNode="{}"  KeyDown="textView_KeyDown"/>

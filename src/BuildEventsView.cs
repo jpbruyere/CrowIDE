@@ -89,7 +89,7 @@ namespace Crow
 			lock (eventsDic)
 				eventsDic.Add (lineCount);
 			string msg = bea.Message;
-			lineCount += string.IsNullOrEmpty(msg) ? 1 : (uint)Regex.Split (msg, "\r\n|\r|\n|\\\\n").Length;
+			lineCount += string.IsNullOrEmpty(msg) ? 1 : (uint)Regex.Split (msg, "\r\n").Length;
 			MaxScrollY = (int)(lineCount - visibleLines);
 			if (scrollOnOutput)
 				ScrollY = MaxScrollY;
@@ -101,7 +101,7 @@ namespace Crow
 			lock (eventsDic)
 				eventsDic.RemoveAt (e.Index);
 			string msg = (e.Element as BuildEventArgs).Message;
-			lineCount -= string.IsNullOrEmpty (msg) ? 1 : (uint)Regex.Split (msg, "\r\n|\r|\n|\\\\n").Length;
+			lineCount -= string.IsNullOrEmpty (msg) ? 1 : (uint)Regex.Split (msg, "\r\n").Length;
 			MaxScrollY = (int)(lineCount - visibleLines);
 		}
 
@@ -172,27 +172,27 @@ namespace Crow
 					BuildMessageEventArgs msg = evt as BuildMessageEventArgs;
 					switch (msg.Importance) {
 					case MessageImportance.High:
-						gr.SetSourceColor (Colors.White);
+						gr.SetSource (Colors.White);
 						break;
 					case MessageImportance.Normal:
-						gr.SetSourceColor (Colors.Grey);
+						gr.SetSource (Colors.Grey);
 						break;
 					case MessageImportance.Low:
-						gr.SetSourceColor (Colors.Jet);
+						gr.SetSource (Colors.Jet);
 						break;
 					}
 				} else if (evt is BuildStartedEventArgs)
-					gr.SetSourceColor (Colors.White);
+					gr.SetSource (Colors.White);
 				else if (evt is BuildFinishedEventArgs)
-					gr.SetSourceColor (Colors.White);
+					gr.SetSource (Colors.White);
 				else if (evt is BuildErrorEventArgs)
-					gr.SetSourceColor (Colors.Red);
+					gr.SetSource (Colors.Red);
 				else if (evt is BuildEventArgs)
-					gr.SetSourceColor (Colors.Yellow);
+					gr.SetSource (Colors.Yellow);
 				else if (evt is BuildStatusEventArgs)
-					gr.SetSourceColor (Colors.Green);										
+					gr.SetSource (Colors.Green);										
 
-				string[] lines = Regex.Split (evt.Message, "\r\n|\r|\n|\\\\n");
+				string[] lines = Regex.Split (evt.Message, "\r\n");//|\r|\n|\\\\n");
 
 				for (int j = diff; j < lines.Length; j++) {
 					gr.MoveTo (x, y + fe.Ascent);

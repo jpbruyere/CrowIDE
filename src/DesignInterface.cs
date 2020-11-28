@@ -18,6 +18,8 @@ namespace Crow.Coding
 		public DesignInterface () : base (100, 100, false, false)
 		{
 
+			Interface.GetStreamFromPath = _getStreamFromPath;
+
 			surf = new ImageSurface (Format.Argb32, 100, 100);
 
 			loadStyling ();
@@ -45,7 +47,7 @@ namespace Crow.Coding
 		
 			return null;
 		}
-		public override Stream GetStreamFromPath (string path)
+		Stream _getStreamFromPath (string path)
 		{
 			ProjectFileNode pi;
 			if (ProjFile.Project.solution.GetProjectFileFromPath (path, out pi)) {

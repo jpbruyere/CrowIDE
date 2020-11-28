@@ -16,25 +16,42 @@ namespace Crow.Coding
 #if NET472
 		public static string sdkFolder = "/usr/lib/mono/msbuild/Current/bin/";
 		public static string msbuildRoot = sdkFolder;
-		static string msbuildFolder = sdkFolder;
+		
 
 #else
-		public static string sdkFolder = "/usr/share/dotnet/sdk";
-		public static string msbuildRoot = Path.Combine (sdkFolder, "3.1.201/");
+		public static string sdkFolder = @"C:\Program Files\dotnet\sdk";
+		public static string msbuildRoot = Path.Combine (sdkFolder, "3.1.404\\");
 #endif
+		static string msbuildFolder = sdkFolder;
 
 
 		[STAThread]
 		static void Main ()
 		{
-//			configureDefaultSDKPathes ();
+			Environment.SetEnvironmentVariable ("MSBuildSDKsPath", @"C:\Program Files\dotnet\sdk\3.1.404\sdks");
+			//Environment.SetEnvironmentVariable ("MSBuildEnableWorkloadResolver", "true");
+			
 
-			msbuildRoot = Path.Combine (sdkFolder, msbuildFolder);
+				//		Microsoft.Build.Locator.MSBuildLocator.RegisterDefaults ();			
+
+			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", Path.Combine (msbuildRoot, "MSBuild.dll"));
+			/*Environment.SetEnvironmentVariable ("MSBUILD_NUGET_PATH", Path.Combine (
+				Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "packages"));*/
+
+			//Environment.SetEnvironmentVariable ("FrameworkPathOverride", "/usr/lib/mono/4.5/");
+
+			/*Environment.SetEnvironmentVariable ("MSBuildExtensionsPath", @"C:\Program Files\dotnet\sdk\5.0.100");
+			Environment.SetEnvironmentVariable ("MSBuildToolsPath", @"C:\Program Files\dotnet\sdk\5.0.100");
+			Environment.SetEnvironmentVariable ("MSBuildBinPath", @"C:\Program Files\dotnet\sdk\5.0.100");*/
+
+			//			configureDefaultSDKPathes ();
+
+			//msbuildRoot = Path.Combine (sdkFolder, msbuildFolder);
 
 			AppDomain currentDomain = AppDomain.CurrentDomain;
 			currentDomain.AssemblyResolve += msbuildAssembliesResolve;
 
-#if NETCORE
+#if NETCOREAPP
 			NativeLibrary.SetDllImportResolver (Assembly.GetAssembly(typeof(Glfw.Glfw3)),
 				(libraryName, assembly, searchPath) => NativeLibrary.Load (libraryName == "glfw3" ?
 					Environment.OSVersion.Platform == PlatformID.Unix ? "glfw" : "glfw3" : libraryName, assembly, searchPath));
@@ -44,7 +61,7 @@ namespace Crow.Coding
 		}
 		static void start()
 		{
-		
+
 #if NET472
 			var nativeSharedMethod = typeof (Microsoft.Build.Construction.SolutionFile).Assembly.GetType ("Microsoft.Build.Shared.NativeMethodsShared");
 			var isMonoField = nativeSharedMethod.GetField ("_isMono", BindingFlags.Static | BindingFlags.NonPublic);
@@ -52,8 +69,8 @@ namespace Crow.Coding
 
 			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", Path.Combine (msbuildRoot, "MSBuild.dll"));
 #endif
-			Environment.SetEnvironmentVariable ("MSBUILD_NUGET_PATH", "/home/jp/.nuget/packages");
-			Environment.SetEnvironmentVariable ("FrameworkPathOverride", "/usr/lib/mono/4.5/");
+
+
 
 			using (CrowIDE app = new CrowIDE ()) {
 				app.Run ();

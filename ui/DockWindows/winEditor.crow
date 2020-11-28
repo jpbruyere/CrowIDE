@@ -5,7 +5,7 @@
 		SelectedItemChanged="onSelectedItemChanged"
 		ItemTemplate="#ui.EditPane.itemp">
 		<Template>
-			<TabView SelectedTab="{²./SelectedIndex}" Name="ItemsContainer" Orientation="Horizontal"/>
+			<TabView Name="ItemsContainer" Orientation="Horizontal"/>
 		</Template>		
 	</EditPane>
 </DockWindow>

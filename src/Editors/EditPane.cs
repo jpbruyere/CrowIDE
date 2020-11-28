@@ -18,14 +18,14 @@ namespace Crow.Coding
 			get => base.SelectedItem;
 			set => base.SelectedItem = value;
 		}
-		public override int SelectedIndex {
+		/*public override int SelectedIndex {
 			get {
 				return base.SelectedIndex;
 			}
 			set {
 				base.SelectedIndex = value;
 			}
-		}
+		}*/
 		public object SelectedItemElement {
 			get { return selectedItemElement; }
 			set {

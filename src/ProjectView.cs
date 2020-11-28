@@ -27,11 +27,10 @@ namespace Crow.Coding
 		public ProjectView (SolutionView sol, ProjectInSolution sp)
 		{
 			solutionProject = sp;
-			solution = sol;
+			solution = sol;			
 
-			ProjectRootElement projectRootElt = ProjectRootElement.Open (solutionProject.AbsolutePath);			
-
-			project = new Project (solutionProject.AbsolutePath, null, null, sol.IDE.projectCollection);
+			ProjectRootElement projectRootElt = ProjectRootElement.Open (solutionProject.AbsolutePath);
+			project = new Project (solutionProject.AbsolutePath, null,null, sol.IDE.projectCollection);
 
 			string [] props = { "EnableDefaultItems", "EnableDefaultCompileItems", "EnableDefaultNoneItems", "EnableDefaultEmbeddedResourceItems" };
 
@@ -478,12 +477,17 @@ namespace Crow.Coding
 		public void GetStyling ()
 		{
 			try {
-                foreach (ProjectFileNode pi in Flatten.OfType<ProjectFileNode> ().Where (pp => pp.Type == ItemType.EmbeddedResource && pp.Extension == ".style")) {
+				/*foreach (ProjectFileNode pi in Flatten.OfType<ProjectFileNode> ().Where (pp => pp.Type == ItemType.EmbeddedResource && pp.Extension == ".style")) {
                     using (Stream s = new MemoryStream (System.Text.Encoding.UTF8.GetBytes (pi.Source))) {
                         new StyleReader (solution.Styling, s, pi.LogicalName);
                     }
-                }
-            } catch (Exception ex) {
+                }*/
+				foreach (ProjectFileNode pi in Flatten.OfType<ProjectFileNode> ().Where (pp => pp.Type == ItemType.EmbeddedResource && pp.Extension == ".style")) {
+					using (Stream s = new MemoryStream (System.Text.Encoding.UTF8.GetBytes (pi.Source))) {
+						new StyleReader (s);
+					}
+				}
+			} catch (Exception ex) {
                 Console.WriteLine (ex.ToString ());
             }
             foreach (ProjectItemNode pr in Flatten.OfType<ProjectItemNode> ().Where(pn=>pn.Type == ItemType.ProjectReference)) {

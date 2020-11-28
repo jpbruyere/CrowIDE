@@ -525,6 +525,7 @@ namespace Crow.Coding
 					gr.SetFontSize (Font.Size);
 
 					fe = gr.FontExtents;
+					fe.MaxXAdvance = gr.TextExtents ("A").XAdvance;
 				}				
 				MaxScrollY = 0;
 				RegisterForGraphicUpdate ();
@@ -592,7 +593,7 @@ namespace Crow.Coding
 					yStart, (visualColEnd - visualColStart) * fe.MaxXAdvance, (fe.Ascent + fe.Descent));
 
 				gr.Operator = Operator.DestOver;
-				gr.SetSourceColor (selbg);
+				gr.SetSource (selbg);
 
 				if (startTl == endTl) {
 					gr.Rectangle (r);
@@ -728,14 +729,14 @@ namespace Crow.Coding
 		}
 		public override void onMouseDown (object sender, MouseButtonEventArgs e)
 		{
-			if (!Focusable)
+			/*if (!Focusable)
 				return;
 
 			if (mouseLocalPos.X >= leftMargin)
 				base.onMouseDown (sender, e);
 
 			if (e.Handled)
-				return;
+				return;*/
 
 			if (doubleClicked) {
 				doubleClicked = false;

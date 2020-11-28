@@ -319,11 +319,11 @@ namespace Crow.Text
 					gr.Save ();
 					gr.Operator = Operator.Source;
 					gr.Rectangle (rLineX, rLineY, rLineW, (fe.Ascent+fe.Descent));
-					gr.SetSourceColor (SelectionBackground);
+					gr.SetSource (SelectionBackground);
 					gr.FillPreserve ();
 					gr.Clip ();
 					gr.Operator = Operator.Over;
-					gr.SetSourceColor (SelectionForeground);
+					gr.SetSource (SelectionForeground);
 					gr.MoveTo (x, y + fe.Ascent);
 					gr.ShowText (lstr);
 					gr.Fill ();

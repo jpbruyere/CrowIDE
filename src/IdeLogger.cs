@@ -9,18 +9,30 @@ namespace Crow.Coding
 {
 	public class IdeLogger : ILogger
 	{
-		public LoggerVerbosity Verbosity { get; set; } = LoggerVerbosity.Normal;
-		public string Parameters { get; set; }
-
+		IEventSource eventSource;
+		LoggerVerbosity verbosity = LoggerVerbosity.Quiet;
 		CrowIDE ide;
+
+		public LoggerVerbosity Verbosity {
+			get => verbosity;
+			set {
+				if (verbosity == value)
+					return;
+				if (eventSource != null)
+					unregisterHandles ();
+				verbosity = value;
+				if (eventSource != null)
+					registerHandles ();
+			}
+		} 
+		public string Parameters { get; set; }
 
 		public IdeLogger (CrowIDE ide)
 		{
 			this.ide = ide;
 		}
 
-		public void Initialize (IEventSource eventSource)
-		{
+		void registerHandles () {
 			eventSource.BuildStarted += EventSource_BuildStarted; ;
 
 			switch (Verbosity) {
@@ -28,26 +40,75 @@ namespace Crow.Coding
 				eventSource.BuildFinished += EventSource_BuildFinished;
 				break;
 			case LoggerVerbosity.Minimal:
-				eventSource.MessageRaised += (sender, e) => { if (e.Importance == MessageImportance.High) ide.BuildEvents.Add (e); };
+                eventSource.MessageRaised += EventSource_MessageRaised_Minimal;
 				break;
 			case LoggerVerbosity.Normal:
-				eventSource.MessageRaised += (sender, e) => { if (e.Importance != MessageImportance.Low) ide.BuildEvents.Add (e); };
+				eventSource.MessageRaised += EventSource_MessageRaised_Normal;
 				eventSource.ProjectStarted += EventSource_ProjectStarted;
 				eventSource.ProjectFinished += EventSource_ProjectFinished;
 				break;
 			case LoggerVerbosity.Detailed:
 				break;
 			case LoggerVerbosity.Diagnostic:
-				eventSource.AnyEventRaised += (sender, e) => { ide.BuildEvents.Add (e); };
-				eventSource.MessageRaised += (sender, e) => { ide.BuildEvents.Add (e); };
-				break;			
+                eventSource.AnyEventRaised += EventSource_AnyEventRaised;
+                eventSource.MessageRaised += EventSource_MessageRaised;
+				break;
 			}
 
 			eventSource.BuildFinished += EventSource_BuildFinished;
 
 			eventSource.ErrorRaised += EventSource_ErrorRaised;
 		}
+		void unregisterHandles () {
+			eventSource.BuildStarted -= EventSource_BuildStarted; ;
 
+			switch (Verbosity) {
+			case LoggerVerbosity.Quiet:
+				eventSource.BuildFinished -= EventSource_BuildFinished;
+				break;
+			case LoggerVerbosity.Minimal:
+				eventSource.MessageRaised -= EventSource_MessageRaised_Minimal;
+				break;
+			case LoggerVerbosity.Normal:
+				eventSource.MessageRaised -= EventSource_MessageRaised_Normal;
+				eventSource.ProjectStarted -= EventSource_ProjectStarted;
+				eventSource.ProjectFinished -= EventSource_ProjectFinished;
+				break;
+			case LoggerVerbosity.Detailed:
+				break;
+			case LoggerVerbosity.Diagnostic:
+				eventSource.AnyEventRaised -= EventSource_AnyEventRaised;
+				eventSource.MessageRaised -= EventSource_MessageRaised;
+				break;
+			}
+
+			eventSource.BuildFinished -= EventSource_BuildFinished;
+
+			eventSource.ErrorRaised -= EventSource_ErrorRaised;
+		}
+
+		public void Initialize (IEventSource eventSource) {
+			this.eventSource = eventSource;
+			registerHandles ();
+		}
+
+
+
+		private void EventSource_MessageRaised (object sender, BuildMessageEventArgs e) {
+			ide.BuildEvents.Add (e);
+		}
+        private void EventSource_AnyEventRaised (object sender, BuildEventArgs e) {
+			ide.BuildEvents.Add (e);
+		}
+
+        private void EventSource_MessageRaised_Minimal (object sender, BuildMessageEventArgs e) {
+			if (e.Importance == MessageImportance.High)
+				ide.BuildEvents.Add (e);
+		}
+		private void EventSource_MessageRaised_Normal (object sender, BuildMessageEventArgs e) {
+			if (e.Importance != MessageImportance.Low)
+				ide.BuildEvents.Add (e);
+		}
 		void EventSource_BuildStarted (object sender, BuildStartedEventArgs e)
 		{
 			ide.BuildEvents.Clear ();
@@ -75,6 +136,8 @@ namespace Crow.Coding
 
 		public void Shutdown ()
 		{
+			if (eventSource != null)
+				unregisterHandles ();
 		}
 	}
 }

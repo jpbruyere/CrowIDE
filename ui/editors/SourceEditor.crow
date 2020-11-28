@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
 <VerticalStack>
 	<HorizontalStack >
-		<SourceEditor Focusable="true" Name="editor" Font="monospace, 10" VerticalAlignment="Top" Margin="2"
+		<SourceEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="2"
 				CurrentLine="{²CurrentLine}" CurrentColumn="{²CurrentColumn}" HasFocus="{IsSelected}"
 				Foreground="Jet" Background="White" Width="Stretched" Height="Stretched"
 				ProjectNode="{}"  KeyDown="textView_KeyDown"/>

@@ -36,6 +36,7 @@ namespace Crow.Coding
 			bounds = editor.ClientRectangle;
 
 			fe = ctx.FontExtents;
+			fe.MaxXAdvance = ctx.TextExtents ("A").XAdvance;
 			y = bounds.Top;
 
 			currentCol = -1;// < 0 => margin no printed
@@ -145,10 +146,10 @@ namespace Crow.Coding
 					mgBg = Colors.DarkGrey;
 				}
 				string strLN = (currentLine + 1).ToString ();
-				ctx.SetSourceColor (mgBg);
+				ctx.SetSource (mgBg);
 				ctx.Rectangle (mgR);
 				ctx.Fill ();
-				ctx.SetSourceColor (mgFg);
+				ctx.SetSource (mgFg);
 
 				ctx.MoveTo (bounds.X + (int)(ctx.TextExtents (totalLines.ToString ()).Width - ctx.TextExtents (strLN).Width), y + fe.Ascent);
 				ctx.ShowText (strLN);
@@ -159,7 +160,7 @@ namespace Crow.Coding
 				Rectangle rFld = new Rectangle (bounds.X + editor.leftMargin - RoslynEditor.leftMarginGap - editor.foldMargin,
 					(int)(y + (fe.Ascent + fe.Descent) / 2.0 - RoslynEditor.foldSize / 2.0), RoslynEditor.foldSize, RoslynEditor.foldSize);
 
-				ctx.SetSourceColor (Colors.Black);
+				ctx.SetSource (Colors.Black);
 				ctx.LineWidth = 1.0;
 
 				int level = 0;
@@ -185,16 +186,16 @@ namespace Crow.Coding
 					closingNode = false;
 				}
 				gr.SetDash (new double [] { 1.5 }, 0.0);
-				gr.SetSourceColor (Color.Grey);
+				gr.SetSource (Color.Grey);
 				gr.Stroke ();
 				gr.SetDash (new double [] { }, 0.0);
 				*/
 
 				if (foldable) {
 					ctx.Rectangle (rFld);
-					ctx.SetSourceColor (Colors.White);
+					ctx.SetSource (Colors.White);
 					ctx.Fill ();
-					ctx.SetSourceColor (Colors.Black);
+					ctx.SetSource (Colors.Black);
 					ctx.Rectangle (rFld, 1.0);
 					/*if (cl.IsFolded) {
 						gr.MoveTo (rFld.Center.X + 0.5, rFld.Y + 2);
@@ -281,8 +282,8 @@ namespace Crow.Coding
 				fts = FontSlant.Italic;
 
 			ctx.SelectFontFace (editor.Font.Name, fts, ftw);
-			ctx.SetSourceColor (tf.Foreground);
-			Console.WriteLine (tf.Foreground);
+			ctx.SetSource (tf.Foreground);
+			//Console.WriteLine (tf.Foreground);
 
 			int diffX = currentCol - editor.ScrollX;
 

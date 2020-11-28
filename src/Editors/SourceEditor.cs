@@ -53,9 +53,13 @@ namespace Crow.Coding
 			buffer.SelectionChanged += Buffer_SelectionChanged;
 			buffer.PositionChanged += Buffer_PositionChanged;
 			buffer.FoldingEvent += Buffer_FoldingEvent;
-			buffer.Add (new CodeLine(""));
 		}
 		#endregion
+
+		protected override void onInitialized (object sender, EventArgs e) {
+			buffer.Add (new CodeLine (""));
+			base.onInitialized (sender, e);
+		}
 
 		string oldSource = "";
 		//save requested position on error, and try it on next move
@@ -543,10 +547,10 @@ namespace Crow.Coding
 					mgBg = Colors.DarkGrey;
 				}
 				string strLN = (lineIndex+1).ToString ();
-				gr.SetSourceColor (mgBg);
+				gr.SetSource (mgBg);
 				gr.Rectangle (mgR);
 				gr.Fill();
-				gr.SetSourceColor (mgFg);
+				gr.SetSource (mgFg);
 
 				gr.MoveTo (cb.X + (int)(gr.TextExtents (buffer.LineCount.ToString()).Width - gr.TextExtents (strLN).Width), y + fe.Ascent);
 				gr.ShowText (strLN);
@@ -560,7 +564,7 @@ namespace Crow.Coding
 				Rectangle rFld = new Rectangle (cb.X + leftMargin - leftMarginGap - foldMargin,
 					(int)(y + (fe.Ascent + fe.Descent) / 2.0 - foldSize / 2.0), foldSize, foldSize);
 
-				gr.SetSourceColor (Colors.Black);
+				gr.SetSource (Colors.Black);
 				gr.LineWidth = 1.0;
 
 				int level = 0;
@@ -591,15 +595,15 @@ namespace Crow.Coding
 					closingNode = false;
 				}
 				gr.SetDash (new double[]{ 1.5 },0.0);
-				gr.SetSourceColor (Colors.Grey);
+				gr.SetSource (Colors.Grey);
 				gr.Stroke ();
 				gr.SetDash (new double[]{}, 0.0);
 
 				if (cl.IsFoldable) {
 					gr.Rectangle (rFld);
-					gr.SetSourceColor (Colors.White);
+					gr.SetSource (Colors.White);
 					gr.Fill();
-					gr.SetSourceColor (Colors.Black);
+					gr.SetSource (Colors.Black);
 					gr.Rectangle (rFld, 1.0);
 					if (cl.IsFolded) {
 						gr.MoveTo (rFld.Center.X + 0.5, rFld.Y + 2);
@@ -613,7 +617,7 @@ namespace Crow.Coding
 				} 
 			}
 
-			gr.SetSourceColor (Foreground);
+			gr.SetSource (Foreground);
 			x += leftMargin;
 
 			if (cl.Tokens == null)
@@ -684,11 +688,11 @@ namespace Crow.Coding
 				gr.Save ();
 				gr.Operator = Operator.Source;
 				gr.Rectangle (rLineX, rLineY, rLineW, (fe.Ascent+fe.Descent));
-				gr.SetSourceColor (SelectionBackground);
+				gr.SetSource (SelectionBackground);
 				gr.FillPreserve ();
 				gr.Clip ();
 				gr.Operator = Operator.Over;
-				gr.SetSourceColor (SelectionForeground);
+				gr.SetSource (SelectionForeground);
 				gr.MoveTo (x, y + fe.Ascent);
 				gr.ShowText (lstr);
 				gr.Fill ();
@@ -727,7 +731,7 @@ namespace Crow.Coding
 				}
 
 				gr.SelectFontFace (Font.Name, fts, ftw);
-				gr.SetSourceColor (fg);
+				gr.SetSource (fg);
 
 				gr.MoveTo (x, y + fe.Ascent);
 				gr.ShowText (lstr);
@@ -752,11 +756,11 @@ namespace Crow.Coding
 					gr.Save ();
 					gr.Operator = Operator.Source;
 					gr.Rectangle (rLineX, rLineY, rLineW, (fe.Ascent+fe.Descent));
-					gr.SetSourceColor (selbg);
+					gr.SetSource (selbg);
 					gr.FillPreserve ();
 					gr.Clip ();
 					gr.Operator = Operator.Over;
-					gr.SetSourceColor (selfg);
+					gr.SetSource (selfg);
 					gr.MoveTo (x, y + fe.Ascent);
 					gr.ShowText (lstr);
 					gr.Fill ();
@@ -779,6 +783,7 @@ namespace Crow.Coding
 					gr.SetFontSize (Font.Size);
 
 					fe = gr.FontExtents;
+					fe.MaxXAdvance = gr.TextExtents ("A").XAdvance;
 				}				
 				MaxScrollY = 0;
 				RegisterForGraphicUpdate ();
