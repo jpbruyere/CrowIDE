@@ -71,6 +71,8 @@ namespace Crow.Coding
 			ActivePlatform = solutionFile.GetDefaultPlatformName ();
 
 			ide.projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (path) + Path.DirectorySeparatorChar);
+			ide.projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
+
 			//ide.projectCollection.HostServices
 			buildParams = new BuildParameters (ide.projectCollection) {
 				Loggers = ide.projectCollection.Loggers,
@@ -95,6 +97,7 @@ namespace Crow.Coding
 				case SolutionProjectType.Unknown:
 					break;
 				case SolutionProjectType.KnownToBeMSBuildFormat:
+					Console.WriteLine ($"[loading] {pis.AbsolutePath}");
 					Projects.Add (new ProjectView (this, pis));
 					break;
 				case SolutionProjectType.SolutionFolder:
@@ -165,10 +168,10 @@ namespace Crow.Coding
 				toolboxItems.Add(new GraphicObjectDesignContainer(ci));
 			}
 		}
-		public bool GetProjectFileFromPath (string path, out ProjectFileNode pi){
+		public bool TryGetProjectFileFromPath (string path, out ProjectFileNode pi){
 			pi = null;
-			return false;/* StartupProject == null ? false :
-				StartupProject.TryGetProjectFileFromPath (path, out pi);*/
+			return StartupProject == null ? false :
+				StartupProject.TryGetProjectFileFromPath (path, out pi);
 		}
 
 		public ObservableList<ProjectItemNode> OpenedItems {

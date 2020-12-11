@@ -91,7 +91,7 @@ namespace Crow
 
 			Rectangle r = ClientRectangle;
 
-			Foreground.SetAsSource (gr);
+			Foreground.SetAsSource (IFace, gr);
 
 			double y = ClientRectangle.Y;
 			double x = ClientRectangle.X;

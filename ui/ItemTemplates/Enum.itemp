@@ -21,7 +21,7 @@
 						</Template>
 					</CheckBox>
 				</Template>
-				<Border Background="White" BorderWidth="1" Margin="1" Foreground="Black"
+				<Border Background="Jet" BorderWidth="1" Margin="1" Foreground="Black"
 					MinimumSize="{../../MinimumPopupSize}" Fit="true">
 					<Scroller Name="scroller1" Margin="2" 
 						MaximumSize="0,200"
@@ -35,13 +35,13 @@
 				</Border>
 			</Popper>
 		</Template>
-		<ItemTemplate>
+		<!--<ItemTemplate>
 			<Container Fit="true" Margin="0" Focusable="true"
 					HorizontalAlignment="Left"
 					MouseEnter="{Background=SteelBlue}"
 					MouseLeave="{Background=Transparent}">
 				<Label Text="{}" Foreground="Black"/>
 			</Container>
-		</ItemTemplate>
+		</ItemTemplate>-->
 	</ComboBox>
 </HorizontalStack>

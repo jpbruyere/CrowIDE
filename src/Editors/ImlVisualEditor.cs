@@ -403,12 +403,12 @@ namespace Crow.Coding
 					d += gridSpacing;
 				}
 				gr.LineWidth = gridLineWidth;
-				Foreground.SetAsSource (gr, cb);
+				Foreground.SetAsSource (IFace, gr, cb);
 				gr.Stroke ();
 			}
 
 			lock (imlVE.RenderMutex) {
-				gr.SetSourceSurface (imlVE.surf, cb.Left, cb.Top);
+				gr.SetSource (imlVE.surf, cb.Left, cb.Top);
 				gr.Paint ();
 				imlVE.IsDirty = false;
 			}
@@ -452,14 +452,14 @@ namespace Crow.Coding
 				using (Surface mask = new ImageSurface (Format.Argb32, cb.Width, cb.Height)) {
 					using (Context ctx = new Context (mask)) {
 						ctx.Save();
-						ctx.SetSourceRGBA(1.0,1.0,1.0,0.4);
+						ctx.SetSource(1.0,1.0,1.0,0.4);
 						ctx.Paint ();
 						ctx.Rectangle (hr);
 						ctx.Operator = Operator.Clear;
 						ctx.Fill ();
 					}
 
-					gr.SetSourceSurface (mask, 0, 0);
+					gr.SetSource (mask, 0, 0);
 					gr.Paint ();
 
 					using (Surface ol = new ImageSurface (Format.Argb32, cb.Width, cb.Height)) {
@@ -468,7 +468,7 @@ namespace Crow.Coding
 							drawDesignOverlay (ctx, g, cb, hr, 0.4 / z, 6.5);
 						}
 							
-						gr.SetSourceSurface (ol, 0, 0);
+						gr.SetSource (ol, 0, 0);
 						gr.Paint ();
 					}
 
@@ -493,7 +493,7 @@ namespace Crow.Coding
 			CairoHelpers.CairoRectangle (gr, r.Inflated (1), 2);
 			gr.Fill ();
 			gr.Operator = Operator.Clear;
-			pic.Paint (gr, r);
+			pic.Paint (IFace, gr, r);
 			gr.Operator = Operator.Over;
 		}
 		void drawDesignOverlay (Context gr, Widget g, Rectangle cb, Rectangle hr, double coteStroke, double space = 6.5){

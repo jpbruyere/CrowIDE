@@ -1,6 +1,7 @@
 build/
 *.user
 .vs
+.vscode
 obj/
 bin/
 

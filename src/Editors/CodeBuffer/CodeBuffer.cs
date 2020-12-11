@@ -157,9 +157,9 @@ namespace Crow.Coding
 
 			lineBreak = detectLineBreakKind (rawSource);
 
-			for (int i = 0; i < LineCount; i++) {
+			/*for (int i = 0; i < LineCount; i++) {
 				ToogleFolding (i);
-			}
+			}*/
 		}
 
 		/// <summary>

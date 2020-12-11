@@ -58,9 +58,9 @@ namespace Crow.Coding
 				ImageSurface img = new ImageSurface (Format.Argb32, dragIconSize, dragIconSize);
 				using (Context ctx = new Context (img)) {
 					Rectangle r = new Rectangle (0, 0, dragIconSize, dragIconSize);
-					pic.Paint (ctx, r);	
+					pic.Paint (go.IFace, ctx, r);	
 					ctx.Operator = Operator.In;
-					ctx.SetSourceRGBA (1.0, 1.0, 1.0, 1.0);
+					ctx.SetSource (1.0, 1.0, 1.0, 1.0);
 					ctx.Rectangle (r);
 					ctx.Fill ();
 

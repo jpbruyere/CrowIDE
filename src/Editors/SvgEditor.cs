@@ -89,7 +89,7 @@ namespace Crow.Coding
 			base.onDraw (gr);
 
 			Rectangle r = ClientRectangle;
-			Foreground.SetAsSource (gr, r);
+			Foreground.SetAsSource (IFace, gr, r);
 			gr.Rectangle (r, 0.1);
 			gr.Stroke ();
 
@@ -102,7 +102,7 @@ namespace Crow.Coding
 
 			gr.Translate (-ScrollX, -ScrollY);
 			if (_pic != null)
-				_pic.Paint (gr, r);
+				_pic.Paint (IFace, gr, r);
 			editorMutex.ExitReadLock ();
 
 			gr.Restore ();

@@ -13,7 +13,7 @@ namespace Crow.Coding
 	public class MembersView : ListBox
 	{		
 		object instance;
-		ImlProjectItem projFile;
+		ProjectItemNode projFile;
 
 		public MembersView () : base() {}
 
@@ -79,7 +79,7 @@ namespace Crow.Coding
 				}
 			}
 		}
-		public ImlProjectItem ProjectNode {
+		public ProjectItemNode ProjectNode {
 			get { return projFile; }
 			set {
 				if (projFile == value)
@@ -87,8 +87,9 @@ namespace Crow.Coding
 
 				//				if (projFile != null)
 				//					projFile.UnregisterEditor (this);
-				Console.WriteLine ($"mview project node: {projFile}");
 				projFile = value;
+
+
 
 //				if (projFile != null)
 //					projFile.RegisterEditor (this);

@@ -39,7 +39,6 @@ namespace Crow.Coding
 				if (pp == null)
 					project.SetGlobalProperty (pr, "true");
 			}
-			//ide.projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
 
 			project.ReevaluateIfNecessary ();
 
@@ -174,6 +173,8 @@ namespace Crow.Coding
 
 
 			foreach (ProjectItem pn in project.AllEvaluatedItems) {
+				/*if (Path.GetFileName (pn.EvaluatedInclude) == "samples.style")
+					System.Diagnostics.Debugger.Break ();*/
 
 				switch (pn.ItemType) {
 				case "ProjectReferenceTargets":
@@ -191,11 +192,11 @@ namespace Crow.Coding
 				case "EmbeddedResource":
 					ProjectNode curNode = root;
 					try {
-						string file = pn.EvaluatedInclude.Replace ('\\', '/');
+						string file = pn.EvaluatedInclude;
 						string treePath = file;
 						if (pn.HasMetadata ("Link"))
-							treePath = project.ExpandString (pn.GetMetadataValue ("Link"));							
-						string [] folds = treePath.Split ('/');
+							treePath = pn.GetMetadataValue ("Link");							
+						string [] folds = treePath.Split (new char [] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
 						for (int i = 0; i < folds.Length - 1; i++) {
 							ProjectNode nextNode = curNode.Childs.OfType<ProjectNode>().FirstOrDefault (n => n.DisplayName == folds [i] && n.Type == ItemType.VirtualGroup);
 							if (nextNode == null) {
@@ -430,13 +431,13 @@ namespace Crow.Coding
 		{
 			IEnumerable<ProjectFileNode> tmpFiles =
 			    Flatten.OfType<ProjectFileNode> ().Where (pp => pp.Type == ItemType.EmbeddedResource && pp.Extension == ".template");
-			foreach (ProjectFileNode pi in tmpFiles) { 
-
+			foreach (ProjectFileNode pi in tmpFiles) {
+				string clsName = System.IO.Path.GetFileNameWithoutExtension (pi.RelativePath);
+				if (solution.DefaultTemplates.ContainsKey (clsName))
+				        continue;
+				solution.DefaultTemplates[clsName] = pi.FullPath;
 			}
-			//    string clsName = System.IO.Path.GetFileNameWithoutExtension (pi.Path);
-			//    if (solution.DefaultTemplates.ContainsKey (clsName))
-			//        continue;
-			//    solution.DefaultTemplates[clsName] = pi.AbsolutePath;
+			//    
 			//}
 			//foreach (ProjectFile pi in tmpFiles.Where (pp => pp.Type == ItemType.EmbeddedResource)) {
 			//    string resId = pi.ResourceID;

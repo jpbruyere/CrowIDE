@@ -550,7 +550,7 @@ namespace Crow.Coding
 
 		protected override void onDraw (Context gr)
 		{
-			//base.onDraw (gr);
+			base.onDraw (gr);
 
 			if (syntaxTree == null)
 				return;
@@ -560,7 +560,7 @@ namespace Crow.Coding
 			gr.FontOptions = Interface.FontRenderingOptions;
 			gr.Antialias = Interface.Antialias;
 
-			Foreground.SetAsSource (gr);
+			Foreground.SetAsSource (IFace, gr);
 
 			editorMutex.EnterReadLock ();
 

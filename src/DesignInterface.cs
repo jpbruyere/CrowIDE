@@ -18,8 +18,6 @@ namespace Crow.Coding
 		public DesignInterface () : base (100, 100, false, false)
 		{
 
-			Interface.GetStreamFromPath = _getStreamFromPath;
-
 			surf = new ImageSurface (Format.Argb32, 100, 100);
 
 			loadStyling ();
@@ -42,16 +40,15 @@ namespace Crow.Coding
 		{
 			ProjectFileNode pi;
 
-			if (ProjFile.Project.solution.GetProjectFileFromPath (path, out pi))
+			if (ProjFile.Project.solution.TryGetProjectFileFromPath (path, out pi))
 				return CreateITorFromIMLFragment (pi.Source).CreateInstance();					
 		
 			return null;
 		}
-		Stream _getStreamFromPath (string path)
-		{
+		public override Stream GetStreamFromPath (string path) {
 			ProjectFileNode pi;
-			if (ProjFile.Project.solution.GetProjectFileFromPath (path, out pi)) {
-				return new FileStream (pi.FullPath, FileMode.Open);	
+			if (ProjFile.Project.solution.TryGetProjectFileFromPath (path, out pi)) {
+				return new FileStream (pi.FullPath, FileMode.Open);
 			}
 			throw new Exception ($"In Design File not found: {path}");
 		}

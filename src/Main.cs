@@ -13,64 +13,62 @@ namespace Crow.Coding
 	public static class Startup
 	{
 
-#if NET472
-		public static string sdkFolder = "/usr/lib/mono/msbuild/Current/bin/";
-		public static string msbuildRoot = sdkFolder;
-		
+#if NETCOREAPP
+		static IntPtr resolveUnmanaged (Assembly assembly, String libraryName) {
 
-#else
-		public static string sdkFolder = @"C:\Program Files\dotnet\sdk";
-		public static string msbuildRoot = Path.Combine (sdkFolder, "3.1.404\\");
-#endif
-		static string msbuildFolder = sdkFolder;
+			switch (libraryName) {
+			case "glfw3":
+				return NativeLibrary.Load ("glfw", assembly, null);
+			case "rsvg-2.40":
+				return NativeLibrary.Load ("rsvg-2", assembly, null);
+			}
+			Console.WriteLine ($"[UNRESOLVE] {assembly} {libraryName}");
+			return IntPtr.Zero;
+		}
 
+		static Startup () {
+			System.Runtime.Loader.AssemblyLoadContext.Default.ResolvingUnmanagedDll += resolveUnmanaged;
+		}
+#endif             //public static string SDKFolder = "/usr/lib/mono/msbuild/Current/bin/";
+		//public static string MSBuildRoot = SDKFolder;
+
+		public static string SDKFolder;
+		public static string MSBuildRoot;
 
 		[STAThread]
 		static void Main ()
 		{
-			Environment.SetEnvironmentVariable ("MSBuildSDKsPath", @"C:\Program Files\dotnet\sdk\3.1.404\sdks");
-			//Environment.SetEnvironmentVariable ("MSBuildEnableWorkloadResolver", "true");
-			
+			configureDefaultSDKPathes ();
 
-				//		Microsoft.Build.Locator.MSBuildLocator.RegisterDefaults ();			
+			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", Path.Combine (MSBuildRoot, "MSBuild.dll"));
+			Environment.SetEnvironmentVariable ("MSBuildSDKsPath", Path.Combine (MSBuildRoot, "Sdks"));
 
-			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", Path.Combine (msbuildRoot, "MSBuild.dll"));
-			/*Environment.SetEnvironmentVariable ("MSBUILD_NUGET_PATH", Path.Combine (
-				Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "packages"));*/
+			if (Environment.OSVersion.Platform == PlatformID.Unix)
+				Environment.SetEnvironmentVariable ("FrameworkPathOverride", "/usr/lib/mono/4.5/");
 
-			//Environment.SetEnvironmentVariable ("FrameworkPathOverride", "/usr/lib/mono/4.5/");
-
-			/*Environment.SetEnvironmentVariable ("MSBuildExtensionsPath", @"C:\Program Files\dotnet\sdk\5.0.100");
-			Environment.SetEnvironmentVariable ("MSBuildToolsPath", @"C:\Program Files\dotnet\sdk\5.0.100");
+			//Environment.SetEnvironmentVariable ("MSBuildExtensionsPath", MSBuildRoot);
+			/*Environment.SetEnvironmentVariable ("MSBuildToolsPath", @"C:\Program Files\dotnet\sdk\5.0.100");
 			Environment.SetEnvironmentVariable ("MSBuildBinPath", @"C:\Program Files\dotnet\sdk\5.0.100");*/
-
-			//			configureDefaultSDKPathes ();
-
-			//msbuildRoot = Path.Combine (sdkFolder, msbuildFolder);
 
 			AppDomain currentDomain = AppDomain.CurrentDomain;
 			currentDomain.AssemblyResolve += msbuildAssembliesResolve;
 
-#if NETCOREAPP
+/*#if NETCOREAPP
 			NativeLibrary.SetDllImportResolver (Assembly.GetAssembly(typeof(Glfw.Glfw3)),
 				(libraryName, assembly, searchPath) => NativeLibrary.Load (libraryName == "glfw3" ?
 					Environment.OSVersion.Platform == PlatformID.Unix ? "glfw" : "glfw3" : libraryName, assembly, searchPath));
-#endif
+#endif*/
 			start ();
 
 		}
 		static void start()
 		{
 
-#if NET472
+/*#if NET472
 			var nativeSharedMethod = typeof (Microsoft.Build.Construction.SolutionFile).Assembly.GetType ("Microsoft.Build.Shared.NativeMethodsShared");
 			var isMonoField = nativeSharedMethod.GetField ("_isMono", BindingFlags.Static | BindingFlags.NonPublic);
 			isMonoField.SetValue (null, true);
-
-			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", Path.Combine (msbuildRoot, "MSBuild.dll"));
-#endif
-
-
+#endif*/
 
 			using (CrowIDE app = new CrowIDE ()) {
 				app.Run ();
@@ -80,7 +78,7 @@ namespace Crow.Coding
 		}
 		static Assembly msbuildAssembliesResolve (object sender, ResolveEventArgs args)
 		{
-			string assemblyPath = Path.Combine (msbuildRoot, new AssemblyName (args.Name).Name + ".dll");
+			string assemblyPath = Path.Combine (MSBuildRoot, new AssemblyName (args.Name).Name + ".dll");
 			if (!File.Exists (assemblyPath)) return null;
 			Assembly assembly = Assembly.LoadFrom (assemblyPath);
 			return assembly;
@@ -88,34 +86,37 @@ namespace Crow.Coding
 
 		static void configureDefaultSDKPathes ()
 		{
-			sdkFolder = Configuration.Global.Get<string> ("SDKFolder");
-			if (string.IsNullOrEmpty (sdkFolder)) {
+			SDKFolder = Configuration.Global.Get<string> ("SDKFolder");
+			if (string.IsNullOrEmpty (SDKFolder)) {
 				switch (Environment.OSVersion.Platform) {
 				case PlatformID.Win32S:
 				case PlatformID.Win32Windows:
 				case PlatformID.Win32NT:
 				case PlatformID.WinCE:
-					throw new NotSupportedException ();
+					SDKFolder = @"C:\Program Files\dotnet\sdk\";
+					break;
 				case PlatformID.Unix:
-					sdkFolder = "/usr/share/dotnet/sdk";
+					SDKFolder = @"/usr/share/dotnet/sdk";
 					break;
 				default:
 					throw new NotSupportedException ();
 				}
-				Configuration.Global.Set ("SDKFolder", sdkFolder);
+				Configuration.Global.Set ("SDKFolder", SDKFolder);
 			}
-			msbuildFolder = Configuration.Global.Get<string> ("msbuildFolder");
-			if (!string.IsNullOrEmpty (msbuildFolder) && Directory.Exists(msbuildFolder))
+
+			MSBuildRoot = Configuration.Global.Get<string> ("MSBuildRoot");
+			if (!string.IsNullOrEmpty (MSBuildRoot) && Directory.Exists(MSBuildRoot))
 				return;
+
 			List<SDKVersion> versions = new List<SDKVersion> ();
-			foreach (string dir in Directory.EnumerateDirectories (sdkFolder)) {
+			foreach (string dir in Directory.EnumerateDirectories (SDKFolder)) {
 				string dirName = Path.GetFileName (dir);
 				if (SDKVersion.TryParse (dirName, out SDKVersion vers))
 					versions.Add (vers);
 			}
 			versions.Sort ((a, b) => a.ToInt.CompareTo (b.ToInt));
-			msbuildFolder = versions.Last ().ToString ();
-			Configuration.Global.Set ("msbuildFolder", msbuildFolder);
+			MSBuildRoot = versions.Count > 0 ? Path.Combine (SDKFolder, versions.Last ().ToString ()) : SDKFolder;
+			Configuration.Global.Set ("MSBuildRoot", MSBuildRoot);
 		}
 	}
 	public class SDKVersion

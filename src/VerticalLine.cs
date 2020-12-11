@@ -37,7 +37,7 @@ namespace Crow.Coding
 		protected override void onDraw (Cairo.Context gr)
 		{
 			base.onDraw (gr);
-			Foreground.SetAsSource (gr);
+			Foreground.SetAsSource (IFace, gr);
 			Rectangle r = ClientRectangle;
 			double x = r.Center.X - 0.5;
 			double y;

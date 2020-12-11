@@ -5,7 +5,16 @@
 		SelectedItemChanged="onSelectedItemChanged"
 		ItemTemplate="#ui.EditPane.itemp">
 		<Template>
-			<TabView Name="ItemsContainer" Orientation="Horizontal"/>
+			<VerticalStack Width="Stretched" Height="Stretched">
+				<Expandable Caption="debug">
+					<VerticalStack Width="Stretched" Height="Fit">
+						<Label Text="{./SelectedItem}"/>
+						<Label Text="{./SelectedItemElement}"/>
+						<Label Text="{../../../ItemsContainer.SelectedTab}"/>				
+					</VerticalStack>
+				</Expandable>
+				<TabView Name="ItemsContainer" Orientation="Horizontal"/>
+			</VerticalStack>
 		</Template>		
 	</EditPane>
 </DockWindow>

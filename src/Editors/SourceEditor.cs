@@ -817,7 +817,7 @@ namespace Crow.Coding
 
 			Rectangle cb = ClientRectangle;
 
-			Foreground.SetAsSource (gr);
+			Foreground.SetAsSource (IFace, gr);
 
 			buffer.editMutex.EnterReadLock ();
 			editorMutex.EnterReadLock ();

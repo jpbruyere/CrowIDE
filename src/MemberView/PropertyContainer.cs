@@ -25,6 +25,7 @@ namespace Crow.Coding
 		PropertyInfo pi;
 		MembersView mview;
 		Command cmdReset, cmdGoToStyle;
+		ImlProjectItem imlProjItem => mview?.ProjectNode as ImlProjectItem;
 
 		public List<Crow.Command> Commands;
 
@@ -49,7 +50,7 @@ namespace Crow.Coding
 		public string Name { get { return pi.Name; }}
 		public object Value {
 			get {
-				return mview.ProjectNode?.SelectedItem == null ? null : pi.GetValue(mview.ProjectNode.SelectedItem);
+				return imlProjItem?.SelectedItem == null ? null : pi.GetValue(imlProjItem.SelectedItem);
 			}
 			set {
 				try {
@@ -101,7 +102,7 @@ namespace Crow.Coding
 
 					Debug.WriteLine("\t\tPropContainer set design_dirty to instance");
 
-					mview.ProjectNode.Instance.design_HasChanged = true;
+					imlProjItem.Instance.design_HasChanged = true;
 					NotifyValueChanged ("Value", value);
 					NotifyValueChanged ("LabForeground", LabForeground);
 				} catch (Exception ex) {
@@ -164,13 +165,13 @@ namespace Crow.Coding
 		/// reset to default value
 		/// </summary>
 		public void Reset () {
-			Widget inst = mview.ProjectNode.SelectedItem as Widget;
+			Widget inst = imlProjItem.SelectedItem as Widget;
 			if (!inst.design_iml_values.ContainsKey (Name))
 				return;
 			inst.design_iml_values.Remove (Name);
 
 			NotifyValueChanged ("LabForeground", LabForeground);
-			mview.ProjectNode.UpdateSource(this, mview.ProjectNode.Instance.GetIML());
+			imlProjItem.UpdateSource(this, imlProjItem.Instance.GetIML());
 			//mview.ProjectNode.Instance.design_HasChanged = true;
 			//should reinstantiate to get default
 		}

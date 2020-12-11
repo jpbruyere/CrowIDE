@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <HorizontalStack Style="MemberViewHStack" ContextCommands="{Commands}">
-	<Label Style="MemberViewLabel" Text="{Name}"/>
+	<Label Style="MemberViewLabel" Text="{Name}" Foreground = "{LabForeground}"/>	
 	<Popper Height="Stretched" Caption="{Value}">
 		<Template>
 			<CheckBox Caption="{./Caption}" IsChecked="{²./IsPopped}">
