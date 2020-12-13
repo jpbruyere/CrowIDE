@@ -57,7 +57,7 @@ namespace Crow.Coding
 				CanExecute = true
 			};
 
-			Commands = new ObservableList<Crow.Command> (new Crow.Command [] { cmdOpen, cmdSave, cmdSetAsStartProj, cmdCompile, cmdNewFile });
+			Commands = new CommandGroup (cmdOpen, cmdSave, cmdSetAsStartProj, cmdCompile, cmdNewFile);
 
 			populateTreeNodes ();
 		}
@@ -175,6 +175,7 @@ namespace Crow.Coding
 			foreach (ProjectItem pn in project.AllEvaluatedItems) {
 				/*if (Path.GetFileName (pn.EvaluatedInclude) == "samples.style")
 					System.Diagnostics.Debugger.Break ();*/
+				solution.IDE.ProgressNotify (1);
 
 				switch (pn.ItemType) {
 				case "ProjectReferenceTargets":

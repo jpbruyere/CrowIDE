@@ -24,6 +24,7 @@ namespace Crow.Coding
 		}
 
 		ObservableList<TreeNode> childs = new ObservableList<TreeNode> ();
+		CommandGroup commands = new CommandGroup ();
 
 		protected string name;
 		protected bool isSelected, isExpanded;
@@ -42,14 +43,13 @@ namespace Crow.Coding
 				NotifyValueChanged ("Childs", childs);
 			}
 		}
-		ObservableList<Crow.Command> commands = new ObservableList<Command> ();
-		public ObservableList<Command> Commands {
+		public CommandGroup Commands {
 			get => commands;
 			set {
 				if (commands == value)
 					return;
 				commands = value;
-				NotifyValueChanged ("Command", commands);
+				NotifyValueChanged ("Commands", commands);
 			}
 		}
 

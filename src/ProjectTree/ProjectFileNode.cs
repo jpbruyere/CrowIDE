@@ -51,7 +51,7 @@ namespace Crow.Coding {
 			cmdOpen = new Command (new Action (() => Open ())) 
 			{ Caption = "Open", Icon = CrowIDE.IcoOpen, CanExecute = true };
 			cmdClose = new Command (new Action (() => OnQueryClose (this,null))) 
-			{ Caption = "Close", Icon = CrowIDE.IcoQuit, CanExecute = false };
+			{ Caption = "Close File", Icon = CrowIDE.IcoQuit, CanExecute = false };
 			cmdUndo = new Command (new Action (() => Undo (null))) 
 			{ Caption = "Undo", Icon = CrowIDE.IcoUndo, CanExecute = false };
 			cmdRedo = new Command (new Action (() => Redo (null))) 
@@ -141,11 +141,9 @@ namespace Crow.Coding {
 		}
 		public string Source {
 			get {
-				if (!IsOpened) {
-					using (StreamReader sr = new StreamReader (FullPath))
-						source = sr.ReadToEnd ();
-					
-				} else {
+				if (!IsOpened)
+					Open ();					
+				else {
 					if (DateTime.Compare (
 						    accessTime,
 						    System.IO.File.GetLastWriteTime (FullPath)) < 0)

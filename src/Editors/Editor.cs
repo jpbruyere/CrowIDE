@@ -10,6 +10,20 @@ namespace Crow.Coding
 {
 	public abstract class Editor : ScrollingObject
 	{
+		/*public CommandGroup FileCommands;
+
+		public CommandGroup EditCommands;
+		public Command CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste;
+
+		void initCommands () {
+			CMDUndo = new Command (new Action (undo)) { Caption = "Undo", Icon = IcoUndo, CanExecute = false };
+			CMDRedo = new Command (new Action (redo)) { Caption = "Redo", Icon = IcoRedo, CanExecute = false };
+			CMDCut = new Command (new Action (cut)) { Caption = "Cut", Icon = IcoCut, CanExecute = false };
+			CMDCopy = new Command (new Action (copy)) { Caption = "Copy", Icon = IcoCopy, CanExecute = false };
+			CMDPaste = new Command (new Action (paste)) { Caption = "Paste", Icon = IcoPaste, CanExecute = false };
+
+		}*/
+
 		#region CTOR
 		protected Editor ():base(){
 			Thread t = new Thread (backgroundThreadFunc);
@@ -30,13 +44,17 @@ namespace Crow.Coding
 				if (projFile == value)
 					return;
 
-				if (projFile != null)
+				if (projFile != null) {
 					projFile.UnregisterEditor (this);
+					ContextCommands = null;
+				}
 
 				projFile = value;
 
-				if (projFile != null)					
+				if (projFile != null) {
 					projFile.RegisterEditor (this);
+					ContextCommands = projFile.Commands;
+				}
 
 				NotifyValueChanged ("ProjectNode", projFile);
 			}

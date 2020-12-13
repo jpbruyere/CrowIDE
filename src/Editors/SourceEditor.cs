@@ -61,7 +61,6 @@ namespace Crow.Coding
 			base.onInitialized (sender, e);
 		}
 
-		string oldSource = "";
 		//save requested position on error, and try it on next move
 		int requestedLine = 0, requestedCol = 0;
 		volatile bool isDirty = false;
@@ -197,7 +196,6 @@ namespace Crow.Coding
 			//buffer.editMutex.ExitWriteLock ();
 
 			isDirty = false;
-			oldSource = projFile.Source;
 			CurrentLine = requestedLine;
 			CurrentColumn = requestedCol;
 			projFile.RegisteredEditors [this] = true;
@@ -874,12 +872,16 @@ namespace Crow.Coding
 				if (hoverLine == value)
 					return;
 				hoverLine = value;
-				NotifyValueChanged ("HoverLine", hoverLine);
-				NotifyValueChanged ("HoverError", buffer [hoverLine].exception);
+				try {
+					NotifyValueChanged ("HoverLine", hoverLine);
+					NotifyValueChanged ("HoverError", buffer [hoverLine].exception);
+				} catch (Exception ex) {
+					Debug.WriteLine ("update hover line bug: " + ex.ToString ());
+				}
 			}
 		}
 		void updateHoverLine () {
-			if (PrintedLines.Count > 0) {
+			if (PrintedLines?.Count > 0) {
 				int hvl = (int)Math.Max (0, Math.Floor (mouseLocalPos.Y / (fe.Ascent + fe.Descent)));
 				hvl = Math.Min (PrintedLines.Count - 1, hvl);
 				HoverLine = buffer.IndexOf (PrintedLines [hvl]);
@@ -997,7 +999,6 @@ namespace Crow.Coding
 			//base.onKeyDown (sender, e);
 
 			Key key = e.Key;
-
 			if (IFace.Ctrl) {
 				switch (key) {
 				case Key.S:
@@ -1012,7 +1013,6 @@ namespace Crow.Coding
 					editorMutex.ExitWriteLock ();
 					break;
 				default:
-					Console.WriteLine ("");
 					break;
 				}
 			}

@@ -7,6 +7,7 @@
 			<MenuItem Command="{cmdCloseSolution}" />
 			<MenuItem DataSource="{SelectedItem}" Command="{cmdSave}" />
 			<MenuItem DataSource="{SelectedItem}" Command="{cmdSaveAs}" />
+			<MenuItem DataSource="{SelectedItem}" Command="{cmdClose}" />
 			<MenuItem Command="{CMDQuit}" />
 		</MenuItem>
 		<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="100" DataSource="{CurrentSolution}">
@@ -42,10 +43,25 @@
 		</MenuItem>
 	</Menu>
 	<HorizontalStack DataSource="{CurrentSolution}" Height="Fit">
+		<Label Margin="3" Text="{}" Background="Jet" Width="Fit"/>
 		<Label Margin="3" Text="{ActiveConfiguration}" Background="Jet" Width="100"/>
 		<Label Margin="3" Text="{ActivePlatform}" Background="Jet" Width="100"/>
 		<ComboBox Width="Fit" Data="{Configurations}" SelectedItem="{²ActiveConfiguration}"/>
 		<ComboBox Width="Fit" Data="{Platforms}" SelectedItem="{²ActivePlatform}"/>
 	</HorizontalStack>
 	<DockStack Name="mainDock" />
+	<HorizontalStack Margin="2" Background="DimGrey" Height="20">
+		<ProgressBar Visible="{ProgressVisible}" Value="{ProgressValue}" Maximum="{ProgressMax}" Caption="Progress caption" Width="400" Height="Stretched">
+			<Template>
+				<Group>
+					<Gauge Background="{./Background}" Foreground="{./Foreground}" CornerRadius="{./CornerRadius}"
+						Orientation="{./Orientation}" Minimum="{./Minimum}" Maximum="{./Maximum}" Value="{./Value}"/>
+					<HorizontalStack Height="Fit">
+						<Label Foreground="White" Text="{./Value}"/>
+						<Label Foreground="White" Text="{./Maximum}"/>
+					</HorizontalStack>
+				</Group>			
+			</Template>
+		</ProgressBar>
+	</HorizontalStack>
 </VerticalStack>

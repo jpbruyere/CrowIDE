@@ -67,11 +67,15 @@ namespace Crow.Coding
 			solutionFile = SolutionFile.Parse (path);
 			UserConfig = new Configuration (path + ".user");
 
+			IDE.ProgressNotify (10);
+
 			ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
 			ActivePlatform = solutionFile.GetDefaultPlatformName ();
 
 			ide.projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (path) + Path.DirectorySeparatorChar);
 			ide.projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
+
+			IDE.ProgressNotify (10);
 
 			//ide.projectCollection.HostServices
 			buildParams = new BuildParameters (ide.projectCollection) {
@@ -83,7 +87,7 @@ namespace Crow.Coding
 
 			BuildManager.DefaultBuildManager.ResetCaches ();
 
-
+			IDE.ProgressNotify (10);
 			//ide.projectCollection.SetGlobalProperty ("RoslynTargetsPath", Path.Combine (Startup.msbuildRoot, @"Roslyn\"));
 			//ide.projectCollection.SetGlobalProperty ("MSBuildSDKsPath", Path.Combine (Startup.msbuildRoot, @"Sdks\"));
 			//ide.projectCollection.SetGlobalProperty ("MSBuildExtensionsPath", @"C:\Program Files\dotnet\sdk\5.0.100");
@@ -91,7 +95,6 @@ namespace Crow.Coding
 			//ide.projectCollection. ("MSBuildToolsPath", @"C:\Program Files\dotnet\sdk\5.0.100");
 			//ide.projectCollection.to
 			//------------
-
 			foreach (ProjectInSolution pis in solutionFile.ProjectsInOrder) {
 				switch (pis.ProjectType) {
 				case SolutionProjectType.Unknown:
@@ -111,9 +114,11 @@ namespace Crow.Coding
 				/*case SolutionProjectType.SharedProject:
 					break;*/
 				}
+				IDE.ProgressNotify (10);
 			}
 
 			ReloadStyling ();
+
 			ReloadDefaultTemplates ();
 
 		}
@@ -137,8 +142,7 @@ namespace Crow.Coding
 		}
 
 		public void ReloadStyling () {
-			Console.WriteLine ("reload styling");
-
+			IDE.ProgressMessage = "Load Styling";
 			Styling = new Dictionary<string, Style> ();
 			if (StartupProject != null)
 				StartupProject.GetStyling ();
@@ -294,7 +298,8 @@ namespace Crow.Coding
 			}
 		}
 		public void CloseItem (ProjectItemNode pi) {			
-			openedItems.Remove (pi);
+			lock (IDE.UpdateMutex)
+				openedItems.Remove (pi);
 			saveOpenedItemsInUserConfig ();
 		}
 
@@ -356,5 +361,6 @@ namespace Crow.Coding
 			SelectedItem = e.NewValue as TreeNode;
 		}
 
+		public override string ToString () => path;
 	}
 }

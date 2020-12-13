@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using Crow.IML;
 using Glfw;
 using Microsoft.Build.Evaluation;
@@ -70,7 +71,7 @@ namespace Crow.Coding
 			CMDViewLog = new Command(new Action(() => loadWindow ("#ui.winLog.crow",this)))
 			{ Caption = "Log View"};
 			CMDViewSolution = new Command(new Action(() => loadWindow ("#ui.winSolution.crow",this)))
-			{ Caption = "Solution Tree", CanExecute = false};
+			{ Caption = "Solution Tree", CanExecute = true};
 			CMDViewEditor = new Command(new Action(() => loadWindow ("#ui.winEditor.crow",this)))
 			{ Caption = "Editor Pane"};
 			CMDViewProperties = new Command(new Action(() => loadWindow ("#ui.winProperties.crow",this)))
@@ -103,7 +104,7 @@ namespace Crow.Coding
 		}
 		void openOptionsDialog(){}
 		void newFile() {			
-			currentSolution.OpenedItems.Add(new ProjectFileNode());
+			//currentSolution.OpenedItems.Add(new ProjectFileNode());
 		}
 		void saveFileDialog() {}
 		void undo() {}
@@ -114,6 +115,7 @@ namespace Crow.Coding
 		void closeSolution (){
 			if (currentSolution != null)
 				currentSolution.CloseSolution ();
+			CurrentProject = null;
 			CurrentSolution = null;
 		}
 
@@ -151,19 +153,19 @@ namespace Crow.Coding
 			reloadWinConfigs ();
 
 			if (ReopenLastSolution && !string.IsNullOrEmpty (LastOpenSolution)) {
-				CurrentSolution = new SolutionView (this, LastOpenSolution);
+				Task.Run (() => loadSolution (LastOpenSolution));
 
-				Monitor.Enter (LayoutMutex);
+				/*Monitor.Enter (LayoutMutex);
 
 				while (!Monitor.TryEnter (UpdateMutex)) {
 					Thread.Sleep (1);
 					Monitor.Wait (LayoutMutex, 10);
 				}
 
-				CurrentSolution.ReopenItemsSavedInUserConfig ();
+
 
 				Monitor.Exit (UpdateMutex);
-				Monitor.Exit (LayoutMutex);
+				Monitor.Exit (LayoutMutex);*/
 			}
 		}
 
@@ -221,8 +223,7 @@ namespace Crow.Coding
 			//try {
 				string ext = Path.GetExtension (filePath);
 				if (string.Equals (ext, ".sln", StringComparison.InvariantCultureIgnoreCase)) {
-					CurrentSolution = new SolutionView (this, filePath);
-					LastOpenSolution = filePath;
+					Task.Run (() => loadSolution (filePath));
 					//				}else if (string.Equals (ext, ".csproj", StringComparison.InvariantCultureIgnoreCase)) {
 					//					currentProject = new Project (filePath);
 				}
@@ -231,6 +232,13 @@ namespace Crow.Coding
 			}*/
 		}
 
+		void loadSolution (string filePath) {
+			ProgressInit (5000, "loading solution ..");
+			CurrentSolution = new SolutionView (this, filePath);
+			LastOpenSolution = filePath;
+			CurrentSolution.ReopenItemsSavedInUserConfig ();
+			ProgressVisible = false;
+		}
 
 		public string CurrentDirectory {
 			get => Crow.Configuration.Global.Get<string>("CurrentDirectory");
@@ -246,11 +254,7 @@ namespace Crow.Coding
 
 				CMDBuild.CanExecute = CMDClean.CanExecute = CMDRestore.CanExecute = (currentSolution != null);
 				cmdCloseSolution.CanExecute = (currentSolution != null);
-				CMDViewSolution.CanExecute = (currentSolution != null);
-				
-				lock (UpdateMutex) {
-					NotifyValueChanged ("CurrentSolution", currentSolution);
-				}
+				NotifyValueChanged ("CurrentSolution", currentSolution);
 			}
 		}
 		public ProjectView CurrentProject {
@@ -313,7 +317,62 @@ namespace Crow.Coding
 			}
 		}
 
-		Window loadWindow(string path, object dataSource = null){
+		#region Status bar
+		bool progressVisible = false;
+		double progressMax = 10;
+		double progressValue = 0;
+		string progressMessage = "";
+
+		public string ProgressMessage {
+			get => progressMessage;
+			set {
+				if (progressMessage == value)
+					return;
+				progressMessage = value;
+				NotifyValueChanged (progressMessage);
+			}
+		}
+		public bool ProgressVisible {
+			get => progressVisible;
+			set {
+				if (progressVisible == value)
+					return;
+				progressVisible = value;
+				NotifyValueChanged (progressVisible);
+			}
+		}
+		public double ProgressMax {
+			get => progressMax;
+			set {
+				if (progressMax == value)
+					return;
+				progressMax = value;
+				NotifyValueChanged (progressMax);
+			}
+		}
+		public double ProgressValue {
+			get => progressValue;
+			set {
+				if (progressValue == value)
+					return;
+				progressValue = value;
+				NotifyValueChanged (progressValue);
+			}
+		}
+		public void ProgressInit (int steps, string message = "") {
+			ProgressVisible = true;
+			ProgressMessage = message;
+			ProgressMax = steps;
+			ProgressValue = 1;
+		}
+		public void ProgressNotify (int steps, string message = "") {
+			ProgressValue += steps;
+			if (!string.IsNullOrEmpty (message))
+				ProgressMessage = message;
+		}
+		#endregion
+
+		Window loadWindow (string path, object dataSource = null){
 			try {
 				Widget g = FindByName (path);
 				if (g != null)

@@ -143,7 +143,7 @@ namespace Crow.Coding
 				Color mgBg = Colors.Grey;
 				if (editor.CurrentLine == currentLine && editor.HasFocus) {
 					mgFg = Colors.Black;
-					mgBg = Colors.DarkGrey;
+					mgBg = Colors.RoyalBlue;
 				}
 				string strLN = (currentLine + 1).ToString ();
 				ctx.SetSource (mgBg);
@@ -224,14 +224,12 @@ namespace Crow.Coding
 				currentLine++;
 				if (currentLine == firstLine) {
 					printedLines = 0;
-					//checkPrintMargin ();
 				}
 			} else {
 				storeAndIncrementPrintedLine ();
 				if (cancel)
 					return;
 				currentLine++;
-				//checkPrintMargin ();
 			}
 		}
 

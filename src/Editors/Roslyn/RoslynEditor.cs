@@ -446,6 +446,8 @@ namespace Crow.Coding
 			try {
 				buffer = SourceText.From (projFile.Source);
 				SyntaxTree = CSharpSyntaxTree.ParseText (buffer);
+				SyntaxNode r = syntaxTree.GetRoot ();
+				r.NormalizeWhitespace ("    ", true);
 			} catch (Exception ex) {
 				Debug.WriteLine (ex.ToString ());
 			}

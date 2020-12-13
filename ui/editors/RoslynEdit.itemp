@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
 <TabItem QueryClose="OnQueryClose" IsSelected="{²IsSelected}" Template="#ui.EditTabItem.template">
-	<VerticalStack>
+	<VerticalStack Background="Jet">
 		<HorizontalStack >
 			<RoslynEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"
 					CurrentLine="{²CurrentLine}" CurrentColumn="{²CurrentColumn}" HasFocus="{IsSelected}"
@@ -15,7 +15,7 @@
 				Maximum="{../editor.MaxScrollX}"
 				LargeIncrement="{../editor.VisibleColumns}"
 				CursorSize="{../editor.ChildWidthRatio}"/>			
-		<HorizontalStack Height="Fit">
+		<HorizontalStack Height="Fit" >
 			<Label Text="{../../editor.HoverError}" Width="Stretched"/>
 			<Widget Background="Red" Width="5" Height="5" Visible="{IsDirty}"/>
 			<Label Text="Hover Line:" Foreground="Black"/>
