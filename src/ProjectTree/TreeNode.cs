@@ -7,13 +7,32 @@ using System.Linq;
 
 namespace Crow.Coding
 {
-	public class TreeNode : IValueChange
+	public class TreeNode : IValueChange, ISelectable
 	{
 		#region IValueChange implementation
 		public event EventHandler<ValueChangeEventArgs> ValueChanged;
-		public virtual void NotifyValueChanged (string MemberName, object _value)
+
+        public virtual void NotifyValueChanged (string MemberName, object _value)
 		{
 			ValueChanged.Raise (this, new ValueChangeEventArgs (MemberName, _value));
+		}
+		#endregion
+
+		#region ISelectable implementation
+		public event EventHandler Selected;
+		public event EventHandler Unselected;
+		public virtual bool IsSelected {
+			get { return isSelected; }
+			set {
+				if (value == isSelected)
+					return;
+
+				Console.WriteLine ($"TreeNode({this}).IsSelected: {isSelected} -> {value}");
+
+				isSelected = value;
+
+				NotifyValueChanged ("IsSelected", isSelected);
+			}
 		}
 		#endregion
 
@@ -71,17 +90,6 @@ namespace Crow.Coding
 					return;
 				isExpanded = value;
 				NotifyValueChanged ("IsExpanded", isExpanded);
-			}
-		}
-		public virtual bool IsSelected {
-			get { return isSelected; }
-			set {
-				if (value == isSelected)
-					return;
-
-				isSelected = value;
-
-				NotifyValueChanged ("IsSelected", isSelected);
 			}
 		}
 

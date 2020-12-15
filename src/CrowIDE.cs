@@ -112,12 +112,6 @@ namespace Crow.Coding
 		void cut () { }
 		void copy () { }
 		void paste () { }
-		void closeSolution (){
-			if (currentSolution != null)
-				currentSolution.CloseSolution ();
-			CurrentProject = null;
-			CurrentSolution = null;
-		}
 
 		public void saveWinConfigs() {
 			Configuration.Global.Set ("WinConfigs", mainDock.ExportConfig ());
@@ -134,6 +128,25 @@ namespace Crow.Coding
 		Instantiator instFileDlg;
 		DockStack mainDock;
 
+		public string SDKFolder {
+			get => Configuration.Global.Get<string> ("SDKFolder");
+			set {
+				if (SDKFolder == value)
+					return;
+				Configuration.Global.Set ("SDKFolder", SDKFolder);
+				NotifyValueChanged (SDKFolder);
+			}
+		}
+		public string MSBuildRoot {
+			get => Configuration.Global.Get<string> ("MSBuildRoot");
+			set {
+				if (MSBuildRoot == value)
+					return;
+				Configuration.Global.Set ("MSBuildRoot", MSBuildRoot);
+				NotifyValueChanged (MSBuildRoot);
+			}
+		}
+
 		public ProjectCollection projectCollection { get; private set; }
 		public ObservableList<BuildEventArgs> BuildEvents { get; private set; } = new ObservableList<BuildEventArgs> ();
 
@@ -147,26 +160,10 @@ namespace Crow.Coding
 
 		protected override void OnInitialized () {
 			base.OnInitialized ();
-
 			initIde ();
-
 			reloadWinConfigs ();
-
-			if (ReopenLastSolution && !string.IsNullOrEmpty (LastOpenSolution)) {
+			if (ReopenLastSolution && !string.IsNullOrEmpty (LastOpenSolution)) 
 				Task.Run (() => loadSolution (LastOpenSolution));
-
-				/*Monitor.Enter (LayoutMutex);
-
-				while (!Monitor.TryEnter (UpdateMutex)) {
-					Thread.Sleep (1);
-					Monitor.Wait (LayoutMutex, 10);
-				}
-
-
-
-				Monitor.Exit (UpdateMutex);
-				Monitor.Exit (LayoutMutex);*/
-			}
 		}
 
 		public override bool OnKeyDown (Key key)
@@ -188,7 +185,7 @@ namespace Crow.Coding
 			var host = MefHostServices.Create (MSBuildMefHostServices.DefaultAssemblies);
 			Workspace = MSBuildWorkspace.Create (host);
 			Workspace.WorkspaceFailed += (sender, e) => Console.WriteLine ($"Workspace error: {e.Diagnostic}");
-			ProgressLogger = new ProgressLog ();
+			ProgressLogger = new ProgressLog (this);
 			projectCollection = new ProjectCollection (null, new ILogger [] { new IdeLogger (this) }, ToolsetDefinitionLocations.Default) {
 				//DefaultToolsVersion = DEFAULT_TOOLS_VERSION,
 
@@ -201,7 +198,6 @@ namespace Crow.Coding
 							Path.Combine (
 								Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "NuGet"),
 								"NuGet.Config"));
-
 
 			initCommands ();
 
@@ -239,6 +235,15 @@ namespace Crow.Coding
 			CurrentSolution.ReopenItemsSavedInUserConfig ();
 			ProgressVisible = false;
 		}
+		void closeSolution () {
+			lock (UpdateMutex) {
+				if (currentSolution != null)
+					currentSolution.CloseSolution ();
+				CurrentProject = null;
+				CurrentSolution = null;
+			}
+		}
+
 
 		public string CurrentDirectory {
 			get => Crow.Configuration.Global.Get<string>("CurrentDirectory");
@@ -254,7 +259,8 @@ namespace Crow.Coding
 
 				CMDBuild.CanExecute = CMDClean.CanExecute = CMDRestore.CanExecute = (currentSolution != null);
 				cmdCloseSolution.CanExecute = (currentSolution != null);
-				NotifyValueChanged ("CurrentSolution", currentSolution);
+				lock (UpdateMutex)
+					NotifyValueChanged ("CurrentSolution", currentSolution);
 			}
 		}
 		public ProjectView CurrentProject {

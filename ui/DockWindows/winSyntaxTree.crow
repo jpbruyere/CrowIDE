@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Name="winSyntaxTree" Caption="Solution" Width="40%" Height="80%" DataSource="{SelectedItem}" Background="DimGrey">
+<DockWindow Name="winSyntaxTree" Caption="Solution" Width="40%" Height="80%" DataSource="{SelectedItem}" Background="DimGrey" >
 	<TreeView Name="treeview" IsRoot="true" DataSource="{RootNode}" Data="{GetChilNodesOrTokens}">
 		<ItemTemplate DataType="Microsoft.CodeAnalysis.SyntaxToken" >
 			<Border Style="TreeItemBorder" Focusable="true">

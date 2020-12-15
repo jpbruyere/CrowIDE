@@ -100,7 +100,7 @@ namespace Crow.Coding
 				case SolutionProjectType.Unknown:
 					break;
 				case SolutionProjectType.KnownToBeMSBuildFormat:
-					Console.WriteLine ($"[loading] {pis.AbsolutePath}");
+					//Console.WriteLine ($"[loading] {pis.AbsolutePath}");
 					Projects.Add (new ProjectView (this, pis));
 					break;
 				case SolutionProjectType.SolutionFolder:
@@ -203,8 +203,11 @@ namespace Crow.Coding
 			set {
 				if (selectedItem == value)
 					return;
-				if (SelectedItem != null)
-					SelectedItem.IsSelected = false;
+
+				Console.WriteLine ($"SolView.SelectedItem: {selectedItem} -> {value}");
+
+				if (selectedItem != null)
+					selectedItem.IsSelected = false;
 
 				selectedItem = value;
 
@@ -281,8 +284,8 @@ namespace Crow.Coding
 				if (pi.SaveID == sel)
 					selItem = pi;
 			}
-			if (selItem == null)
-				return;
+			
+			//SelectedItem = selItem;
 			selItem.IsSelected = true;
 		}
 
@@ -297,9 +300,10 @@ namespace Crow.Coding
 				saveOpenedItemsInUserConfig ();
 			}
 		}
-		public void CloseItem (ProjectItemNode pi) {			
-			lock (IDE.UpdateMutex)
-				openedItems.Remove (pi);
+		public void CloseItem (ProjectItemNode pi) {
+			//lock (IDE.UpdateMutex)			
+			openedItems.Remove (pi);
+			pi.IsSelected = false;
 			saveOpenedItemsInUserConfig ();
 		}
 
@@ -355,11 +359,11 @@ namespace Crow.Coding
 
 		}
 
-		void onSelectedItemChanged (object sender, SelectionChangeEventArgs e)
+		/*void onSelectedItemChanged (object sender, SelectionChangeEventArgs e)
 		{
 			Console.WriteLine ($"solution.onSelectedItemChanged: {e.NewValue}");
 			SelectedItem = e.NewValue as TreeNode;
-		}
+		}*/
 
 		public override string ToString () => path;
 	}

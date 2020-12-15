@@ -28,7 +28,7 @@ namespace Crow.Coding
 				if (instance == value)
 					return;
 				object lastInst = instance;
-				Console.WriteLine ($"mview instance: {value}");
+				//Console.WriteLine ($"mview instance: {value}");
 				instance = value;
 				NotifyValueChanged ("Instance", instance);
 

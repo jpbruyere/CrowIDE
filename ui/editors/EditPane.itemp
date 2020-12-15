@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0"?>
 <ItemTemplate>	
-	<TabItem Caption="{DisplayName}" QueryClose="OnQueryClose">
+	<TabItem Caption="{DisplayName}" QueryClose="OnQueryClose" >
 		<Label Text="Error" Background="Red"/>
 	</TabItem>
 </ItemTemplate>

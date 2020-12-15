@@ -1,19 +1,15 @@
 ﻿<?xml version="1.0"?>
 <DockWindow Name="winEditor" Caption="Edit View">
-	<EditPane DataSource="{CurrentSolution}"
-		SelectedItemElement="{²SelectedItemElement}" Data="{OpenedItems}" DataTest="Extension"
-		SelectedItemChanged="onSelectedItemChanged"
+	<EditPane DataSource="{CurrentSolution}"  RootDataLevel="true"
+		SelectedItem="{²SelectedItem}"
+		SelectedItemElement="{²SelectedItemElement}" Data="{OpenedItems}" DataTest="Extension"		
 		ItemTemplate="#ui.EditPane.itemp">
 		<Template>
 			<VerticalStack Width="Stretched" Height="Stretched">
-				<Expandable Caption="debug">
-					<VerticalStack Width="Stretched" Height="Fit">
-						<Label Text="{./SelectedItem}"/>
-						<Label Text="{./SelectedItemElement}"/>
-						<Label Text="{../../../ItemsContainer.SelectedTab}"/>				
-					</VerticalStack>
-				</Expandable>
-				<TabView Name="ItemsContainer" Orientation="Horizontal"/>
+				<Label Text="{SelectedItem}"/>
+				<Label Text="{./SelectedItem}"/>
+				<Label Text="{./SelectedItemElement}"/>					
+				<TabView Name="ItemsContainer" Orientation="Horizontal" />
 			</VerticalStack>
 		</Template>		
 	</EditPane>

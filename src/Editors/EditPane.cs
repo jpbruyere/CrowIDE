@@ -14,13 +14,6 @@ namespace Crow.Coding
 
 		object selectedItemElement = null;
 
-		public override object SelectedItem {
-			get => base.SelectedItem;
-			set {
-
-				base.SelectedItem = value;
-			}
-		}
 		/*public override int SelectedIndex {
 			get {
 				return base.SelectedIndex;

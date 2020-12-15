@@ -139,6 +139,13 @@ namespace Crow.Coding {
 				}
 			}
 		}
+		public string GetSourceWithoutOpening () {
+			if (IsOpened)
+				return Source;
+			using (StreamReader sr = new StreamReader (FullPath)) {
+				return sr.ReadToEnd ();
+			}
+		}
 		public string Source {
 			get {
 				if (!IsOpened)
@@ -288,6 +295,7 @@ namespace Crow.Coding {
 			if (IsOpened)
 				return;
 			Open ();
+			//IsSelected = true;
 		}
 
 		/*public void onClick (object sender, MouseButtonEventArgs e){

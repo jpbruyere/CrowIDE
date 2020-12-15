@@ -55,6 +55,7 @@ namespace Crow.Coding
 		{
 			if (cancel)
 				return;
+            try {
 
 			FileLinePositionSpan ls = node.SyntaxTree.GetLineSpan (node.FullSpan);
 
@@ -65,6 +66,10 @@ namespace Crow.Coding
 				base.Visit (node);
 
 			currentLine = ls.EndLinePosition.Line;
+			} catch (Exception e) {
+
+				Console.WriteLine (e);
+			}
 		}
 		public override void VisitToken (SyntaxToken token)
 		{

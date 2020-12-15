@@ -8,9 +8,13 @@ namespace Crow.Coding
 {
 	public class ProgressLog : IProgress<ProjectLoadProgress>
 	{
+		CrowIDE ide;
+		public ProgressLog (CrowIDE ide) {
+			this.ide = ide;
+        }
 		public void Report (ProjectLoadProgress value)
 		{
-			Console.WriteLine ($"{value.ElapsedTime} {value.Operation} {value.TargetFramework}");
+			ide.ProgressNotify (1, String.Format($"{value.ElapsedTime} {value.Operation} {value.TargetFramework}"));			
 		}
 	}
 }

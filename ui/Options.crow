@@ -5,6 +5,14 @@
 			<VerticalStack Margin="10">
 				<CheckBox Caption="Print Line Numbers" IsChecked="True"/>
 				<CheckBox Caption="Reopen last solution on startup" IsChecked="{²ReopenLastSolution}"/>
+				<HorizontalStack Height="Fit">
+					<Label Width="200" Text="DotNet SDK folder"/>
+					<TextBox Width="Stretched" Text="{²SDKFolder}"/>
+				</HorizontalStack>
+				<HorizontalStack Height="Fit">
+					<Label Width="200" Text="MSBuild root folder"/>
+					<TextBox Width="Stretched" Text="{²MSBuildRoot}"/>
+				</HorizontalStack>
 			</VerticalStack>
 		</TabItem>
 		<TabItem Caption="Text Editor" SelectedBackground="Jet">

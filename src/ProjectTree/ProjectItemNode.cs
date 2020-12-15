@@ -74,6 +74,7 @@ namespace Crow.Coding
 						pn.IsExpanded = true;
 						pn = pn.Parent;
 					}
+					Project.solution.SelectedItem = this;
 				}
 			}
 		}

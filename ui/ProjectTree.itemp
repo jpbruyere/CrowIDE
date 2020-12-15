@@ -19,7 +19,7 @@
 					<Group>
 						<Widget Height="Stretched" Background="RoyalBlue" Visible="{IsSelected}"/>
 						<HorizontalStack Spacing="1">
-							<Image Margin="1" Width="9" Height="9" Focusable="true" MouseDown="./onClickForExpand"
+							<Image Margin="1" Width="9" Height="9" Focusable="true" MouseClick="./onClickForExpand"
 								Path="{./Image}"
 								Visible="{./IsExpandable}"
 								SvgSub="{./IsExpanded}"

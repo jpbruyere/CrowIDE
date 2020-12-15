@@ -602,7 +602,7 @@ namespace Crow.Coding
 			dumy.Drop += dumyOnDrop;
 			dumy.IsDragged = true;
 			//IFace.ActiveWidget = dumy;
-			e.DragSource.IsDragged = false;
+			IsDragged = false;
 			IFace.DragAndDropOperation.DragSource = dumy;
 			draggedObj = SelectedItem;
 			int dragIconSize = 48;

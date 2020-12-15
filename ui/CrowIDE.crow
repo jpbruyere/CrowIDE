@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0"?>
 <VerticalStack DataSourceType="CrowIDE">
 	<Menu>
-		<MenuItem Caption="File" Width="Fit" PopWidth="120" DataSource="{CurrentSolution}">
+		<MenuItem Caption="File" Width="Fit" PopWidth="120" DataSource="{CurrentSolution}"  RootDataLevel="true">
 			<MenuItem Command="{CMDNew}" />
 			<MenuItem Command="{CMDOpen}" />
 			<MenuItem Command="{cmdCloseSolution}" />
@@ -10,7 +10,7 @@
 			<MenuItem DataSource="{SelectedItem}" Command="{cmdClose}" />
 			<MenuItem Command="{CMDQuit}" />
 		</MenuItem>
-		<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="100" DataSource="{CurrentSolution}">
+		<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="100" DataSource="{CurrentSolution}"  RootDataLevel="true">
 			<MenuItem DataSource="{SelectedItem}" Command="{cmdUndo}" />
 			<MenuItem DataSource="{SelectedItem}" Command="{cmdRedo}" />
 			<MenuItem Command="{CMDCut}" />
@@ -42,24 +42,21 @@
 			<MenuItem Command="{CMDHelp}" />
 		</MenuItem>
 	</Menu>
-	<HorizontalStack DataSource="{CurrentSolution}" Height="Fit">
+	<HorizontalStack DataSource="{CurrentSolution}" Height="Fit"  RootDataLevel="true">
 		<Label Margin="3" Text="{}" Background="Jet" Width="Fit"/>
 		<Label Margin="3" Text="{ActiveConfiguration}" Background="Jet" Width="100"/>
 		<Label Margin="3" Text="{ActivePlatform}" Background="Jet" Width="100"/>
 		<ComboBox Width="Fit" Data="{Configurations}" SelectedItem="{²ActiveConfiguration}"/>
 		<ComboBox Width="Fit" Data="{Platforms}" SelectedItem="{²ActivePlatform}"/>
 	</HorizontalStack>
-	<DockStack Name="mainDock" />
+	<DockStack Name="mainDock"  RootDataLevel="true" />
 	<HorizontalStack Margin="2" Background="DimGrey" Height="20">
 		<ProgressBar Visible="{ProgressVisible}" Value="{ProgressValue}" Maximum="{ProgressMax}" Caption="Progress caption" Width="400" Height="Stretched">
 			<Template>
 				<Group>
 					<Gauge Background="{./Background}" Foreground="{./Foreground}" CornerRadius="{./CornerRadius}"
 						Orientation="{./Orientation}" Minimum="{./Minimum}" Maximum="{./Maximum}" Value="{./Value}"/>
-					<HorizontalStack Height="Fit">
-						<Label Foreground="White" Text="{./Value}"/>
-						<Label Foreground="White" Text="{./Maximum}"/>
-					</HorizontalStack>
+					<Label Foreground="White" Text="{ProgressMessage}" Width="Stretched"/>
 				</Group>			
 			</Template>
 		</ProgressBar>
