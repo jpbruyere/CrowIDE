@@ -130,7 +130,7 @@ namespace Crow.Coding
 			try {
 				ParseCurrentLine ();
 			} catch (Exception ex) {
-				Debug.WriteLine (ex.ToString ());
+				Debug.WriteLine ("TryParseBufferLine: " + ex);
 				if (ex is ParserException)
 					SetLineInError (ex as ParserException);
 			}
@@ -248,6 +248,20 @@ namespace Crow.Coding
 				}				
 			}
 		}
+		protected Token previousNonTrivaTok {
+			get {
+				for (int i = currentLine; i >= 0; i--) {
+					int j = buffer[i].Tokens.Count - 1;
+					while (j >= 0) {
+						if (!buffer[i].Tokens[j].IsTrivia)
+							return buffer[i].Tokens[j];
+						j--;
+					}
+				}
+				return default;
+			}
+		}
+
 		/// <summary>
 		/// Peek next char, emit '\n' if current column > buffer's line length
 		/// Throw error if eof is true

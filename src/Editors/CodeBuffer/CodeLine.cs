@@ -21,7 +21,7 @@ namespace Crow.Coding
 
 		public char this[int i]
 		{
-			get { return Content[i]; }
+			get => Content[i]; 
 			set {
 				if (Content [i] == value)
 					return;
@@ -32,30 +32,24 @@ namespace Crow.Coding
 				//LineUpadateEvent.Raise (this, new CodeBufferEventArgs (i));
 			}
 		}
-		public bool IsFoldable { get { return SyntacticNode == null ? false :
-				SyntacticNode.EndLine != SyntacticNode.StartLine && SyntacticNode.EndLine != null; } }
-		public int FoldingLevel { get { return IsFoldable ? SyntacticNode.Level : 0; } }
+		public bool IsFoldable { get => SyntacticNode == null ? false :
+				SyntacticNode.EndLine != SyntacticNode.StartLine && SyntacticNode.EndLine != null; } 
+		public int FoldingLevel { get => IsFoldable ? SyntacticNode.Level : 0; }
 		public bool IsFolded = false;
-		public bool IsParsed {
-			get { return Tokens != null; }
-		}
+		public bool IsParsed => Tokens != null;
+		public Token LastToken => IsParsed ? Tokens.LastOrDefault () : default;
+		
 		public string PrintableContent {
-			get {
-				return string.IsNullOrEmpty (Content) ? "" : Content.Replace ("\t", new String (' ', Interface.TAB_SIZE));
-			}
+			get => string.IsNullOrEmpty (Content) ? "" : Content.Replace ("\t", new String (' ', Interface.TAB_SIZE));			
 		}
 		public int PrintableLength {
-			get {
-				return PrintableContent.Length;
-			}
+			get => PrintableContent.Length;
 		}
 		public int Length {
-			get {
-				return string.IsNullOrEmpty (Content) ? 0 : Content.Length;
-			}
+			get => string.IsNullOrEmpty (Content) ? 0 : Content.Length;
 		}
 		public int FirstNonBlankTokIndex {
-			get { return Tokens == null ? -1 : Tokens.FindIndex (tk=>tk.Type != BufferParser.TokenType.WhiteSpace); }
+			get => Tokens == null ? -1 : Tokens.FindIndex (tk=>tk.Type != BufferParser.TokenType.WhiteSpace);
 		}
 
 		public void SetLineInError (ParserException ex) {

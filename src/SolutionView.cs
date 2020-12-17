@@ -45,6 +45,7 @@ namespace Crow.Coding
 
 		public string Directory => Path.GetDirectoryName (path);
 
+		public Dictionary<string, string> StylingConstants;
 		public Dictionary<string, Style> Styling;
 		public Dictionary<string, string> DefaultTemplates;
 
@@ -144,6 +145,7 @@ namespace Crow.Coding
 		public void ReloadStyling () {
 			IDE.ProgressMessage = "Load Styling";
 			Styling = new Dictionary<string, Style> ();
+			StylingConstants = new Dictionary<string, string> ();
 			if (StartupProject != null)
 				StartupProject.GetStyling ();
 			StylingContainers = new List<StyleContainer> ();

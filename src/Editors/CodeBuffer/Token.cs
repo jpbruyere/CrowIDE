@@ -41,18 +41,18 @@ namespace Crow.Coding
 		public bool IsNull { get { return IsEmpty && Type == BufferParser.TokenType.Unknown; }}
 		public bool IsEmpty { get { return string.IsNullOrEmpty(Content); }}
 
-		public static bool operator == (Token t, System.Enum tt){
-			return Convert.ToInt32(t.Type) == Convert.ToInt32(tt);
-		}
-		public static bool operator != (Token t, System.Enum tt){
-			return Convert.ToInt32(t.Type) != Convert.ToInt32(tt);
-		}
-		public static bool operator == (System.Enum tt, Token t){
-			return Convert.ToInt32(t.Type) == Convert.ToInt32(tt);
-		}
-		public static bool operator != (System.Enum tt, Token t){
-			return Convert.ToInt32(t.Type) != Convert.ToInt32(tt);
-		}
+		public bool IsTrivia => Type == BufferParser.TokenType.WhiteSpace ||
+			Type == BufferParser.TokenType.NewLine ||
+			Type == BufferParser.TokenType.LineComment;
+
+		public static bool operator == (Token a, Token b) => Convert.ToInt32 (a.Type) == Convert.ToInt32 (b.Type) && a.Content == b.Content;
+		public static bool operator != (Token a, Token b) => Convert.ToInt32 (a.Type) != Convert.ToInt32 (b.Type) || a.Content != b.Content;
+		public static bool operator == (Token t, System.Enum tt) => Convert.ToInt32(t.Type) == Convert.ToInt32(tt);
+		public static bool operator != (Token t, System.Enum tt)=> Convert.ToInt32(t.Type) != Convert.ToInt32(tt);
+		public static bool operator == (Token t, string s) => t.Content == s;
+		public static bool operator != (Token t, string s) => t.Content != s;
+		public static bool operator == (System.Enum tt, Token t) => Convert.ToInt32 (t.Type) == Convert.ToInt32 (tt);
+		public static bool operator != (System.Enum tt, Token t) => Convert.ToInt32(t.Type) != Convert.ToInt32(tt);
 
 		public static Token operator +(Token t, char c){
 			t.Content += c;
