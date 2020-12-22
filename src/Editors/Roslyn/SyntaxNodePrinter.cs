@@ -50,22 +50,23 @@ namespace Crow.Coding
 		{
 			if (!cancel)
 				base.DefaultVisit (node);
+			
+			//printedLinesNumbers[printedLines] = currentLine;
 		}
 		public override void Visit (SyntaxNode node)
 		{
 			if (cancel)
 				return;
-            try {
+            try {			
+				FileLinePositionSpan ls = node.SyntaxTree.GetLineSpan (node.FullSpan);
 
-			FileLinePositionSpan ls = node.SyntaxTree.GetLineSpan (node.FullSpan);
-
-			currentLine = ls.StartLinePosition.Line;
-			checkFirstLine ();
+				currentLine = ls.StartLinePosition.Line;
+				checkFirstLine ();
 					
-			if (ls.EndLinePosition.Line >= firstLine || node.IsStructuredTrivia)
-				base.Visit (node);
+				if (ls.EndLinePosition.Line >= firstLine || node.IsStructuredTrivia)
+					base.Visit (node);
 
-			currentLine = ls.EndLinePosition.Line;
+				currentLine = ls.EndLinePosition.Line;
 			} catch (Exception e) {
 
 				Console.WriteLine (e);
@@ -88,13 +89,15 @@ namespace Crow.Coding
 					printToken (token.ToString(), token.Kind());
 
 				VisitTrailingTrivia (token);
-			}
+            } else {
+				Console.WriteLine ($"{Depth} -> {token}");
+            }
 		}
 		public override void VisitTrivia (SyntaxTrivia trivia)
 		{
 			if (cancel)
 				return;
-
+			
 			base.VisitTrivia (trivia);
 
 			if (trivia.HasStructure)
@@ -112,26 +115,23 @@ namespace Crow.Coding
 				}
 				if (printedLines >= 0)
 					printToken (lines [lines.Length - 1], trivia.Kind (), true);
-			} else if (print) {
+			} else if (printedLines >= 0 && printedLines < visibleLines) {
 				if (trivia.IsKind (SyntaxKind.EndOfLineTrivia))
 					storeAndIncrementPrintedLine ();
 				else if (trivia.IsKind (SyntaxKind.WhitespaceTrivia)) {
 					checkPrintMargin ();//ensure margin is printed if line is empty
-					currentCol += trivia.TabulatedText (tabSize).Length;
+					currentCol += trivia.TabulatedText (tabSize, currentCol).Length;
 				} else
-					printToken (trivia.TabulatedText (tabSize), trivia.Kind (), true);
+					printToken (trivia. TabulatedText (tabSize, currentCol), trivia.Kind (), true);
 			}
 
 			if (trivia.IsKind (SyntaxKind.EndOfLineTrivia)) {
 				currentLine++;
 				checkFirstLine ();
 			}
-		}
+		}		
 
-
-
-		bool print => printedLines >= 0 && printedLines < visibleLines;
-		void checkPrintMargin ()
+        void checkPrintMargin ()
 		{
 			if (currentCol >= 0)
 				return;

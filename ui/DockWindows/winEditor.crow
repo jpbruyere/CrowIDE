@@ -5,12 +5,12 @@
 		SelectedItemElement="{²SelectedItemElement}" Data="{OpenedItems}" DataTest="Extension"		
 		ItemTemplate="#ui.EditPane.itemp">
 		<Template>
-			<VerticalStack Width="Stretched" Height="Stretched">
+			<TabView Name="ItemsContainer" Orientation="Horizontal" />
+			<!--<VerticalStack Width="Stretched" Height="Stretched">
 				<Label Text="{SelectedItem}"/>
 				<Label Text="{./SelectedItem}"/>
-				<Label Text="{./SelectedItemElement}"/>					
-				<TabView Name="ItemsContainer" Orientation="Horizontal" />
-			</VerticalStack>
+				<Label Text="{./SelectedItemElement}"/>									
+			</VerticalStack>-->
 		</Template>		
 	</EditPane>
 </DockWindow>
