@@ -23,24 +23,43 @@ namespace Crow.Coding
 
 		#region CTOR
 		public RoslynEditor () : base () {
+
 			formatting["default"] = new TextFormatting (Colors.Jet, Colors.Transparent);
-			formatting["TypeSyntax"] = new TextFormatting (Colors.DarkCyan, Colors.Transparent);
-			formatting["DocumentationCommentTrivia"] = new TextFormatting (Colors.GreenYellow, Colors.Transparent);
-			formatting["DisabledTextTrivia"] = new TextFormatting (Colors.Grey, Colors.Transparent);
-			formatting["Trivia"] = new TextFormatting (Colors.Green, Colors.Transparent);
-			formatting["Punctuation"] = new TextFormatting (Colors.Black, Colors.Transparent, false);
-			formatting["Name"] = new TextFormatting (Colors.Jet, Colors.Transparent);
-			formatting["LiteralExpression"] = new TextFormatting (Colors.FireBrick, Colors.Transparent, false, true);
-			formatting["PredefinedType"] = new TextFormatting (Colors.DarkCyan, Colors.Transparent, false);
-			formatting["PrimaryFunction"] = new TextFormatting (Colors.SteelBlue, Colors.Transparent, true);
-			formatting["ContextualKeyword"] = new TextFormatting (Colors.DarkBlue, Colors.Transparent, true);
 			formatting["keyword"] = new TextFormatting (Colors.Blue, Colors.Transparent);
-			formatting["GlobalMemberDeclaration"] = new TextFormatting (Colors.Red, Colors.Transparent);
-			formatting["InstanceExpression"] = new TextFormatting (Colors.Jet, Colors.Transparent);
-			formatting["InstanceExpression"] = new TextFormatting (Colors.Jet, Colors.Transparent);
-			formatting["NamespaceMemberDeclaration"] = new TextFormatting (Colors.Jet, Colors.Transparent);
+			formatting["DocumentationComment"] = new TextFormatting (Colors.Green, Colors.Transparent, false, true);
+			formatting["Documentation"] = new TextFormatting (Colors.GreenYellow, Colors.Transparent);
+
+			formatting["trivia"] = new TextFormatting (Colors.Grey, Colors.Transparent, false, true);
+
 			formatting["PreprocessorDirective"] = new TextFormatting (Colors.DeepPink, Colors.Transparent, true);
+			formatting["PreprocessorMessage"] = new TextFormatting (Colors.Black, Colors.Transparent, true);
+			formatting["PredefinedType"] = new TextFormatting (Colors.DarkCyan, Colors.Transparent, false);
+			formatting["AccessibilityModifier"] = new TextFormatting (Colors.RoyalBlue, Colors.Transparent, false);
+			formatting["DisabledText"] = new TextFormatting (Colors.Grey, Colors.Transparent);
+
+			formatting["identifier"] = new TextFormatting (Colors.DarkOliveGreen, Colors.Transparent, true);
+			formatting["LiteralExpression"] = new TextFormatting (Colors.FireBrick, Colors.Transparent, false, true);
+
+			formatting["error"] = new TextFormatting (Colors.Red, Colors.Transparent);
+			/*formatting["PrimaryFunction"] = new TextFormatting (Colors.DarkRed, Colors.Transparent, true);
+			formatting["name"] = new TextFormatting (Colors.DarkRed, Colors.Transparent, true);*/
+
+			formatting["TypeSyntax"] = new TextFormatting (Colors.DarkCyan, Colors.Transparent);
 			formatting["TypeDeclaration"] = new TextFormatting (Colors.Lavender, Colors.Transparent);
+
+
+			formatting["Punctuation"] = new TextFormatting (Colors.Black, Colors.Transparent, false);
+			
+			
+			formatting["ContextualKeyword"] = new TextFormatting (Colors.DarkBlue, Colors.Transparent, true);
+			
+			
+			formatting["InstanceExpression"] = new TextFormatting (Colors.Jet, Colors.Transparent);
+			
+			formatting["NamespaceMemberDeclaration"] = new TextFormatting (Colors.Jet, Colors.Transparent);
+
+			printer = new SyntaxNodePrinter (this);
+			foldingManager = new FoldingManager (this);
 
 			/*formatting ["constant"] = new TextFormatting (Color.Blue, Color.Transparent, true);
 			formatting ["primitive"] = new TextFormatting (Color.DarkCyan, Color.Transparent);
@@ -88,11 +107,11 @@ namespace Crow.Coding
 		internal int foldMargin = 9;            // { get { return parser == null ? 0 : parser.SyntacticTreeMaxDepth * foldHSpace; }}//folding margin size
 
 		internal bool foldingEnabled = true;
+
 		[XmlIgnore]
 		public int leftMargin { get; private set; } = 0;    //margin used to display line numbers, folding errors,etc...
-		int visibleLines = 1;
-		int visibleColumns = 1;
-		int printedCurrentLine = 0;             //Index of the currentline in the PrintedLines array
+		internal int visibleLines = 1;
+		int visibleColumns = 1;		
 		int[] printedLines;                     //printed line indices in source
 
 
@@ -100,6 +119,10 @@ namespace Crow.Coding
 		TextSpan selection = default;
 		SourceText buffer = SourceText.From ("");
 		SyntaxTree syntaxTree;
+		SyntaxNodePrinter printer;
+		internal FoldingManager foldingManager;
+		internal int totalLines => buffer.Lines.Count;
+		internal TextSpan visibleSpan => TextSpan.FromBounds (buffer.Lines[ScrollY].Start, buffer.Lines[ScrollY + visibleLines].End);
 
 		//SourceText buffer => syntaxTree == null ?  : syntaxTree.TryGetText (out SourceText src) ? src : SourceText.From ("");
 		public SyntaxTree SyntaxTree {
@@ -108,6 +131,7 @@ namespace Crow.Coding
 				if (syntaxTree == value)
 					return;
 				syntaxTree = value;
+				foldingManager.UpdateFolds (syntaxTree.GetRoot());
 				CSProjectItem cspi = ProjectNode as CSProjectItem;
 				if (cspi != null)
 					cspi.SyntaxTree = syntaxTree;
@@ -115,8 +139,7 @@ namespace Crow.Coding
 			}
 		}
 
-		//absolute char pos in text of start of folds
-		List<int> folds = new List<int> ();
+		//absolute char pos in text of start of folds		
 
 
 		//Dictionary<int, TextFormatting> formatting = new Dictionary<int, TextFormatting>();
@@ -228,6 +251,10 @@ namespace Crow.Coding
 		editorMutex.ExitWriteLock ();*/
 		//}
 		void toogleFolding (int line) {
+			if (!foldingManager.refs.ContainsKey (line))
+				return;
+			foldingManager.refs[line].IsFolded = !foldingManager.refs[line].IsFolded;
+			RegisterForRedraw ();
 			/*if (parser == null || !foldingEnabled)
 				return;
 			buffer.ToogleFolding (line);*/
@@ -681,15 +708,12 @@ namespace Crow.Coding
 
 			editorMutex.EnterReadLock ();
 
-			syntaxTree = syntaxTree.WithChangedText (buffer);
-			syntaxTree.GetLineVisibility (currentPos);
+			syntaxTree = syntaxTree.WithChangedText (buffer);			
 
 			Rectangle cb = ClientRectangle;
 
-			//printNode (gr, syntaxTree.GetRoot ());
+			printer.Draw (gr, syntaxTree.GetRoot ());
 
-			SyntaxNodePrinter printer = new SyntaxNodePrinter (this, gr, buffer.Lines.Count, ScrollY, visibleLines);
-			printer.Visit (syntaxTree.GetRoot ());
 			printedLines = printer.printedLinesNumbers;
 
 			#region draw text cursor	

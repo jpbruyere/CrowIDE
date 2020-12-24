@@ -7,6 +7,7 @@
 <ItemTemplate Path="#ui.SvgEdit.itemp" DataType=".svg"/>
 
 <ItemTemplate Path="#ui.RoslynEdit.itemp" DataType=".cs"/>
+<!--<ItemTemplate Path="#ui.SrcEdit.itemp" DataType=".cs"/>-->
 <ItemTemplate Path="#ui.SrcEdit.itemp" DataType=".style"/>
 <ItemTemplate Path="#ui.SrcEdit.itemp" DataType=".csproj"/>
 <ItemTemplate Path="#ui.SrcEdit.itemp" DataType=".xml"/>

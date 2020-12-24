@@ -3,6 +3,7 @@
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -29,15 +30,34 @@ namespace Crow
 
 			return new List<Widget>();
 		}
-
 		/*public static string TabulatedText (this SyntaxToken st, int tabSize, int currentColumn = 0) =>
 			st.ToString ().TabulatedText (tabSize, currentColumn);*/
 		public static string TabulatedText (this SyntaxTrivia st, int tabSize, int currentColumn = 0) =>
-			st.ToString ().TabulatedText (tabSize, currentColumn);
+			st.ToString ().TabulatedText (tabSize, Math.Max (0, currentColumn));
+		public static int TabulatedCol (this SyntaxTrivia st, int tabSize, int currentColumn = 0) {
+			int tc = currentColumn;
+			bool prevCharIsTab = false;
+			string str = st.ToString ();
 
+			for (int i = 0; i < str.Length; i++) {
+				if (str[i] == '\t') {
+					if (prevCharIsTab)
+						tc += tabSize;
+					else {
+						tc += tabSize - tc % tabSize;
+						prevCharIsTab = true;
+					}
+				} else {
+					prevCharIsTab = false;
+					tc++;
+				}
+			}
+			return tc;
+		}
 		public static string TabulatedText (this string str, int tabSize, int currentColumn = 0) {
 			if (string.IsNullOrEmpty (str))
-				return "";			
+				return "";
+			currentColumn = Math.Max (0, currentColumn);
 			bool prevCharIsTab = false;
 			StringBuilder sb = new StringBuilder ();
 
@@ -172,13 +192,15 @@ namespace Crow
 				}
 				tmp.Add (tok);
 				if (tok.HasTrailingTrivia) {
-					foreach (var trivia in tok.TrailingTrivia)
-						tmp.Add (trivia);
+					foreach (var trivia in tok.TrailingTrivia) 						
+						tmp.Add (trivia);					
 				}
 			}
 
 			return tmp;
 		}
+		public static IEnumerable GetStructureAsList (this SyntaxTrivia trivia)
+			=> new SyntaxNode[] { trivia.GetStructure () };
 		//kind is a language extension, not found by crow.
 		public static SyntaxKind CSKind (this SyntaxToken tok) => tok.Kind ();
 		public static SyntaxKind CSKind (this SyntaxTrivia tok) => tok.Kind ();

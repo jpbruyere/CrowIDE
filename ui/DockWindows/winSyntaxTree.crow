@@ -5,29 +5,30 @@
 			<Border Style="TreeItemBorder" Focusable="true">
 				<HorizontalStack>
 					<Widget Width="5" Height="5"/>
-					<Label Style="TreeLabel" Foreground="Jet" Text="{CSKind}" />
+					<Label Style="TreeLabel" Foreground="White" Background="Jet" Text="{CSKind}" />
 					<Label Style="TreeLabel" Text="{}" Width="Stretched"/>
 				</HorizontalStack>
 			</Border>
 		</ItemTemplate>
-		<ItemTemplate DataType="Microsoft.CodeAnalysis.SyntaxTrivia" >
+		<!--<ItemTemplate DataType="Microsoft.CodeAnalysis.SyntaxTrivia" >
 			<Border Style="TreeItemBorder" Focusable="true">
 				<HorizontalStack>
 					<Widget Width="5" Height="5"/>
-					<Label Style="TreeLabel" Foreground="Yellow" Text="{CSKind}" />
-					<Label Style="TreeLabel" Text="{}" Width="Stretched"/>
+					<Label Style="TreeLabel" Foreground="Yellow" Background="Grey" Text="{CSKind}" />
+					<Label Style="TreeLabel" Text="{}" Width="Fit"/>					
 				</HorizontalStack>
 			</Border>
-		</ItemTemplate>		
-		<ItemTemplate DataType="Microsoft.CodeAnalysis.CSharp.CSharpSyntaxNode"  Data="GetChilNodesOrTokens">
+		</ItemTemplate>-->
+		<ItemTemplate DataType="Microsoft.CodeAnalysis.SyntaxTrivia"  Data="GetStructureAsList">
 			<Expandable Caption="{}">
 				<Template>
 					<VerticalStack>
 						<Border Style="TreeItemBorder" Focusable="true">
 							<Group>
 								<HorizontalStack Spacing="5" MouseDoubleClick="./onClickForExpand">
-									<Image Margin="1" Width="9" Height="9" Focusable="true" MouseDown="./onClickForExpand" Path="{./Image}" Visible="{./IsExpandable}" SvgSub="{./IsExpanded}" MouseEnter="{Background=LightGrey}" MouseLeave="{Background=Transparent}" />
-									<Label Style="TreeLabel" Foreground="SkyBlue" Text="{Kind}" />									
+									<Image Margin="1" Width="9" Height="9" Focusable="true" MouseDown="./onClickForExpand" Path="{./Image}" Visible="{HasStructure}" SvgSub="{./IsExpanded}" MouseEnter="{Background=LightGrey}" MouseLeave="{Background=Transparent}" />
+									<Widget Width="10" Height="10" Background="Red" Visible="{IsPartOfStructuredTrivia}" />
+									<Label Style="TreeLabel" Foreground="Yellow" Background="Grey" Text="{CSKind}" />
 									<Label Style="TreeLabel" Text="{./Caption}" />
 								</HorizontalStack>
 							</Group>
@@ -36,7 +37,29 @@
 					</VerticalStack>
 				</Template>
 				<HorizontalStack Height="Fit">
-					<Widget Width="8" Height="10" />
+					<Widget Width="16" Height="10" />
+					<VerticalStack Height="Fit" Name="ItemsContainer" />
+				</HorizontalStack>
+			</Expandable>
+		</ItemTemplate>
+		<ItemTemplate DataType="Microsoft.CodeAnalysis.CSharp.CSharpSyntaxNode"  Data="GetChilNodesOrTokens">
+			<Expandable Caption="{}">
+				<Template>
+					<VerticalStack>
+						<Border Style="TreeItemBorder" Focusable="true">
+							<Group>
+								<HorizontalStack Spacing="5" MouseDoubleClick="./onClickForExpand">
+									<Image Margin="1" Width="9" Height="9" Focusable="true" MouseDown="./onClickForExpand" Path="{./Image}" Visible="{./IsExpandable}" SvgSub="{./IsExpanded}" MouseEnter="{Background=LightGrey}" MouseLeave="{Background=Transparent}" />
+									<Label Style="TreeLabel" Foreground="SkyBlue" Text="{Kind}" />
+									<Label Style="TreeLabel" Text="{./Caption}" />
+								</HorizontalStack>
+							</Group>
+						</Border>
+						<Container Name="Content" Visible="false" />
+					</VerticalStack>
+				</Template>
+				<HorizontalStack Height="Fit">
+					<Widget Width="16" Height="10" />
 					<VerticalStack Height="Fit" Name="ItemsContainer" />
 				</HorizontalStack>
 			</Expandable>
