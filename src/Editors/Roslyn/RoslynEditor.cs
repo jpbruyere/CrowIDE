@@ -12,6 +12,8 @@ using Microsoft.CodeAnalysis;
 using System.Text;
 using Microsoft.CodeAnalysis.CSharp;
 using Glfw;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace Crow.Coding
 {
@@ -26,7 +28,7 @@ namespace Crow.Coding
 
 			formatting["default"] = new TextFormatting (Colors.Jet, Colors.Transparent);
 			formatting["keyword"] = new TextFormatting (Colors.Blue, Colors.Transparent);
-			formatting["DocumentationComment"] = new TextFormatting (Colors.Green, Colors.Transparent, false, true);
+			formatting["DocumentationComment"] = new TextFormatting (Colors.MediumSeaGreen, Colors.Transparent, false, true);
 			formatting["Documentation"] = new TextFormatting (Colors.GreenYellow, Colors.Transparent);
 
 			formatting["trivia"] = new TextFormatting (Colors.Grey, Colors.Transparent, false, true);
@@ -37,7 +39,7 @@ namespace Crow.Coding
 			formatting["AccessibilityModifier"] = new TextFormatting (Colors.RoyalBlue, Colors.Transparent, false);
 			formatting["DisabledText"] = new TextFormatting (Colors.Grey, Colors.Transparent);
 
-			formatting["identifier"] = new TextFormatting (Colors.DarkOliveGreen, Colors.Transparent, true);
+			formatting["identifier"] = new TextFormatting (Colors.Onyx, Colors.Transparent, true);
 			formatting["LiteralExpression"] = new TextFormatting (Colors.FireBrick, Colors.Transparent, false, true);
 
 			formatting["error"] = new TextFormatting (Colors.Red, Colors.Transparent);
@@ -115,7 +117,11 @@ namespace Crow.Coding
 		int[] printedLines;                     //printed line indices in source
 
 
-		internal int hoverPos, currentPos, selStartPos;//absolute char index in buffer source
+		internal int hoverPos, selStartPos;//absolute char index in buffer source
+
+
+
+
 		TextSpan selection = default;
 		SourceText buffer = SourceText.From ("");
 		SyntaxTree syntaxTree;
@@ -131,7 +137,6 @@ namespace Crow.Coding
 				if (syntaxTree == value)
 					return;
 				syntaxTree = value;
-				foldingManager.UpdateFolds (syntaxTree.GetRoot());
 				CSProjectItem cspi = ProjectNode as CSProjectItem;
 				if (cspi != null)
 					cspi.SyntaxTree = syntaxTree;
@@ -139,6 +144,13 @@ namespace Crow.Coding
 			}
 		}
 
+		void updateFolds () {
+			if (syntaxTree == null)
+				return;
+			Console.WriteLine ("update folds");
+			foldingManager.UpdateFolds (syntaxTree.GetRoot ());
+			RegisterForRedraw ();
+		}
 		//absolute char pos in text of start of folds		
 
 
@@ -190,34 +202,21 @@ namespace Crow.Coding
 			NotifyValueChanged ("VisibleLines", visibleLines);
 			updateMaxScrollY ();
 			RegisterForGraphicUpdate ();
-			//			System.Diagnostics.Debug.WriteLine ("update visible lines: " + visibleLines);
-			//			System.Diagnostics.Debug.WriteLine ("update MaxScrollY: " + MaxScrollY);
 		}
 		void updateVisibleColumns () {
 			visibleColumns = (int)Math.Floor ((double)(ClientRectangle.Width - leftMargin) / fe.MaxXAdvance);
 			NotifyValueChanged ("VisibleColumns", visibleColumns);
 			updateMaxScrollX ();
-			//			System.Diagnostics.Debug.WriteLine ("update visible columns: {0} leftMargin:{1}",visibleColumns, leftMargin);
-			//			System.Diagnostics.Debug.WriteLine ("update MaxScrollX: " + MaxScrollX);
 		}
 		void updateMaxScrollX () {
 			MaxScrollX = Math.Max (0, longestLineCharCount - visibleColumns);
 			if (longestLineCharCount > 0)
 				NotifyValueChanged ("ChildWidthRatio", Slot.Width * visibleColumns / longestLineCharCount);
 		}
-		void updateMaxScrollY () {
-			/*if (parser == null || !foldingEnabled) {
-				MaxScrollY = Math.Max (0, buffer.Lines.Count - visibleLines);
-				if (buffer.UnfoldedLines > 0)
-					NotifyValueChanged ("ChildHeightRatio", Slot.Height * visibleLines / buffer.UnfoldedLines);							
-			} else {
-				MaxScrollY = Math.Max (0, buffer.UnfoldedLines - visibleLines);
-				if (buffer.UnfoldedLines > 0)
-					NotifyValueChanged ("ChildHeightRatio", Slot.Height * visibleLines / buffer.UnfoldedLines);							
-			}*/
-
-			MaxScrollY = Math.Max (0, buffer.Lines.Count - visibleLines);
-			NotifyValueChanged ("ChildHeightRatio", Slot.Height * visibleLines / buffer.Lines.Count);
+		void updateMaxScrollY () {			
+			int unfoldedLines = buffer.Lines.Count - printer.SkippedLines;			
+			MaxScrollY = Math.Max (0, unfoldedLines - visibleLines);
+			NotifyValueChanged ("ChildHeightRatio", Slot.Height * visibleLines / unfoldedLines);
 		}
 		//void updatePrintedLines () {
 		//PrintedLines = buffer.Lines;
@@ -251,13 +250,10 @@ namespace Crow.Coding
 		editorMutex.ExitWriteLock ();*/
 		//}
 		void toogleFolding (int line) {
-			if (!foldingManager.refs.ContainsKey (line))
-				return;
-			foldingManager.refs[line].IsFolded = !foldingManager.refs[line].IsFolded;
-			RegisterForRedraw ();
-			/*if (parser == null || !foldingEnabled)
-				return;
-			buffer.ToogleFolding (line);*/
+			if (foldingManager.TryGetFold (line, out Fold fold)) {
+				fold.IsFolded = !fold.IsFolded;
+				RegisterForRedraw ();
+			}
 		}
 
 		#region Editor overrides
@@ -467,7 +463,9 @@ namespace Crow.Coding
 
 			try {
 				buffer = SourceText.From (projFile.Source);
-				SyntaxTree = CSharpSyntaxTree.ParseText (buffer);				
+				//buffer.Container.TextChanged
+				SyntaxTree = CSharpSyntaxTree.ParseText (buffer);
+				Task.Run (() => updateFolds ());
 			} catch (Exception ex) {
 				Debug.WriteLine (ex.ToString ());
 			}
@@ -507,47 +505,36 @@ namespace Crow.Coding
 		}
 		int getTabulatedColumn (Point pos) => getTabulatedColumn (pos.X,pos.Y);
 
-		void move (bool shiftIsDown, int hDelta, int vDelta = 0)
-		{
-			if (shiftIsDown) {
-				if (selection.IsEmpty)
-					selStartPos = currentPos;
-				/*if (IFace.Ctrl)
-					buffer.GotoWordStart ();
-				else*/
-				move (hDelta, vDelta);
-				selection = (selStartPos < currentPos) ?
-					TextSpan.FromBounds (selStartPos, currentPos) :
-					TextSpan.FromBounds (currentPos, selStartPos);
-				return;
-			}
-			selection = default;
-			move (hDelta, vDelta);
-		}
 		int lastVisualColumn = -1;
-		void move (int hDelta, int vDelta)
+		void move (int hDelta, int vDelta = 0)
 		{
 			if (buffer?.Length == 0)
 				return;
 
+			if (IFace.Shift) {
+				if (selection.IsEmpty)
+					selStartPos = CurrentPos;
+			}else
+				selection = default;
+
 			if (hDelta != 0) {
 				lastVisualColumn = -1;
-				currentPos += hDelta;
-				if (currentPos < 0)
-					currentPos = 0;
-				else if (currentPos >= buffer.Length)
-					currentPos = buffer.Length - 1;
-				TextLine tl = buffer.Lines.GetLineFromPosition (currentPos);
-				if (currentPos > tl.End) {
+				CurrentPos += hDelta;
+				if (CurrentPos < 0)
+					CurrentPos = 0;
+				else if (CurrentPos >= buffer.Length)
+					CurrentPos = buffer.Length - 1;
+				TextLine tl = buffer.Lines.GetLineFromPosition (CurrentPos);
+				if (CurrentPos > tl.End) {
 					if (hDelta > 0 && tl.LineNumber < buffer.Lines.Count - 1) 						
-						currentPos = buffer.Lines[tl.LineNumber + 1].Start;
+						CurrentPos = buffer.Lines[tl.LineNumber + 1].Start;
 					 else
-						currentPos = tl.End;
+						CurrentPos = tl.End;
                 }				
 			}
 
 			if (vDelta != 0) {
-				LinePosition lp = buffer.Lines.GetLinePosition (currentPos);
+				LinePosition lp = buffer.Lines.GetLinePosition (CurrentPos);
 				int nextL = lp.Line + vDelta;
 				if (nextL < 0)
 					nextL = 0;
@@ -556,13 +543,18 @@ namespace Crow.Coding
 
 				if (nextL != lp.Line) {
 					if (lastVisualColumn < 0)
-						lastVisualColumn = buffer.TabulatedCol (tabSize, buffer.Lines[lp.Line].Start, currentPos);
-					currentPos = buffer.Lines[nextL].AbsoluteCharPosFromTabulatedColumn (lastVisualColumn, tabSize);
+						lastVisualColumn = buffer.TabulatedCol (tabSize, buffer.Lines[lp.Line].Start, CurrentPos);
+					CurrentPos = buffer.Lines[nextL].AbsoluteCharPosFromTabulatedColumn (lastVisualColumn, tabSize);
 				}
 			}
-			LinePosition lPos = buffer.Lines.GetLinePosition (currentPos);
+			LinePosition lPos = buffer.Lines.GetLinePosition (CurrentPos);
 			CurrentLine = lPos.Line;
 			CurrentColumn = lPos.Character;
+
+			if (IFace.Shift)
+				selection = (selStartPos < CurrentPos) ?
+					TextSpan.FromBounds (selStartPos, CurrentPos) :
+					TextSpan.FromBounds (CurrentPos, selStartPos);			
 		}
 
 		#region GraphicObject overrides
@@ -598,99 +590,6 @@ namespace Crow.Coding
 				updateVisibleColumns ();
 		}
 
-		/*void printToken (Context ctx, string lstr, SyntaxKind kind, bool trivia = false) {			
-
-		}
-		void printTrivia (Context ctx) { }
-
-		void printNode (Context ctx, SyntaxNode root) {
-			int curCol = 0;
-			int curLine = 0;
-			int firstLine = ScrollY;
-			Rectangle bounds = ClientRectangle;
-
-			foreach (SyntaxToken tok in root.DescendantTokens (r => true, true)) {
-				if (tok.HasLeadingTrivia) {
-                    foreach (SyntaxTrivia trivia in tok.LeadingTrivia) {
-						if (trivia.CSKind() == SyntaxKind.EndOfLineTrivia) {
-							curLine++;
-							curCol = 0;
-                        }
-                    }
-                }
-					Console.WriteLine (tok.LeadingTrivia.ToFullString ());
-				Console.WriteLine ($"{tok.Kind ()}  {tok.ToString ()}");
-				if (tok.HasTrailingTrivia)
-					Console.WriteLine (tok.TrailingTrivia.ToFullString ());
-				//Console.WriteLine (tok.ToFullString ());
-
-
-				TextFormatting tf = formatting["default"];
-				SyntaxKind kind = tok.Kind ();
-				if (SyntaxFacts.IsTypeSyntax (kind))
-					tf = formatting["TypeSyntax"];
-				else if (SyntaxFacts.IsPreprocessorDirective (kind))
-					tf = formatting["PreprocessorDirective"];
-				else if (SyntaxFacts.IsDocumentationCommentTrivia (kind))
-					tf = formatting["DocumentationCommentTrivia"];
-				else if (kind == SyntaxKind.DisabledTextTrivia)
-					tf = formatting["DisabledTextTrivia"];
-				else if (SyntaxFacts.IsTrivia (kind))
-					tf = formatting["Trivia"];
-				else if (SyntaxFacts.IsPunctuation (kind))
-					tf = formatting["Punctuation"];
-				else if (SyntaxFacts.IsName (kind))
-					tf = formatting["Name"];
-				else if (SyntaxFacts.IsLiteralExpression (kind))
-					tf = formatting["LiteralExpression"];
-				else if (SyntaxFacts.IsPredefinedType (kind))
-					tf = formatting["PredefinedType"];
-				else if (SyntaxFacts.IsPrimaryFunction (kind))
-					tf = formatting["PrimaryFunction"];
-				else if (SyntaxFacts.IsContextualKeyword (kind))
-					tf = formatting["ContextualKeyword"];
-				else if (SyntaxFacts.IsKeywordKind (kind))
-					tf = formatting["keyword"];
-				else if (SyntaxFacts.IsGlobalMemberDeclaration (kind))
-					tf = formatting["GlobalMemberDeclaration"];
-				else if (SyntaxFacts.IsInstanceExpression (kind))
-					tf = formatting["InstanceExpression"];
-				else if (SyntaxFacts.IsNamespaceMemberDeclaration (kind))
-					tf = formatting["NamespaceMemberDeclaration"];
-				else if (SyntaxFacts.IsTypeDeclaration (kind))
-					tf = formatting["TypeDeclaration"];
-
-				FontSlant fts = FontSlant.Normal;
-				FontWeight ftw = FontWeight.Normal;
-				if (tf.Bold)
-					ftw = FontWeight.Bold;
-				if (tf.Italic)
-					fts = FontSlant.Italic;
-
-				ctx.SelectFontFace (Font.Name, fts, ftw);
-				ctx.SetSource (tf.Foreground);
-				//Console.WriteLine (tf.Foreground);
-
-				int diffX = curCol - ScrollX;
-
-				string str = tok.ToString();
-
-				if (diffX < 0) {
-					if (diffX + lstr.Length > 0)
-						str = lstr.Substring (-diffX);
-					else {
-						curCol += lstr.Length;
-						return;
-					}
-				} else
-					diffX = 0;
-
-				ctx.MoveTo (bounds.X + leftMargin + (curCol - ScrollX - diffX) * fe.MaxXAdvance, y + fe.Ascent);
-				ctx.ShowText (str);
-				curCol += lstr.Length;
-			}
-		}*/
-
 		protected override void onDraw (Context gr)
 		{
 			if (selection.IsEmpty)
@@ -712,9 +611,11 @@ namespace Crow.Coding
 
 			Rectangle cb = ClientRectangle;
 
+			int skippedLinesSave = printer.SkippedLines;
 			printer.Draw (gr, syntaxTree.GetRoot ());
-
 			printedLines = printer.printedLinesNumbers;
+			if (skippedLinesSave != printer.SkippedLines)
+				updateMaxScrollY ();
 
 			#region draw text cursor	
 			if (!selection.IsEmpty) {
@@ -765,28 +666,100 @@ namespace Crow.Coding
 				base.onDraw (gr);
 				gr.Operator = Operator.Over;
 
-			} else if (HasFocus && printedLines != null && currentPos >= 0) {
+			} else if (HasFocus && printedLines != null && CurrentPos >= 0) {
 				//Draw cursor
 				gr.LineWidth = 1.0;
 
-				TextLine tl = buffer.Lines.GetLineFromPosition (currentPos);
-				int visualCol = buffer.TabulatedCol (tabSize, tl.Start, currentPos) - ScrollX;
+				TextLine tl = buffer.Lines.GetLineFromPosition (CurrentPos);
+				int visualCol = buffer.TabulatedCol (tabSize, tl.Start, CurrentPos) - ScrollX;
 				int visualLine = Array.IndexOf (printedLines, tl.LineNumber);
-				double cursorX = cb.X + visualCol * fe.MaxXAdvance + leftMargin;
-				gr.MoveTo (0.5 + cursorX, cb.Y + visualLine * (fe.Ascent + fe.Descent));
-				gr.LineTo (0.5 + cursorX, cb.Y + (visualLine + 1) * (fe.Ascent + fe.Descent));
-				gr.Stroke ();
+				if (visualLine >= 0) {
+					double cursorX = cb.X + visualCol * fe.MaxXAdvance + leftMargin;
+					gr.MoveTo (0.5 + cursorX, cb.Y + visualLine * (fe.Ascent + fe.Descent));
+					gr.LineTo (0.5 + cursorX, cb.Y + (visualLine + 1) * (fe.Ascent + fe.Descent));
+					gr.Stroke ();
+				}
 			}
-			#endregion
+            #endregion
+
+            foreach (Diagnostic diag in syntaxTree.GetDiagnostics ()) {
+				printUnderline (gr, cb, diag.Location);
+                foreach (Location al in diag.AdditionalLocations) {
+					printUnderline (gr, cb, al);
+				}
+			} 
 			editorMutex.ExitReadLock ();
 
 		}
 		#endregion
 
+		void printUnderline (Context gr, Rectangle cb, Location loc) {
+			FileLinePositionSpan flps = loc.GetLineSpan ();
+
+			TextLine startTl = buffer.Lines[flps.StartLinePosition.Line];
+			TextLine endTl = buffer.Lines[flps.EndLinePosition.Line];
+
+			if (flps.EndLinePosition.Line < ScrollY || flps.StartLinePosition.Line >= ScrollY + visibleLines)
+				return;
+			int visualColStart = buffer.TabulatedCol (tabSize, startTl.Start, loc.SourceSpan.Start) - ScrollX;
+			int visualColEnd = buffer.TabulatedCol (tabSize, endTl.Start, loc.SourceSpan.End) - ScrollX;
+			int visualLineStart = Array.IndexOf (printedLines, startTl.LineNumber);
+
+			double xStart = cb.X + visualColStart * fe.MaxXAdvance + leftMargin;
+			double yStart = cb.Y + visualLineStart * (fe.Ascent + fe.Descent);
+			RectangleD r = new RectangleD (xStart,
+				yStart, (visualColEnd - visualColStart) * fe.MaxXAdvance, (fe.Ascent + fe.Descent));
+
+			gr.LineWidth = 1;
+			gr.SetSource (Colors.Red);
+
+			if (startTl == endTl) {
+				gr.MoveTo (r.BottomLeft);
+				if (r.Width > 0)
+					gr.LineTo (r.BottomRight);
+				else
+					gr.RelLineTo (10, 0);
+				gr.Stroke ();
+			} else {
+				r.Width = Math.Min (cb.Width - xStart, buffer.TabulatedCol (tabSize, loc.SourceSpan.Start, startTl.GetEnd (loc.SourceSpan.Start) - ScrollX) * fe.MaxXAdvance);
+				gr.MoveTo (r.BottomLeft);
+				if (r.Width > 0)
+					gr.LineTo (r.BottomRight);
+				else
+					gr.RelLineTo (10, 0);
+				gr.Stroke ();
+				int visualLineEnd = Array.IndexOf (printedLines, endTl.LineNumber);
+				r.Left = cb.X + leftMargin;
+				for (int l = visualLineStart + 1; l < (visualLineEnd < 0 ? printedLines.Length : visualLineEnd); l++) {
+					r.Top += (fe.Ascent + fe.Descent);
+					TextLine tl = buffer.Lines[printedLines[l]];
+					r.Width = Math.Min (cb.Width - leftMargin, buffer.TabulatedCol (tabSize, tl.Start, tl.GetEnd () - ScrollX) * fe.MaxXAdvance);
+					gr.MoveTo (r.BottomLeft);
+					if (r.Width > 0)
+						gr.LineTo (r.BottomRight);
+					else
+						gr.RelLineTo (10, 0);
+					gr.Stroke ();
+				}
+				if (visualLineEnd >= 0) {
+					r.Top += (fe.Ascent + fe.Descent);
+					r.Width = Math.Min (cb.Width - leftMargin, Math.Max (1, visualColEnd) * fe.MaxXAdvance);
+					gr.MoveTo (r.BottomLeft);
+					if (r.Width > 0)
+						gr.LineTo (r.BottomRight);
+					else
+						gr.RelLineTo (10, 0);
+					gr.Stroke ();
+				}
+			}
+		}
+
 		#region Mouse handling
 
 		int hoverLine = -1, hoverColumn = -1;
-		public int HoverLine {
+        private int currentPos;
+
+        public int HoverLine {
 			get { return hoverLine; }
 			set {
 				if (hoverLine == value)
@@ -807,7 +780,17 @@ namespace Crow.Coding
 			}
 		}
 
-		public override void onMouseEnter (object sender, MouseMoveEventArgs e)
+		[XmlIgnore]public int CurrentPos {
+			get => currentPos;
+			set {
+				if (currentPos == value)
+					return;
+				currentPos = value;
+				NotifyValueChangedAuto (currentPos);
+			}
+		}
+
+        public override void onMouseEnter (object sender, MouseMoveEventArgs e)
 		{
 			base.onMouseEnter (sender, e);
 			if (e.X - ScreenCoordinates(Slot).X < leftMargin + ClientRectangle.X)
@@ -879,10 +862,10 @@ namespace Crow.Coding
 			if (mouseLocalPos.X >= leftMargin)
 				base.onMouseDown (sender, e);			
 
-			if (doubleClicked) {
+			/*if (doubleClicked) {
 				doubleClicked = false;
 				return;
-			}
+			}*/
 
 			if (mouseLocalPos.X < leftMargin) {
 				toogleFolding (hoverLine);
@@ -891,7 +874,7 @@ namespace Crow.Coding
 			}
 			CurrentLine = HoverLine;
 			CurrentColumn = HoverColumn;
-			currentPos = selStartPos = hoverPos;
+			CurrentPos = selStartPos = hoverPos;
 
 			RegisterForRedraw ();
 			selection = default;
@@ -905,25 +888,13 @@ namespace Crow.Coding
 
 		public override void onMouseDoubleClick (object sender, MouseButtonEventArgs e)
 		{
-			doubleClicked = true;
+			//doubleClicked = true;
 			base.onMouseDoubleClick (sender, e);
 
-			/*buffer.GotoWordStart ();
-			buffer.SetSelStartPos ();
-			buffer.GotoWordEnd ();
-			buffer.SetSelEndPos ();*/
-		}
-		public void MakeSelection (int lineStart, int colStart, int lineEnd, int colEnd) {
-			/*buffer.CurrentLine = lineStart;
-			buffer.CurrentColumn = colStart;
-			buffer.SetSelStartPos ();
-			buffer.CurrentLine = lineEnd;
-			buffer.CurrentColumn = colEnd;
-			buffer.SetSelEndPos ();*/
-		}
-		public override void onMouseWheel (object sender, MouseWheelEventArgs e)
-		{
-			base.onMouseWheel (sender, e);
+			selection = TextSpan.FromBounds (
+				buffer.GetWordStart (CurrentPos),
+				buffer.GetWordEnd (CurrentPos));
+			RegisterForRedraw ();
 		}
 		#endregion
 
@@ -956,26 +927,26 @@ namespace Crow.Coding
 			switch (key) {
 			case Key.Backspace:
 				if (selection.IsEmpty) {
-					if (currentPos < 1)
+					if (CurrentPos < 1)
 						return;
-					selection = TextSpan.FromBounds (currentPos - 1, currentPos);
+					selection = TextSpan.FromBounds (CurrentPos - 1, CurrentPos);
 				}
 				replaceSelection ("");
 				break;			
 			case Key.Delete:
 				if (selection.IsEmpty) {
-					if (currentPos >= buffer.Length)
+					if (CurrentPos >= buffer.Length)
 						return;
-					selection = TextSpan.FromBounds (currentPos, currentPos + 1);
+					selection = TextSpan.FromBounds (CurrentPos, CurrentPos + 1);
 				} else if (IFace.Shift)
-					IFace.Clipboard = buffer.GetSubText (selection).ToString ();//.TabulatedText(tabSize);
+					IFace.Clipboard = buffer.GetSubText (selection).ToString ();
 				replaceSelection ("");
 				break;
 			case Key.Insert:
 				if (selection.IsEmpty)
-					selection = TextSpan.FromBounds (currentPos, currentPos);
+					selection = TextSpan.FromBounds (CurrentPos, CurrentPos);
 				else if (IFace.Ctrl) {
-					IFace.Clipboard = buffer.GetSubText (selection).ToString ();//.TabulatedText (tabSize);
+					IFace.Clipboard = buffer.GetSubText (selection).ToString ();
 					break;
 				}				
 				if (IFace.Shift)
@@ -985,7 +956,7 @@ namespace Crow.Coding
 			case Key.KeypadEnter:
 				if (!selection.IsEmpty)
 					replaceSelection ("");
-				selection = TextSpan.FromBounds (currentPos, currentPos);
+				selection = TextSpan.FromBounds (CurrentPos, CurrentPos);
 				replaceSelection ("\n");
 				break;
 			case Key.Escape:
@@ -993,37 +964,43 @@ namespace Crow.Coding
 				break;
 			case Key.Home:
 				if (IFace.Ctrl)
-					move (IFace.Shift, -currentPos);
+					move (-CurrentPos);
 				else
-					move (IFace.Shift, buffer.Lines[currentLine].Start - currentPos);
+					move (buffer.Lines[currentLine].Start - CurrentPos);
 				break;
 			case Key.End:
 				if (IFace.Ctrl)
-					move (IFace.Shift, buffer.Length - currentPos);
+					move (buffer.Length - CurrentPos);
 				else
-					move (IFace.Shift, buffer.Lines[currentLine].End - currentPos);
+					move (buffer.Lines[currentLine].End - CurrentPos);
 				break;
-			case Key.Left:				
-				move (IFace.Shift, IFace.Ctrl ? buffer.GetWordStart (currentPos) - currentPos : - 1);
+			case Key.Left:
+				if (IFace.Ctrl)
+					movePreviousToken ();
+				else
+					move (-1);
 				break;
 			case Key.Right:
-				move (IFace.Shift, 1);
+				if (IFace.Ctrl)
+					moveNextToken ();
+				else
+					move (1);
 				break;
 			case Key.Up:
-				move (IFace.Shift, 0, -1);
+				move (0, -1);
 				break;
 			case Key.Down:
-				move (IFace.Shift, 0, 1);
+				move (0, 1);
 				break;
 			case Key.PageUp:
-				move (IFace.Shift, 0, -visibleLines);
+				move (0, -visibleLines);
 				break;
 			case Key.PageDown:
-				move (IFace.Shift, 0, visibleLines);
+				move (0, visibleLines);
 				break;
 			case Key.Tab:
 				if (selection.IsEmpty)
-					selection = TextSpan.FromBounds (currentPos, currentPos);
+					selection = TextSpan.FromBounds (CurrentPos, CurrentPos);
 				LinePositionSpan lps = buffer.Lines.GetLinePositionSpan (selection);
 				if (IFace.Shift) {
 					for (int i = lps.Start.Line; i <= lps.End.Line; i++) {
@@ -1061,22 +1038,67 @@ namespace Crow.Coding
 			}
 			RegisterForGraphicUpdate ();
 		}
+		void movePreviousToken () {
+			if (syntaxTree.TryGetRoot (out SyntaxNode node)) {
+				SyntaxToken tok = node.FindToken (CurrentPos, true);
+				if (tok.SpanStart == CurrentPos) {
+                    tok = tok.GetPreviousToken (false, true, true, true);
+					while (tok.IsWhiteSpaceOrNewLine ())
+						tok = tok.GetPreviousToken (false, true, true, true);
+					moveTo (tok.SpanStart);
+				} else if (!tok.Span.Contains (CurrentPos) ||  tok.IsComment ()) {
+					moveTo (buffer.GetWordStart (CurrentPos));
+				} else
+					moveTo (tok.SpanStart);
+			}
+		}
+		void moveNextToken () {
+			if (syntaxTree.TryGetRoot (out SyntaxNode node)) {
+				SyntaxToken tok = node.FindToken (CurrentPos, true);
+				if (tok.Span.End == CurrentPos) {
+					tok = tok.GetNextToken (false, true, true, true);
+					while (tok.IsWhiteSpaceOrNewLine ())
+						tok = tok.GetNextToken (false, true, true, true);
+					moveTo (tok.Span.End);
+				} else if (!tok.Span.Contains (CurrentPos) || tok.IsComment ()) {
+					moveTo (buffer.GetWordEnd (CurrentPos));
+				} else
+					moveTo (tok.Span.End);
+			}
+		}
+
+
+		void moveTo (int newPos) =>	move (newPos - CurrentPos);
 		public override void onKeyPress (object sender, KeyPressEventArgs e)
 		{
 			base.onKeyPress (sender, e);
 			if (selection.IsEmpty)
-				selection = TextSpan.FromBounds (currentPos, currentPos);
+				selection = TextSpan.FromBounds (CurrentPos, CurrentPos);
 			string str = e.KeyChar.ToString ();
 			replaceSelection (str);
 		}
 		void replaceSelection (string newText)
 		{
 			buffer = buffer.WithChanges (new TextChange (selection, newText));
+			SyntaxTree = syntaxTree.WithChangedText (buffer);
+			
+			LinePositionSpan lps = buffer.Lines.GetLinePositionSpan (selection);
+			bool lineCountChange = lps.Start.Line != lps.End.Line;
 			if (string.IsNullOrEmpty (newText))
-				currentPos = selection.Start;
-			else
-				currentPos = selection.Start + newText.Length;
+				CurrentPos = selection.Start;
+			else {
+				CurrentPos = selection.Start + newText.Length;
+                for (int i = 0; i < newText.Length; i++) {
+					if (newText[i] == '\r' || newText[i] == '\n') {
+						lineCountChange = true;
+						break;
+                    }
+                }
+			}
 			selection = default;
+			if (lineCountChange )
+				Task.Run (() => updateFolds ());
+
 			RegisterForRedraw ();
 		}
 		#endregion

@@ -147,33 +147,33 @@ namespace Crow
 
 		public static int GetWordStart (this SourceText st, int curPos) {
 			if (st?.Length == 0)
+				return 0;						
+			if (curPos < 2)
 				return 0;
-			TextLine tl = st.Lines.GetLineFromPosition (curPos);			
-			if (curPos < tl.Start + 2)
-				return tl.Start;
 			int ws = curPos - 1;
 			if (st[ws].IsWhiteSpaceOrNewLine ()) {				
-				while (ws > tl.Start && st[ws-1].IsWhiteSpaceOrNewLine ())
-					ws--;
-			} else {
-				while (ws > tl.Start && !st[ws-1].IsWhiteSpaceOrNewLine ())
+				while (ws > 0 && st[ws-1].IsWhiteSpaceOrNewLine ())
 					ws--;
 			}
+			while (ws > 0 && Char.IsLetterOrDigit(st[ws-1]))
+				ws--;			
 			return ws;
 		}
 		public static int GetWordEnd (this SourceText st, int curPos) {
-			if (curPos > st?.Length - 2)
-				return  st?.Length - 1 ?? 0;
+			if (st?.Length == 0)
+				return 0;			
+			if (curPos > st.Length - 2)
+				return st.Length - 1;
 			int ws = curPos + 1;
-			if (st[curPos].IsWhiteSpaceOrNewLine ()) {				
-				while (ws < st.Length - 1 && st[ws].IsWhiteSpaceOrNewLine ())
-					ws++;
-			} else {
-				while (ws < st.Length - 1 && !st[ws].IsWhiteSpaceOrNewLine ())
+			if (st[ws].IsWhiteSpaceOrNewLine ()) {
+				while (ws < st.Length && st[ws + 1].IsWhiteSpaceOrNewLine ())
 					ws++;
 			}
-			return ws;
+			while (ws < st.Length && Char.IsLetterOrDigit (st[ws + 1]))
+				ws++;
+			return Math.Min (st.Length - 1, ws + 1);
 		}
+
 		public static ObservableList<object> GetChilNodesOrTokens (this SyntaxNode node) {
 			ObservableList<object> tmp = new ObservableList<object> ();
 
@@ -204,5 +204,16 @@ namespace Crow
 		//kind is a language extension, not found by crow.
 		public static SyntaxKind CSKind (this SyntaxToken tok) => tok.Kind ();
 		public static SyntaxKind CSKind (this SyntaxTrivia tok) => tok.Kind ();
+
+		public static bool IsWhiteSpaceOrNewLine (this SyntaxToken tok) {
+			SyntaxKind k = tok.Kind ();
+			return k == SyntaxKind.WhitespaceTrivia || k == SyntaxKind.EndOfLineTrivia || k == SyntaxKind.XmlTextLiteralNewLineToken;
+        }
+		public static bool IsComment (this SyntaxToken tok) {
+			SyntaxKind k = tok.Kind ();
+			return k == SyntaxKind.SingleLineCommentTrivia || k == SyntaxKind.SingleLineDocumentationCommentTrivia ||
+				k == SyntaxKind.MultiLineCommentTrivia || k == SyntaxKind.MultiLineDocumentationCommentTrivia || k == SyntaxKind.XmlTextLiteralToken;
+		}
+		
 	}
 }

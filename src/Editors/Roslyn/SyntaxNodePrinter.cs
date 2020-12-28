@@ -28,6 +28,8 @@ namespace Crow.Coding
 		public int [] printedLinesNumbers;
 		TextFormatting tf;
 
+		public int SkippedLines => skippedLines;
+
 		int visibleLines => editor.visibleLines;
 		int scrollY => editor.ScrollY;
 
@@ -42,7 +44,6 @@ namespace Crow.Coding
 
 		public void Draw (Context ctx, SyntaxNode node) {
 			this.ctx = ctx;
-			//kinds = new List<SyntaxKind> ();
 
 			printLineNumbers = (editor.IFace as CrowIDE).PrintLineNumbers;
 			printedLinesNumbers = new int[visibleLines];
@@ -64,10 +65,6 @@ namespace Crow.Coding
 			
 
 			Visit (node);			
-
-            /*foreach (var item in kinds) {
-				Console.WriteLine (item);
-            }*/
         }
 		void testPrintNodesBounds (SyntaxNode node) {
 			TextSpan? nodeSpan = node.FullSpan.Intersection (editor.visibleSpan);
@@ -127,37 +124,16 @@ namespace Crow.Coding
 		}
 		
 		public override void DefaultVisit (SyntaxNode node) {
-			/*Console.WriteLine ($"{new string (' ', tabs)}{node.Kind ()} {node.GetFirstToken ()}");
-			tabs++;
-			if (!cancel)*/
-				base.DefaultVisit (node);
-			//tabs--;			
+			if (node.ContainsDiagnostics) {
+
+            }
+			base.DefaultVisit (node);
 		}
 		public override void Visit (SyntaxNode node)
 		{			
 			if (cancel)
 				return;
-            try {
-				/*LinePositionSpan lps = node.SyntaxTree.GetLineSpan (node.FullSpan).Span;
-				Console.WriteLine ($"VISIT:   {lps.Start.Line,-4},{lps.Start.Character,-4}->{lps.End.Line,-4},{lps.End.Character,-4}");*/
-
-				FileLinePositionSpan ls = node.SyntaxTree.GetLineSpan (node.FullSpan);
-				if (currentLine != ls.StartLinePosition.Line)
-					Console.WriteLine ($"current line <> node start span: {currentLine} - {ls.StartLinePosition.Line} {node.Kind ()} {node.GetFirstToken ()}");
-				//currentLine = ls.StartLinePosition.Line;
-				/*if (printedLines < 0 && currentLine == firstLine)
-					printedLines = 0;*/
-
-				//if (ls.EndLinePosition.Line >= firstLine || node.IsStructuredTrivia) 
-					base.Visit (node);
-				
-				/*if (currentLine != ls.EndLinePosition.Line)
-					Console.WriteLine ($"current line <> node end span: {currentLine} - {ls.EndLinePosition.Line} {node.Kind()} {node.GetFirstToken()}");*/
-				//currentLine = ls.EndLinePosition.Line;
-			} catch (Exception e) {
-
-				Console.WriteLine (e);
-			}
+			base.Visit (node);
 		}
 		public override void VisitToken (SyntaxToken token)
 		{
@@ -169,10 +145,33 @@ namespace Crow.Coding
 			if (cancel)
 				return;
 
-			if (token.IsKind (SyntaxKind.XmlTextLiteralNewLineToken))
+			if (token.IsKind (SyntaxKind.XmlTextLiteralNewLineToken) || token.IsKind (SyntaxKind.EndOfFileToken))
 				lineBreak ();
-			else if (!(printedLines < 0 || skippedLine))
-				print (token);
+			else if (!dontPrintLine) {
+				SyntaxKind kind = token.Kind ();
+
+				if (!token.IsPartOfStructuredTrivia ()) {
+					if (SyntaxFacts.IsPredefinedType (kind))
+						tf = editor.formatting["PredefinedType"];
+					else if (SyntaxFacts.IsAccessibilityModifier (kind))
+						tf = editor.formatting["AccessibilityModifier"];
+					/*else if (SyntaxFacts.IsName (kind))
+						tf = editor.formatting["name"];*/
+					else if (SyntaxFacts.IsKeywordKind (kind))
+						tf = editor.formatting["keyword"];
+					else if (SyntaxFacts.IsLiteralExpression (kind))
+						tf = editor.formatting["LiteralExpression"];
+					else if (kind == SyntaxKind.IdentifierToken) {
+						if (SyntaxFacts.IsValidIdentifier (token.Text))
+							tf = editor.formatting["identifier"];
+						else
+							tf = editor.formatting["default"];
+					} else
+						tf = editor.formatting["default"];					
+				}
+
+				print (token.ToString ().TabulatedText (tabSize, currentCol), kind);
+			}
 
 			VisitTrailingTrivia (token);
 		}
@@ -197,7 +196,7 @@ namespace Crow.Coding
 					tf = editor.formatting["DocumentationComment"];
 				this.Visit ((CSharpSyntaxNode)trivia.GetStructure());
 			} else if (trivia.IsKind (SyntaxKind.WhitespaceTrivia)) {
-				if (printedLines < 0 ||skippedLine)
+				if (dontPrintLine)
 					return;
 				checkPrintMargin ();//ensure margin is printed if line is empty
 				currentCol = trivia.TabulatedCol (tabSize, currentCol);
@@ -235,43 +234,12 @@ namespace Crow.Coding
 				ctx.Fill ();
 			}
 			if (editor.foldingEnabled) {
+				if (editor.foldingManager.TryGetFold (currentLine, out Fold fold)) {
+					Rectangle rFld = new Rectangle (bounds.X + editor.leftMargin - RoslynEditor.leftMarginGap - editor.foldMargin,
+						(int)(y + (fe.Ascent + fe.Descent) / 2.0 - RoslynEditor.foldSize / 2.0), RoslynEditor.foldSize, RoslynEditor.foldSize);
+					
+					ctx.LineWidth = 1.0;
 
-				Rectangle rFld = new Rectangle (bounds.X + editor.leftMargin - RoslynEditor.leftMarginGap - editor.foldMargin,
-					(int)(y + (fe.Ascent + fe.Descent) / 2.0 - RoslynEditor.foldSize / 2.0), RoslynEditor.foldSize, RoslynEditor.foldSize);
-
-				ctx.SetSource (Colors.Black);
-				ctx.LineWidth = 1.0;
-
-				int level = 0;
-				bool closingNode = false;
-				/*
-				if (currentNode != null) {
-					if (cl == currentNode.EndLine) {
-						currentNode = currentNode.Parent;
-						closingNode = true;
-					}
-					if (currentNode != null)
-						level = currentNode.Level - 1;
-				}
-
-				if (level > 0) {
-					gr.MoveTo (rFld.Center.X + 0.5, y);
-					gr.LineTo (rFld.Center.X + 0.5, y + fe.Ascent + fe.Descent);
-				}
-				if (closingNode) {
-					gr.MoveTo (rFld.Center.X + 0.5, y);
-					gr.LineTo (rFld.Center.X + 0.5, y + fe.Ascent / 2 + 0.5);
-					gr.LineTo (rFld.Center.X + 0.5 + foldSize / 2, y + fe.Ascent / 2 + 0.5);
-					closingNode = false;
-				}
-				gr.SetDash (new double [] { 1.5 }, 0.0);
-				gr.SetSource (Color.Grey);
-				gr.Stroke ();
-				gr.SetDash (new double [] { }, 0.0);
-				*/
-
-				if (editor.foldingManager.refs.ContainsKey (currentLine) ) {
-					Fold fold = editor.foldingManager.refs[currentLine];
 					ctx.Rectangle (rFld);
 					ctx.SetSource (Colors.White);
 					ctx.Fill ();
@@ -293,16 +261,8 @@ namespace Crow.Coding
         void lineBreak ()
 		{
 			currentCol = -1;
-			/*if (skipped.Count > 0) {
-				Fold f = skipped.Peek ();
-				if (currentLine > f.LineStart) {
-					if (currentLine > f.LineEnd)
-						skipped.Pop ();
-					incrementCurrentLine ();
-					return;
-				}				
-			}*/
-			if (printedLines < 0 || skippedLine) {
+
+			if (dontPrintLine) {
 				incrementCurrentLine ();
 				if (printedLines < 0 && currentLine >= firstLine + skippedLines)
 					printedLines = 0;									
@@ -317,28 +277,28 @@ namespace Crow.Coding
 		}
 
 		void incrementCurrentLine () {			
-			currentLine++;
-
+			currentLine++;			
+			if (!cancel && currentLine == editor.totalLines) {
+				checkPrintMargin ();
+            }
 			if (skipped.Count > 0) {
 				if (currentLine > skipped.Peek ().LineEnd)
 					skipped.Pop ();
-				else {
-					skippedLines++;
-					return;
-				}
+				else
+					return;				
 			}
 
-			if (!editor.foldingManager.refs.ContainsKey (currentLine))
-				return;
-			Fold fold = editor.foldingManager.refs[currentLine];
-			if (fold.IsFolded) 
-				skipped.Push (fold);			
+			if (editor.foldingManager.TryGetFold (currentLine, out Fold fold)) {				
+				if (fold.IsFolded)
+					skipped.Push (fold);
+			}
 		}
 		bool skippedLine {
 			get => skipped.Count > 0 ? currentLine > skipped.Peek().LineStart : false;
 		}
+		bool dontPrintLine => printedLines < 0 || skippedLine;
 
-        void print (SyntaxTrivia trivia) {
+		void print (SyntaxTrivia trivia) {
             SyntaxKind kind = trivia.Kind ();
 
             if (trivia.IsPartOfStructuredTrivia ()) {
@@ -351,96 +311,27 @@ namespace Crow.Coding
                     tf = editor.formatting["trivia"];
             }
 
-            if (trivia.IsKind (SyntaxKind.DisabledTextTrivia) || trivia.IsKind (SyntaxKind.MultiLineCommentTrivia)) {
-				if (trivia.IsKind (SyntaxKind.MultiLineCommentTrivia))
-					Console.WriteLine ("multilinecommentrivia");
+            if (trivia.IsKind (SyntaxKind.DisabledTextTrivia) || trivia.IsKind (SyntaxKind.MultiLineCommentTrivia)) {				
                 string[] lines = Regex.Split (trivia.ToString (), @"\r\n|\r|\n|\\\n");
                 //foldable = lines.Length > 2;
                 for (int i = 0; i < lines.Length - 1; i++) {
-                    print (lines[i].TabulatedText (tabSize, currentCol), kind);
+					if (!dontPrintLine)
+						print (lines[i].TabulatedText (tabSize, currentCol), kind);
                     lineBreak ();
                     if (cancel)
                         return;
                 }
-                print (lines[lines.Length - 1].TabulatedText (tabSize, currentCol), kind);
-            } else
-                print (trivia.TabulatedText (tabSize, currentCol), kind);
+				if (!dontPrintLine)
+					print (lines[lines.Length - 1].TabulatedText (tabSize, currentCol), kind);
+            } else if (!dontPrintLine)
+				print (trivia.TabulatedText (tabSize, currentCol), kind);
         }
-		void print(SyntaxToken tok) {
-			SyntaxKind kind = tok.Kind ();
-			
-			if (!tok.IsPartOfStructuredTrivia ()) {
-				if (SyntaxFacts.IsPredefinedType (kind))
-					tf = editor.formatting["PredefinedType"];
-				else if (SyntaxFacts.IsAccessibilityModifier (kind))
-					tf = editor.formatting["AccessibilityModifier"];
-				/*else if (SyntaxFacts.IsName (kind))
-					tf = editor.formatting["name"];*/
-				else if (SyntaxFacts.IsKeywordKind (kind))
-					tf = editor.formatting["keyword"];
-				else if (SyntaxFacts.IsLiteralExpression (kind))
-					tf = editor.formatting["LiteralExpression"];
-				else if (kind == SyntaxKind.IdentifierToken) {					
-					if (SyntaxFacts.IsValidIdentifier (tok.Text))
-						tf = editor.formatting["identifier"];
-					else
-						tf = editor.formatting["default"];
-				} else {
-					//Console.WriteLine ($"{tok.ToString (),-20} -> {kind,-20} {tok.Parent.Kind(),-20} {tok.Parent.Parent.Kind(),-20}" );
-					tf = editor.formatting["default"];
-				}
-			}
-
-			print (tok.ToString ().TabulatedText(tabSize, currentCol), kind);
-		}
 		void print (string lstr, SyntaxKind kind)
 		{
-			if (printedLines < 0 || skippedLine) 
-				return;	
-
 			checkPrintMargin ();
 
-			/*if (!kinds.Contains (kind))
-				kinds.Add (kind);*/
 			if (kind == SyntaxKind.IdentifierToken)
 				tf.Bold = true;
-
-			/*else if (SyntaxFacts.IsPrimaryFunction (kind))
-				tf = editor.formatting["PrimaryFunction"];*/
-			//else if  || kind == SyntaxKind.SingleLineCommentTrivia)
-			//	f.Italic = true;
-			/*if (SyntaxFacts.IsTypeSyntax (kind))
-				tf = editor.formatting ["TypeSyntax"];
-			else if (SyntaxFacts.IsPreprocessorDirective (kind))
-				tf = editor.formatting ["PreprocessorDirective"];
-			else if (SyntaxFacts.IsDocumentationCommentTrivia (kind))
-				tf = editor.formatting ["DocumentationCommentTrivia"];
-			else if (kind == SyntaxKind.DisabledTextTrivia)
-				tf = editor.formatting ["DisabledTextTrivia"];
-			else if (SyntaxFacts.IsTrivia (kind))
-				tf = editor.formatting ["Trivia"];
-			else if (SyntaxFacts.IsPunctuation (kind))
-				tf = editor.formatting ["Punctuation"];
-			else if (SyntaxFacts.IsName (kind))
-				tf = editor.formatting ["Name"];
-			else if (SyntaxFacts.IsLiteralExpression (kind))
-				tf = editor.formatting ["LiteralExpression"];
-			else if (SyntaxFacts.IsPredefinedType (kind))
-				tf = editor.formatting ["PredefinedType"];
-			else if (SyntaxFacts.IsPrimaryFunction (kind))
-				tf = editor.formatting ["PrimaryFunction"];
-			else if (SyntaxFacts.IsContextualKeyword (kind))
-				tf = editor.formatting ["ContextualKeyword"];
-			else if (SyntaxFacts.IsKeywordKind (kind))
-				tf = editor.formatting ["keyword"];
-			else if (SyntaxFacts.IsGlobalMemberDeclaration (kind))
-				tf = editor.formatting ["GlobalMemberDeclaration"];
-			else if (SyntaxFacts.IsInstanceExpression (kind))
-				tf = editor.formatting ["InstanceExpression"];
-			else if (SyntaxFacts.IsNamespaceMemberDeclaration (kind))
-				tf = editor.formatting ["NamespaceMemberDeclaration"];
-			else if (SyntaxFacts.IsTypeDeclaration (kind))
-				tf = editor.formatting ["TypeDeclaration"];*/
 
 			ctx.SelectFontFace (editor.Font.Name,
 				tf.Italic ? FontSlant.Italic : FontSlant.Normal,
@@ -466,6 +357,5 @@ namespace Crow.Coding
 			ctx.ShowText (str);
 			currentCol += lstr.Length;
         }
-
     }
 }

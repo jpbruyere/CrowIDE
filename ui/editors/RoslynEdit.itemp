@@ -15,21 +15,19 @@
 				Maximum="{../editor.MaxScrollX}"
 				LargeIncrement="{../editor.VisibleColumns}"
 				CursorSize="{../editor.ChildWidthRatio}"/>			
-		<HorizontalStack Height="Fit" >
+		<HorizontalStack Height="Fit" Spacing="10">
 			<Label Text="{../../editor.HoverError}" Width="Stretched"/>
 			<Widget Background="Red" Width="5" Height="5" Visible="{IsDirty}"/>
+			<Label Text="Abs Pos:" Foreground="Black"/>
+			<Label Text="{../../editor.CurrentPos}" />
 			<Label Text="Hover Line:" Foreground="Black"/>
 			<Label Text="{../../editor.HoverLine}"/>
-			<Widget Height="5" Width="10"/>
 			<Label Text="Line:" Foreground="Black"/>
 			<Label Text="{CurrentLine}"/>
-			<Widget Height="5" Width="10"/>
 			<Label Text="column:" Foreground="Black"/>
 			<Label Text="{CurrentColumn}"/>
-			<Widget Height="5" Width="10"/>
 			<Label Text="ScrollX:" Foreground="Black"/>
 			<Label Text="{../../editor.ScrollX}"/>
-			<Widget Height="5" Width="10"/>
 			<Label Text="ScrollY:" Foreground="Black"/>
 			<Label Text="{../../editor.ScrollY}"/>
 		</HorizontalStack>
