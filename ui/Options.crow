@@ -1,17 +1,22 @@
 ﻿<?xml version="1.0"?>
 <Window Caption="Crow IDE Options" Width="80%" Height="70%" Background="DimGrey" Modal="true">
-	<TabView Orientation="Horizontal">
-		<TabItem Caption="IML Visual Editor" SelectedBackground="Jet">
+	<TabView Orientation="Horizontal" ActivateNewTab="false">
+		<TabItem Caption="IML Visual Editor" SelectedBackground="Jet" >
 			<VerticalStack Margin="10">
-				<CheckBox Caption="Print Line Numbers" IsChecked="True"/>
+				<CheckBox Caption="Print Line Numbers" IsChecked="{²PrintLineNumbers}"/>
+				<CheckBox Caption="Fold Regions by default" IsChecked="{²AutoFoldRegions}"/>
+				<CheckBox Caption="Fold Comments by default" IsChecked="{²AutoFoldComments}"/>
+				
 				<CheckBox Caption="Reopen last solution on startup" IsChecked="{²ReopenLastSolution}"/>
 				<HorizontalStack Height="Fit">
 					<Label Width="200" Text="DotNet SDK folder"/>
 					<TextBox Width="Stretched" Text="{²SDKFolder}"/>
+					<Button Caption="..." MouseClick="onClickSelectSDKFolder" MinimumSize="0,0"/>
 				</HorizontalStack>
 				<HorizontalStack Height="Fit">
 					<Label Width="200" Text="MSBuild root folder"/>
 					<TextBox Width="Stretched" Text="{²MSBuildRoot}"/>
+					<Button Caption="..." MouseClick="onClickSelectMSBuildRoot" MinimumSize="0,0"/>
 				</HorizontalStack>
 			</VerticalStack>
 		</TabItem>

@@ -277,10 +277,10 @@ namespace Crow.Coding
 		}
 
 		void incrementCurrentLine () {			
-			currentLine++;			
-			if (!cancel && currentLine == editor.totalLines) {
-				checkPrintMargin ();
-            }
+			currentLine++;
+			//Last line of SourceText.Lines has a line break, but no additional line is in the array.
+			if (!cancel && currentLine == editor.totalLines)
+				checkPrintMargin ();            
 			if (skipped.Count > 0) {
 				if (currentLine > skipped.Peek ().LineEnd)
 					skipped.Pop ();
@@ -293,9 +293,7 @@ namespace Crow.Coding
 					skipped.Push (fold);
 			}
 		}
-		bool skippedLine {
-			get => skipped.Count > 0 ? currentLine > skipped.Peek().LineStart : false;
-		}
+		bool skippedLine => skipped.Count > 0 ? currentLine > skipped.Peek().LineStart : false;
 		bool dontPrintLine => printedLines < 0 || skippedLine;
 
 		void print (SyntaxTrivia trivia) {

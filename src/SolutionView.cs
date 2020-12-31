@@ -65,6 +65,7 @@ namespace Crow.Coding
 		{
 			this.IDE = ide;
 			this.path = path;
+
 			solutionFile = SolutionFile.Parse (path);
 			UserConfig = new Configuration (path + ".user");
 
@@ -118,6 +119,8 @@ namespace Crow.Coding
 				IDE.ProgressNotify (10);
 			}
 
+			IDE.Workspace.OpenSolutionAsync (path, IDE.ProgressLogger).ContinueWith (load);
+
 			ReloadStyling ();
 
 			ReloadDefaultTemplates ();
@@ -125,18 +128,48 @@ namespace Crow.Coding
 		}
 		#endregion
 
-		async void load ()
+		object? load (System.Threading.Tasks.Task<Microsoft.CodeAnalysis.Solution> task)
 		{
-			Microsoft.CodeAnalysis.Solution solution = await IDE.Workspace.OpenSolutionAsync (path, IDE.ProgressLogger);
-			solutionFile = SolutionFile.Parse (path);
+			Microsoft.CodeAnalysis.Solution sol = task.Result;
+
+            foreach (Microsoft.CodeAnalysis.Project pid in sol.Projects)
+				Projects.FirstOrDefault (p => p.FullPath == pid.FilePath).projectId = pid.Id;				
+            
+
+			Microsoft.CodeAnalysis.Project prj = sol.Projects.First ();
+			
+			Microsoft.CodeAnalysis.Document doc = prj.Documents.First ();			
+
+			Microsoft.CodeAnalysis.Text.SourceText txt = doc.GetTextAsync ().Result;
+			txt = txt.WithChanges (new Microsoft.CodeAnalysis.Text.TextChange (Microsoft.CodeAnalysis.Text.TextSpan.FromBounds (0, 0), "//this is a test of a comment."));
+			doc = doc.WithText (txt);			
+
+			if (doc.Project.Solution == IDE.Workspace.CurrentSolution)
+				Console.WriteLine ("identical");
+			if (IDE.Workspace.TryApplyChanges (doc.Project.Solution))
+				Console.WriteLine ("ok");
+			/*Console.WriteLine (txt.Lines[0].ToString ());
+			if (IDE.Workspace.TryApplyChanges (sol.WithDocumentText (doc.Id, txt, Microsoft.CodeAnalysis.PreservationMode.PreserveIdentity)))
+				Console.WriteLine ("ok");*/
+
+
+			//if (solution == sol2) {
+
+			doc = IDE.Workspace.CurrentSolution.Projects.First ().Documents.First ();			
+				txt = doc.GetTextAsync ().Result;
+				Console.WriteLine (txt.Lines[0].ToString ());
+			//}
+
+			/*solutionFile = SolutionFile.Parse (path);
 			UserConfig = new Configuration (path + ".user");
 
 			ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
-			ActivePlatform = solutionFile.GetDefaultPlatformName ();
-
+			ActivePlatform = solutionFile.GetDefaultPlatformName ();			*/
+			return null;
 		}
 
-		public void Build (params string [] targets)
+
+        public void Build (params string [] targets)
 		{
 			BuildRequestData buildRequest = new BuildRequestData (path, projectProperties, CrowIDE.DEFAULT_TOOLS_VERSION, targets, null);
 			BuildResult buildResult = BuildManager.DefaultBuildManager.Build (buildParams, buildRequest);

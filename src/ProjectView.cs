@@ -40,8 +40,7 @@ namespace Crow.Coding
 					project.SetGlobalProperty (pr, "true");
 			}
 
-			project.ReevaluateIfNecessary ();
-
+			project.ReevaluateIfNecessary ();						
 
 			cmdSave = new Crow.Command (new Action (() => Save ())) { Caption = "Save", Icon = new SvgPicture ("#Icons.save.svg"), CanExecute = true };
 			cmdOpen = new Crow.Command (new Action (() => populateTreeNodes ())) { Caption = "Open", Icon = new SvgPicture ("#Icons.open.svg"), CanExecute = false };
@@ -67,6 +66,8 @@ namespace Crow.Coding
 		public CompilerResults CompilationResults;
 		public List<ProjectView> dependantProjects = new List<ProjectView> ();
 		public ProjectView ParentProject = null;
+
+		internal Microsoft.CodeAnalysis.ProjectId projectId;
 
 		public override string DisplayName => solutionProject.ProjectName;
 
@@ -170,7 +171,20 @@ namespace Crow.Coding
 				Console.ForegroundColor = ConsoleColor.Gray;
 				Console.WriteLine ($"{item.EvaluatedValue}");
 			}*/
+			//ProjectInstance pInst = project.CreateProjectInstance ();
+			string[] defaultTargets = { "Build", "Rebuild", "Pack", "Clean" };
+			foreach (ProjectTargetInstance pti in project.Targets.Values) {
+				if (pti.Name.StartsWith('_') ||
+					!(string.IsNullOrEmpty (pti.BeforeTargets) && string.IsNullOrEmpty(pti.AfterTargets) && string.IsNullOrEmpty(pti.Returns)))
+					continue;
 
+				Console.WriteLine ($"Depends: {pti.Children.Count} {pti.Name} ret: {pti.Returns} {pti.BeforeTargets} -> {pti.AfterTargets}");
+				Commands.Add (new Crow.Command (new Action (() => Compile (pti.Name)))
+				{
+					Caption = pti.Name,
+				});				
+            }
+			
 
 			foreach (ProjectItem pn in project.AllEvaluatedItems) {
 				/*if (Path.GetFileName (pn.EvaluatedInclude) == "samples.style")
@@ -235,6 +249,11 @@ namespace Crow.Coding
 					}
 
 					break;
+				default:
+					Console.ForegroundColor = ConsoleColor.Red;
+					Console.WriteLine ($"Unhandled Item Type: {pn.ItemType} {pn.EvaluatedInclude}");
+					Console.ResetColor ();
+					break;
 				}
 			}
 			root.SortChilds ();
@@ -249,7 +268,7 @@ namespace Crow.Coding
 
 		public void Save ()
 		{
-
+			
 		}
 
 		void setAsStartupProject ()
@@ -276,6 +295,7 @@ namespace Crow.Coding
 		//    }
 		//    return tmp;
 		//}
+
 		public void Compile (string target = "Build")
 		{
 			/*var nativeSharedMethod = typeof (SolutionFile).Assembly.GetType ("Microsoft.Build.Shared.NativeMethodsShared");
@@ -283,7 +303,7 @@ namespace Crow.Coding
 			isMonoField.SetValue (null, true);
 
 			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", "/usr/share/dotnet/sdk/3.1.101/MSBuild.dll");*/
-			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
+			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);						
 			//ProjectInstance pi = new ProjectInstance (project.FullPath, solution.globalProperties, solution.toolsVersion);
 
 			/*ILogger logger = new Microsoft.Build.Logging.ConsoleLogger {
@@ -293,10 +313,8 @@ namespace Crow.Coding
 			if (pi.Build (new string [] { target }, solution.buildParams.Loggers))
 				Console.WriteLine ("success");
 			else
-				Console.WriteLine ("error");
-
-
-		}
+				Console.WriteLine ("error");			
+        }
 		//    if (ParentProject != null)
 		//        ParentProject.Compile ();
 

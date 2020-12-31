@@ -128,24 +128,6 @@ namespace Crow.Coding
 		Instantiator instFileDlg;
 		DockStack mainDock;
 
-		public string SDKFolder {
-			get => Configuration.Global.Get<string> ("SDKFolder");
-			set {
-				if (SDKFolder == value)
-					return;
-				Configuration.Global.Set ("SDKFolder", SDKFolder);
-				NotifyValueChanged (SDKFolder);
-			}
-		}
-		public string MSBuildRoot {
-			get => Configuration.Global.Get<string> ("MSBuildRoot");
-			set {
-				if (MSBuildRoot == value)
-					return;
-				Configuration.Global.Set ("MSBuildRoot", MSBuildRoot);
-				NotifyValueChanged (MSBuildRoot);
-			}
-		}
 
 		public ProjectCollection projectCollection { get; private set; }
 		public ObservableList<BuildEventArgs> BuildEvents { get; private set; } = new ObservableList<BuildEventArgs> ();
@@ -210,6 +192,7 @@ namespace Crow.Coding
 				(this, "<FileDialog Caption='Open File' CurrentDirectory='{²CurrentDirectory}' SearchPattern='*.sln' OkClicked='onFileOpen'/>");
 				
 		}
+
 		public void onFileOpen (object sender, EventArgs e)
 		{
 			FileDialog fd = sender as FileDialog;
@@ -287,6 +270,46 @@ namespace Crow.Coding
 				NotifyValueChanged (value);
 			}
 		}
+		#region Options
+		public string SDKFolder {
+			get => Configuration.Global.Get<string> ("SDKFolder");
+			set {
+				if (SDKFolder == value)
+					return;
+				Configuration.Global.Set ("SDKFolder", value);
+				NotifyValueChanged (SDKFolder);
+			}
+		}
+		public string MSBuildRoot {
+			get => Configuration.Global.Get<string> ("MSBuildRoot");
+			set {
+				if (MSBuildRoot == value)
+					return;
+				Configuration.Global.Set ("MSBuildRoot", value);
+				NotifyValueChanged (MSBuildRoot);
+			}
+		}
+		public void onClickSelectSDKFolder (object sender, EventArgs e) {
+			this.LoadIMLFragment (@"
+				<FileDialog Caption='Select SDK Folder' CurrentDirectory='{SDKFolder}'
+							ShowFiles='false' ShowHidden='true' OkClicked='onSelectSDKFolder'/>
+			").DataSource = this;
+		}
+		public void onSelectSDKFolder (object sender, EventArgs e) {
+			FileDialog fd = sender as FileDialog;
+			SDKFolder = fd.SelectedDirectory;
+		}
+		public void onClickSelectMSBuildRoot (object sender, EventArgs e) {
+			this.LoadIMLFragment (@"
+				<FileDialog Caption='Select MSBuild Root' CurrentDirectory='{MSBuildRoot}'
+							ShowFiles='false' ShowHidden='true' OkClicked='onSelectMSBuildRoot'/>
+			").DataSource = this;
+		}
+		public void onSelectMSBuildRoot (object sender, EventArgs e) {
+			FileDialog fd = sender as FileDialog;
+			MSBuildRoot = fd.SelectedDirectory;
+		}
+
 		public bool ReopenLastSolution {
 			get { return Crow.Configuration.Global.Get<bool>("ReopenLastSolution");}
 			set {
@@ -322,6 +345,25 @@ namespace Crow.Coding
 				}
 			}
 		}
+		public bool AutoFoldRegions {
+			get { return Crow.Configuration.Global.Get<bool> ("AutoFoldRegions"); }
+			set {
+				if (AutoFoldRegions == value)
+					return;
+				Crow.Configuration.Global.Set ("AutoFoldRegions", value);
+				NotifyValueChanged (value);
+			}
+		}
+		public bool AutoFoldComments {
+			get { return Crow.Configuration.Global.Get<bool> ("AutoFoldComments"); }
+			set {
+				if (AutoFoldComments == value)
+					return;
+				Crow.Configuration.Global.Set ("AutoFoldComments", value);
+				NotifyValueChanged (value);
+			}
+		}
+		#endregion
 
 		#region Status bar
 		bool progressVisible = false;

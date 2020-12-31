@@ -215,5 +215,9 @@ namespace Crow
 				k == SyntaxKind.MultiLineCommentTrivia || k == SyntaxKind.MultiLineDocumentationCommentTrivia || k == SyntaxKind.XmlTextLiteralToken;
 		}
 		
+
+		public static TextChange Inverse (this TextChange tch, SourceText src)
+			=> new TextChange (string.IsNullOrEmpty (tch.NewText) ? new TextSpan (tch.Span.Start, 0) : new TextSpan (tch.Span.Start, tch.NewText.Length),
+				tch.Span.IsEmpty ? "" : src.GetSubText (tch.Span).ToString ());
 	}
 }

@@ -100,8 +100,7 @@ namespace Crow.Coding
 
 		int tabSize = 4;
 		string oldSource = "";
-		//save requested position on error, and try it on next move
-		int requestedLine = 0, requestedCol = 0;
+		
 		volatile bool isDirty = false;
 
 		internal const int leftMarginGap = 3;   //gap between items in margin and text
@@ -110,17 +109,14 @@ namespace Crow.Coding
 
 		internal bool foldingEnabled = true;
 
-		[XmlIgnore]
-		public int leftMargin { get; private set; } = 0;    //margin used to display line numbers, folding errors,etc...
+
+		[XmlIgnore] public int leftMargin { get; private set; } = 0;    //margin used to display line numbers, folding errors,etc...
 		internal int visibleLines = 1;
 		int visibleColumns = 1;		
 		int[] printedLines;                     //printed line indices in source
 
 
 		internal int hoverPos, selStartPos;//absolute char index in buffer source
-
-
-
 
 		TextSpan selection = default;
 		SourceText buffer = SourceText.From ("");
@@ -147,8 +143,8 @@ namespace Crow.Coding
 		void updateFolds () {
 			if (syntaxTree == null)
 				return;
-			Console.WriteLine ("update folds");
-			foldingManager.UpdateFolds (syntaxTree.GetRoot ());
+			//Console.WriteLine ("update folds");
+			foldingManager.CreateFolds (syntaxTree.GetRoot ());
 			RegisterForRedraw ();
 		}
 		//absolute char pos in text of start of folds		
@@ -164,7 +160,6 @@ namespace Crow.Coding
 		protected TextExtents te;
 
 		Point mouseLocalPos;
-		bool doubleClicked = false;
 		#endregion
 
 		internal void measureLeftMargin () {
@@ -218,37 +213,7 @@ namespace Crow.Coding
 			MaxScrollY = Math.Max (0, unfoldedLines - visibleLines);
 			NotifyValueChanged ("ChildHeightRatio", Slot.Height * visibleLines / unfoldedLines);
 		}
-		//void updatePrintedLines () {
-		//PrintedLines = buffer.Lines;
-		/*buffer.editMutex.EnterReadLock ();
-		editorMutex.EnterWriteLock ();
-
-		PrintedLines = new List<CodeLine> ();
-		int curL = 0;
-		int i = 0;
-
-		while (curL < buffer.LineCount && i < ScrollY) {
-			if (buffer [curL].IsFolded)
-				curL = buffer.GetEndNodeIndex (curL);
-			curL++;
-			i++;
-		}
-
-		firstPrintedLine = curL;
-		i = 0;
-		while (i < visibleLines && curL < buffer.LineCount) {
-			PrintedLines.Add (buffer [curL]);
-
-			if (buffer [curL].IsFolded)
-				curL = buffer.GetEndNodeIndex (curL);
-
-			curL++;
-			i++;
-		}
-
-		buffer.editMutex.ExitReadLock ();
-		editorMutex.ExitWriteLock ();*/
-		//}
+		
 		void toogleFolding (int line) {
 			if (foldingManager.TryGetFold (line, out Fold fold)) {
 				fold.IsFolded = !fold.IsFolded;
@@ -910,12 +875,12 @@ namespace Crow.Coding
 				case Key.S:
 					projFile.Save ();
 					break;
-				case Key.Z:
+				case Key.W:
 					editorMutex.EnterWriteLock ();
 					if (IFace.Shift)
-						projFile.Redo (null);
+						redo ();
 					else
-						projFile.Undo (null);
+						undo ();
 					editorMutex.ExitWriteLock ();
 					break;
 				default:
@@ -1077,27 +1042,40 @@ namespace Crow.Coding
 			string str = e.KeyChar.ToString ();
 			replaceSelection (str);
 		}
+		Stack<TextChange> undoStack = new Stack<TextChange> ();
+		Stack<TextChange> redoStack = new Stack<TextChange> ();
+
+		void undo () {
+			if (undoStack.TryPop (out TextChange tch)) {
+				redoStack.Push (tch.Inverse (buffer));
+				apply (tch);
+			}
+		}
+		void redo () {
+			if (redoStack.TryPop (out TextChange tch)) {
+				undoStack.Push (tch.Inverse (buffer));
+				apply (tch);
+			}
+		}
+
 		void replaceSelection (string newText)
 		{
-			buffer = buffer.WithChanges (new TextChange (selection, newText));
+			TextChange tch = new TextChange (selection, newText);
+			undoStack.Push (tch.Inverse (buffer));
+			apply (tch);
+		}
+
+		void apply (TextChange tch) {
+			buffer = buffer.WithChanges (tch);
 			SyntaxTree = syntaxTree.WithChangedText (buffer);
-			
-			LinePositionSpan lps = buffer.Lines.GetLinePositionSpan (selection);
-			bool lineCountChange = lps.Start.Line != lps.End.Line;
-			if (string.IsNullOrEmpty (newText))
-				CurrentPos = selection.Start;
-			else {
-				CurrentPos = selection.Start + newText.Length;
-                for (int i = 0; i < newText.Length; i++) {
-					if (newText[i] == '\r' || newText[i] == '\n') {
-						lineCountChange = true;
-						break;
-                    }
-                }
-			}
+
+			if (string.IsNullOrEmpty (tch.NewText))
+				CurrentPos = tch.Span.Start;
+			else
+				CurrentPos = tch.Span.Start + tch.NewText.Length;
+
 			selection = default;
-			if (lineCountChange )
-				Task.Run (() => updateFolds ());
+			Task.Run (() => updateFolds ());
 
 			RegisterForRedraw ();
 		}
