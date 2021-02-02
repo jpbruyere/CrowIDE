@@ -74,16 +74,18 @@ namespace Crow.Coding
 			ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
 			ActivePlatform = solutionFile.GetDefaultPlatformName ();
 
-			ide.projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (path) + Path.DirectorySeparatorChar);
-			ide.projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
+			IDE.projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (path) + Path.DirectorySeparatorChar);			
+			IDE.projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
 
 			IDE.ProgressNotify (10);
 
 			//ide.projectCollection.HostServices
 			buildParams = new BuildParameters (ide.projectCollection) {
 				Loggers = ide.projectCollection.Loggers,
-				ResetCaches = true,
-				LogInitialPropertiesAndItems = true
+				/*ResetCaches = true,*/
+				LogInitialPropertiesAndItems = true,
+				LogTaskInputs = true,
+				/*UseSynchronousLogging = true*/
 			};
 			//projectCollection.IsBuildEnabled = false;
 
@@ -119,54 +121,12 @@ namespace Crow.Coding
 				IDE.ProgressNotify (10);
 			}
 
-			IDE.Workspace.OpenSolutionAsync (path, IDE.ProgressLogger).ContinueWith (load);
-
 			ReloadStyling ();
 
 			ReloadDefaultTemplates ();
-
 		}
 		#endregion
 
-		object? load (System.Threading.Tasks.Task<Microsoft.CodeAnalysis.Solution> task)
-		{
-			Microsoft.CodeAnalysis.Solution sol = task.Result;
-
-            foreach (Microsoft.CodeAnalysis.Project pid in sol.Projects)
-				Projects.FirstOrDefault (p => p.FullPath == pid.FilePath).projectId = pid.Id;				
-            
-
-			Microsoft.CodeAnalysis.Project prj = sol.Projects.First ();
-			
-			Microsoft.CodeAnalysis.Document doc = prj.Documents.First ();			
-
-			Microsoft.CodeAnalysis.Text.SourceText txt = doc.GetTextAsync ().Result;
-			txt = txt.WithChanges (new Microsoft.CodeAnalysis.Text.TextChange (Microsoft.CodeAnalysis.Text.TextSpan.FromBounds (0, 0), "//this is a test of a comment."));
-			doc = doc.WithText (txt);			
-
-			if (doc.Project.Solution == IDE.Workspace.CurrentSolution)
-				Console.WriteLine ("identical");
-			if (IDE.Workspace.TryApplyChanges (doc.Project.Solution))
-				Console.WriteLine ("ok");
-			/*Console.WriteLine (txt.Lines[0].ToString ());
-			if (IDE.Workspace.TryApplyChanges (sol.WithDocumentText (doc.Id, txt, Microsoft.CodeAnalysis.PreservationMode.PreserveIdentity)))
-				Console.WriteLine ("ok");*/
-
-
-			//if (solution == sol2) {
-
-			doc = IDE.Workspace.CurrentSolution.Projects.First ().Documents.First ();			
-				txt = doc.GetTextAsync ().Result;
-				Console.WriteLine (txt.Lines[0].ToString ());
-			//}
-
-			/*solutionFile = SolutionFile.Parse (path);
-			UserConfig = new Configuration (path + ".user");
-
-			ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
-			ActivePlatform = solutionFile.GetDefaultPlatformName ();			*/
-			return null;
-		}
 
 
         public void Build (params string [] targets)
@@ -380,6 +340,7 @@ namespace Crow.Coding
 				if (projectProperties.TryGetValue ("Configuration", out string conf) &&  conf == value)
 					return;
 				projectProperties ["Configuration"] = value;
+				IDE.projectCollection.SetGlobalProperty ("Configuration", ActiveConfiguration);
 				NotifyValueChanged ("ActiveConfiguration", value);
 			}
 		}

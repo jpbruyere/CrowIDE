@@ -133,9 +133,9 @@ namespace Crow.Coding
 				if (syntaxTree == value)
 					return;
 				syntaxTree = value;
-				CSProjectItem cspi = ProjectNode as CSProjectItem;
+				/*CSProjectItem cspi = ProjectNode as CSProjectItem;
 				if (cspi != null)
-					cspi.SyntaxTree = syntaxTree;
+					cspi.SyntaxTree = syntaxTree;*/
 				NotifyValueChanged ("SyntaxTree", syntaxTree);
 			}
 		}
@@ -1067,7 +1067,7 @@ namespace Crow.Coding
 
 		void apply (TextChange tch) {
 			buffer = buffer.WithChanges (tch);
-			SyntaxTree = syntaxTree.WithChangedText (buffer);
+			SyntaxTree = syntaxTree.WithChangedText (buffer);			
 
 			if (string.IsNullOrEmpty (tch.NewText))
 				CurrentPos = tch.Span.Start;

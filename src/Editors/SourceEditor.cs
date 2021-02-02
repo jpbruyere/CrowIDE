@@ -1004,14 +1004,14 @@ namespace Crow.Coding
 				case Key.S:
 					projFile.Save ();
 					break;
-				case Key.Z:
+				/*case Key.Z:
 					editorMutex.EnterWriteLock ();
 					if (IFace.Shift)
 						projFile.Redo (null);
 					else
 						projFile.Undo (null);
 					editorMutex.ExitWriteLock ();
-					break;
+					break;*/
 				default:
 					break;
 				}

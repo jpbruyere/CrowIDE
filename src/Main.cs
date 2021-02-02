@@ -65,7 +65,7 @@ namespace Crow.Coding
 		{
 
 /*#if NET472
-			var nativeSharedMethod = typeof (Microsoft.Build.Construction.SolutionFile).Assembly.GetType ("Microsoft.Build.Shared.NativeMethodsShared");
+			var nativeSharedMethod = typeof (Microsoft.Build.Construction.SolutionFile).Assembly.GetType ("Crow.Build.Shared.NativeMethodsShared");
 			var isMonoField = nativeSharedMethod.GetField ("_isMono", BindingFlags.Static | BindingFlags.NonPublic);
 			isMonoField.SetValue (null, true);
 #endif*/

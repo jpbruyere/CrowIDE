@@ -1,19 +1,52 @@
 ﻿<?xml version="1.0"?>
 <DockWindow Name="winLog" Caption="Main Logs"  Width="60%">
-	<VerticalStack>
+	<VerticalStack Spacing="0">
 		<HorizontalStack Height="Fit">
-			<!--<Label Text="MaxScrollY:"/>
-			<Label Text="{../../log.MaxScrollY}"/>
-			<Label Text="ScrollY:"/>
-			<Label Text="{../../log.ScrollY}"/>			-->
-			<CheckBox Fit="true" Caption="Scroll on output" IsChecked="{²../../log.ScrollOnOutput}"/>	
-			<EnumSelector Caption="Verbosity" EnumValue="{²MainLoggerVerbosity}" Fit="true"/>
+			<CheckBox Fit="true" Caption="Scroll on output" IsChecked="{²../../log.ScrollOnOutput}"/>
+			<EnumSelector Caption="Verbosity" EnumValue="{²MainLoggerVerbosity}" Fit="true">
+				<Template>
+					<Popper Caption="{./Caption}" CornerRadius="{./CornerRadius}" Foreground="{./Foreground}" Background="{./Background}">
+						<Template>
+							<CheckBox Caption="{./Caption}" IsChecked="{²./IsPopped}" Foreground="{./Foreground}" Background="{./Background}">
+								<Template>
+									<Border Style="ControlBorder" Background="{./Background}" CornerRadius="{./CornerRadius}">
+										<HorizontalStack Spacing="1">
+											<Image Style="Icon"
+												MouseEnter="{Background=White}" MouseLeave="{Background=Transparent}"
+												Background="{./Background}"
+												Path="#Crow.Icons.expandable.svg" SvgSub="{./IsChecked}"/>
+											<Label Style="ControlCaption" Text="{./Caption}" Width="60" />
+											<Label Style="ControlCaption" Text="{./Caption}" />
+										</HorizontalStack>
+									</Border>
+								</Template>
+							</CheckBox>
+						</Template>
+						<VerticalStack Name="Content" Fit="true" Background="DarkGrey"/>
+					</Popper>
+				</Template>
+			</EnumSelector>
+			<TextBox Text="{²MainLoggerSearchString}" Width="Stretched" KeyDown="../../log.onSearch"/>
 		</HorizontalStack>
-		<HorizontalStack >
-			<BuildEventsView MouseWheelSpeed="6" Events="{BuildEvents}" Focusable="true" Name="log" Background="Black"/>		
+		<HorizontalStack Spacing="0" >
+			<BuildEventsView Name="log" Font="$SmallFont" MouseWheelSpeed="1" Events="{BuildEvents}" SearchString="{MainLoggerSearchString}" Focusable="true" Background="Black"/>		
 			<ScrollBar Name="scrollbarY" Value="{²../log.ScrollY}"				   
 				CursorSize="{../log.ChildHeightRatio}"
 				Maximum="{../log.MaxScrollY}" Orientation="Vertical"/>
+		</HorizontalStack>
+		<HorizontalStack Height="Fit" Margin="1" Background="Jet">
+			<Label Text="MaxScrollY:"/>
+			<Label Text="{../../log.MaxScrollY}"/>
+			<Label Text="ScrollY:"/>
+			<Label Text="{../../log.ScrollY}"/>
+			<Label Text="HoverEvent:"/>
+			<Label Text="{../../log.HoverEventIndex}"/>
+			<Label Text="HoverLine:"/>
+			<Label Text="{../../log.HoverLineIndex}"/>
+			<Label Text="HoverEventLineCount:"/>
+			<Label Text="{../../log.HoverEventLineCount}"/>
+			<Label Text="CurrentEventIndex:"/>
+			<Label Text="{../../log.CurrentEventIndex}"/>
 		</HorizontalStack>
 	</VerticalStack>
 </DockWindow>

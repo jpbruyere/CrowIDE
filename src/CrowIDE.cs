@@ -3,6 +3,7 @@
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -127,12 +128,14 @@ namespace Crow.Coding
 
 		Instantiator instFileDlg;
 		DockStack mainDock;
+		string mainLoggerSearchString;
+
 
 
 		public ProjectCollection projectCollection { get; private set; }
 		public ObservableList<BuildEventArgs> BuildEvents { get; private set; } = new ObservableList<BuildEventArgs> ();
 
-		public MSBuildWorkspace Workspace { get; private set; }
+		//public MSBuildWorkspace Workspace { get; private set; }
 		public ProgressLog ProgressLogger { get; private set; }
 
 		SolutionView currentSolution;
@@ -164,13 +167,10 @@ namespace Crow.Coding
 
 
 
-			var host = MefHostServices.Create (MSBuildMefHostServices.DefaultAssemblies);
-			Workspace = MSBuildWorkspace.Create (host);
-			Workspace.WorkspaceFailed += (sender, e) => Console.WriteLine ($"Workspace error: {e.Diagnostic}");
+			var host = MefHostServices.Create (MSBuildMefHostServices.DefaultAssemblies);			
 			ProgressLogger = new ProgressLog (this);
 			projectCollection = new ProjectCollection (null, new ILogger [] { new IdeLogger (this) }, ToolsetDefinitionLocations.Default) {
 				//DefaultToolsVersion = DEFAULT_TOOLS_VERSION,
-
 			};			
 
 			//projectCollection.AddToolset (new Toolset (Microsoft.Build.Utilities.ToolLocationHelper.CurrentToolsVersion,
@@ -329,6 +329,15 @@ namespace Crow.Coding
 				NotifyValueChanged ("MainLoggerVerbosity", MainLoggerVerbosity);
 			}
 		}
+		public string MainLoggerSearchString {
+			get => mainLoggerSearchString;
+			set {
+				if (mainLoggerSearchString == value)
+					return;
+				mainLoggerSearchString = value;
+				NotifyValueChanged (mainLoggerSearchString);
+            }
+        }
 		public bool PrintLineNumbers {
 			get { return Configuration.Global.Get<bool> ("PrintLineNumbers"); }
 			set {

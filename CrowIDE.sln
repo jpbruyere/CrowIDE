@@ -6,6 +6,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CrowIDE", "CrowIDE.csproj",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Crow", "Crow\Crow\Crow.csproj", "{14719C21-ECD2-46D2-ACD0-03B05EF2C5A1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrowIdeBuildTasks", "CrowIdeBuildTasks\CrowIdeBuildTasks.csproj", "{D5F61CB9-F73E-4431-BC6B-39E7E52E6B29}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,6 +22,10 @@ Global
 		{14719C21-ECD2-46D2-ACD0-03B05EF2C5A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{14719C21-ECD2-46D2-ACD0-03B05EF2C5A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{14719C21-ECD2-46D2-ACD0-03B05EF2C5A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5F61CB9-F73E-4431-BC6B-39E7E52E6B29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5F61CB9-F73E-4431-BC6B-39E7E52E6B29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5F61CB9-F73E-4431-BC6B-39E7E52E6B29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5F61CB9-F73E-4431-BC6B-39E7E52E6B29}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

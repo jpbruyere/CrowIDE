@@ -5,6 +5,8 @@
 using System.Collections;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Crow.Coding
 {
@@ -14,12 +16,15 @@ namespace Crow.Coding
 		public CSProjectItem (ProjectItemNode pi) : base (pi)
 		{
 		}
-		#endregion
-
+		#endregion		
 
 		public SyntaxTree SyntaxTree {
-			get => RegisteredEditors.Keys.OfType<RoslynEditor>().FirstOrDefault()?.SyntaxTree;
-			internal set { NotifyValueChanged ("SyntaxTree", SyntaxTree); NotifyValueChanged ("RootNode", RootNode); }
+			get {
+				if (IsOpened)
+					return RegisteredEditors.Keys.OfType<RoslynEditor> ().FirstOrDefault ()?.SyntaxTree;
+				return CSharpSyntaxTree.ParseText (Source,CSharpParseOptions.Default, FullPath);
+			}
+			//internal set { NotifyValueChanged ("SyntaxTree", SyntaxTree); NotifyValueChanged ("RootNode", RootNode); }
 		}
 		public SyntaxNode RootNode => SyntaxTree?.GetRoot ();
 	}

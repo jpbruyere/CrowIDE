@@ -12,6 +12,11 @@ using Microsoft.Build.Execution;
 using System.Reflection;
 using Microsoft.Build.Evaluation;
 using System.IO;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Project = Microsoft.Build.Evaluation.Project;
+using Microsoft.Build.Tasks;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Crow.Coding
 {
@@ -23,6 +28,33 @@ namespace Crow.Coding
 
 		Crow.Command cmdSave, cmdOpen, cmdCompile, cmdSetAsStartProj, cmdNewFile;
 
+		void registerCrowIdeCustomTarget () {
+			ProjectProperty msbuildExtPath = project.GetProperty ("MSBuildUserExtensionsPath");
+			ProjectProperty msbuildToolsVersion = project.GetProperty ("MSBuildToolsVersion");
+
+			string targetPath = Path.Combine (
+				msbuildExtPath.EvaluatedValue,
+				msbuildToolsVersion.EvaluatedValue,
+				"Microsoft.Common.targets",
+				"ImportAfter"				
+			);
+
+			if (!Directory.Exists (targetPath))
+				Directory.CreateDirectory (targetPath);
+			targetPath = Path.Combine (targetPath, "CrowIde.targets");
+			//if (!File.Exists(targetPath)) {
+				string targetSource = Path.Combine(Path.GetDirectoryName (Assembly.GetExecutingAssembly ().Location), "src", "CustomTargets.txt");
+				File.Copy (targetSource, targetPath, true);
+				project.ReevaluateIfNecessary ();
+            //}
+
+			
+
+			
+			//"$(MSBuildUserExtensionsPath)\$(MSBuildToolsVersion)\*
+
+		}
+
 		#region CTOR
 		public ProjectView (SolutionView sol, ProjectInSolution sp)
 		{
@@ -30,7 +62,9 @@ namespace Crow.Coding
 			solution = sol;			
 
 			ProjectRootElement projectRootElt = ProjectRootElement.Open (solutionProject.AbsolutePath);
-			project = new Project (solutionProject.AbsolutePath, null,null, sol.IDE.projectCollection);
+			project = new Project (solutionProject.AbsolutePath, null, null, sol.IDE.projectCollection);
+
+			registerCrowIdeCustomTarget ();
 
 			string [] props = { "EnableDefaultItems", "EnableDefaultCompileItems", "EnableDefaultNoneItems", "EnableDefaultEmbeddedResourceItems" };
 
@@ -59,6 +93,8 @@ namespace Crow.Coding
 			Commands = new CommandGroup (cmdOpen, cmdSave, cmdSetAsStartProj, cmdCompile, cmdNewFile);
 
 			populateTreeNodes ();
+
+			//getcompilation ();
 		}
 		#endregion
 
@@ -98,6 +134,20 @@ namespace Crow.Coding
 		}
 		public string AssemblyName => project.AllEvaluatedProperties.Where (p => p.Name == "AssemblyName").FirstOrDefault ().EvaluatedValue;
 		public string OutputType => project.AllEvaluatedProperties.Where (p => p.Name == "OutputType").FirstOrDefault ().EvaluatedValue;
+		public OutputKind OutputKind {
+			get {
+                switch (OutputType) {
+				case "Library":
+					return OutputKind.DynamicallyLinkedLibrary;
+				case "Exe":
+					return OutputKind.ConsoleApplication;
+				case "WinExe":
+					return OutputKind.WindowsApplication;
+				default:
+					return OutputKind.ConsoleApplication;
+                }
+            }
+        }
 		public string RootNamespace => project.AllEvaluatedProperties.Where (p => p.Name == "RootNamespace").FirstOrDefault ().EvaluatedValue;
 		public bool AllowUnsafeBlocks {
 			get {
@@ -172,17 +222,42 @@ namespace Crow.Coding
 				Console.WriteLine ($"{item.EvaluatedValue}");
 			}*/
 			//ProjectInstance pInst = project.CreateProjectInstance ();
-			string[] defaultTargets = { "Build", "Rebuild", "Pack", "Clean" };
+			string[] defaultTargets = { "Build", "Rebuild", "Pack", "Clean", "CollectFrameworkReferences", "ResolveAssemblyReferences"  };
+			
 			foreach (ProjectTargetInstance pti in project.Targets.Values) {
-				if (pti.Name.StartsWith('_') ||
-					!(string.IsNullOrEmpty (pti.BeforeTargets) && string.IsNullOrEmpty(pti.AfterTargets) && string.IsNullOrEmpty(pti.Returns)))
+				/*Console.WriteLine ($"{pti.Name} => In: {pti.Inputs} Out:{pti.Outputs} ret:{pti.Returns}  {pti.Children.Count}");
+                foreach (ProjectTargetInstanceChild ptic in pti.Children) {
+					if (ptic is ProjectTaskInstance p) {
+						Console.WriteLine ($"\tTask Instance: {p.Name} Out count:{p.Outputs.Count}");
+					} else if (ptic is ProjectItemGroupTaskInstance pg) {
+						Console.WriteLine ($"\tGroup Task Instance: count: {pg.Items.Count}");
+					}
+				}*/
+				/*
+                foreach (ProjectTaskInstance ti in pti.Tasks) {
+					Console.WriteLine ($"\t{ti.Name} {ti.Outputs} {ti.Parameters}");
+					Console.WriteLine ($"\t\tParameters");
+					Console.WriteLine ($"\t\t==========");
+					foreach (KeyValuePair<string, string> p in ti.Parameters) {
+						Console.WriteLine ($"\t\t{p.Key} = {p.Value}");
+					}
+					Console.WriteLine ($"\t\tOutputs");
+					Console.WriteLine ($"\t\t=======");
+					foreach (ProjectTaskInstanceChild p in ti.Outputs) {						
+						Console.WriteLine ($"\t\t{p}");
+					}
+				}*/
+				
+				/*if (!defaultTargets.Contains (pti.Name))
+					continue;*/
+				if (pti.Name.StartsWith('_'))
 					continue;
-
-				Console.WriteLine ($"Depends: {pti.Children.Count} {pti.Name} ret: {pti.Returns} {pti.BeforeTargets} -> {pti.AfterTargets}");
+				/*
+				Console.WriteLine ($"Depends: {pti.Children.Count} {pti.Name} ret: {pti.Returns} {pti.BeforeTargets} -> {pti.AfterTargets}");*/
 				Commands.Add (new Crow.Command (new Action (() => Compile (pti.Name)))
 				{
 					Caption = pti.Name,
-				});				
+				});
             }
 			
 
@@ -190,7 +265,14 @@ namespace Crow.Coding
 				/*if (Path.GetFileName (pn.EvaluatedInclude) == "samples.style")
 					System.Diagnostics.Debugger.Break ();*/
 				solution.IDE.ProgressNotify (1);
-
+				/*if (pn.EvaluatedInclude.EndsWith ("dll"))
+                    System.Diagnostics.Debugger.Break ();
+                foreach (ProjectMetadata md in pn.Metadata) {
+					if (md.EvaluatedValue.EndsWith ("dll"))
+						System.Diagnostics.Debugger.Break ();
+					if (md.Location.File.EndsWith ("dll"))
+						System.Diagnostics.Debugger.Break ();
+				}*/
 				switch (pn.ItemType) {
 				case "ProjectReferenceTargets":
 					Commands.Add (new Crow.Command (new Action (() => Compile (pn.EvaluatedInclude))) {
@@ -243,7 +325,7 @@ namespace Crow.Coding
 						curNode.AddChild (pi);
 
 					} catch (Exception ex) {
-						Console.ForegroundColor = ConsoleColor.Red;
+						Console.ForegroundColor = ConsoleColor.DarkRed;
 						Console.WriteLine (ex);
 						Console.ResetColor ();
 					}
@@ -295,26 +377,72 @@ namespace Crow.Coding
 		//    }
 		//    return tmp;
 		//}
-
 		public void Compile (string target = "Build")
-		{
-			/*var nativeSharedMethod = typeof (SolutionFile).Assembly.GetType ("Microsoft.Build.Shared.NativeMethodsShared");
+		{						
+			/*var nativeSharedMethod = typeof (SolutionFile).Assembly.GetType ("Crow.Build.Shared.NativeMethodsShared");
 			var isMonoField = nativeSharedMethod.GetField ("_isMono", BindingFlags.Static | BindingFlags.NonPublic);
 			isMonoField.SetValue (null, true);
 
 			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", "/usr/share/dotnet/sdk/3.1.101/MSBuild.dll");*/
-			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);						
+
+			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
 			//ProjectInstance pi = new ProjectInstance (project.FullPath, solution.globalProperties, solution.toolsVersion);
 
 			/*ILogger logger = new Microsoft.Build.Logging.ConsoleLogger {
 				Verbosity = LoggerVerbosity.Diagnostic
 			};*/
+			//pi.Build (new string[] { "ResolveReferences" }, );
+			
 
-			if (pi.Build (new string [] { target }, solution.buildParams.Loggers))
-				Console.WriteLine ("success");
-			else
-				Console.WriteLine ("error");			
-        }
+			BuildRequestData request = new BuildRequestData (pi, new string[] { target }, null, BuildRequestDataFlags.ProvideProjectStateAfterBuild);						
+			
+			BuildResult result = BuildManager.DefaultBuildManager.Build (solution.buildParams, request);
+
+			/*Console.ForegroundColor = ConsoleColor.Yellow;
+			Console.WriteLine (result.ProjectStateAfterBuild.GetPropertyValue ("IntermediateOutputPath"));
+
+			Console.WriteLine ($"\n****************** {target} *********************");
+			Console.ForegroundColor = ConsoleColor.Blue;
+			Console.WriteLine ($"Properties ({result.ProjectStateAfterBuild.Properties.Count}):");
+			foreach (var item in result.ProjectStateAfterBuild.Properties.OrderBy(p=>p.Name)) {
+				Console.WriteLine ($"\t{item.Name} = {item.EvaluatedValue}");
+			}*/
+			/*Console.ForegroundColor = ConsoleColor.Cyan;
+			foreach (var item in result.ProjectStateAfterBuild.Items) {
+				Console.WriteLine ($"{item.ItemType} {item.EvaluatedInclude}");
+				foreach (var md in item.Metadata) {
+					Console.WriteLine ($"\t{md.Name} = {md.EvaluatedValue}");
+					
+				}
+			}
+			Console.ForegroundColor = ConsoleColor.Red;
+			foreach (string t in result.ResultsByTarget.Keys) {
+				foreach (var item in result.ResultsByTarget[t].Items) {
+					Console.WriteLine ($"{item}");
+					foreach (string md in item.MetadataNames) {
+						Console.WriteLine ($"\t{md} = {item.GetMetadata (md)}");
+					}
+
+				}				
+			}*/
+			/*Console.ForegroundColor = ConsoleColor.Blue;
+			foreach (var item in result.ProjectStateAfterBuild.GetMetadataReferences()) {
+				Console.WriteLine ($"\t{item.na} {item.ElementName} = {item.Include}");
+			}*/
+			/*Console.WriteLine ($"\n****************** {target} *********************");
+			
+			*/
+			/*string[] dlls = solution.IDE.TargetResults.Select (t => (t as BuildMessageEventArgs).Message).ToArray ();
+			foreach (string dll in dlls)
+				Console.WriteLine (dll);*/
+			/*var c = result.ProjectStateAfterBuild.GetCompilerCommandLineArgs ();
+			var 
+
+			//BuildSubmission submission = BuildManager.DefaultBuildManager.PendBuildRequest (request);
+			BuildEventArgs[] bea = solution.IDE.BuildEvents.Where (be => be.Message.ToString ().Contains (".dll")).ToArray ();*/
+			getcompilation ();
+
+		}
 		//    if (ParentProject != null)
 		//        ParentProject.Compile ();
 
@@ -520,6 +648,50 @@ namespace Crow.Coding
 
 			//TODO:get styling from referenced assemblies
 		}
+
+		public IEnumerable<SyntaxTree> SyntaxTrees {
+			get {
+				return Flatten.OfType<CSProjectItem> ().Select (pf => pf.SyntaxTree);				
+			}
+		}
+
+		
+		void getcompilation () {
+            try {
+
+				CSharpCompilationOptions compileOpts = new CSharpCompilationOptions (this.OutputKind);
+				List<MetadataReference> metaRefs = new List<MetadataReference> ();
+				ProjectProperty objPath = project.GetProperty ("IntermediateOutputPath");
+				ProjectProperty msbuildProjName = project.GetProperty ("MSBuildProjectName");
+				
+				string refsTxt = Path.Combine (objPath.EvaluatedValue, msbuildProjName.EvaluatedValue + ".resolved");
+				if (!File.Exists (refsTxt))
+					return;
+				using (StreamReader sr = new StreamReader (refsTxt)) {
+					while (!sr.EndOfStream) {
+						string dll = sr.ReadLine ();
+						if (File.Exists(dll))
+							metaRefs.Add (MetadataReference.CreateFromFile (dll));
+					}
+				}
+				SyntaxTree[] sts = SyntaxTrees.ToArray();
+				Compilation comp = CSharpCompilation.Create (this.AssemblyName, sts, metaRefs);
+				SyntaxTree st = sts[5];
+				CompilationUnitSyntax root = st.GetCompilationUnitRoot ();
+				
+				SemanticModel model = comp.GetSemanticModel (st);
+
+				SymbolInfo si = model.GetSymbolInfo (root.Usings[0].Name);
+				var systemSymbol = (INamespaceSymbol)si.Symbol;
+				foreach (INamespaceSymbol ns in systemSymbol.GetNamespaceMembers ()) {
+					Console.WriteLine (ns);
+				}
+				Console.WriteLine (si.CandidateSymbols);
+				
+			} catch (Exception e) {
+				Console.WriteLine (e);
+            }
+        }
 
 	}
 }

@@ -1,4 +1,7 @@
 ﻿//test
+SmallFont = "consolas, 10";
+CodeFont = "consolas, 12";
+
 Label {    
     //Foreground="Jet";
 }

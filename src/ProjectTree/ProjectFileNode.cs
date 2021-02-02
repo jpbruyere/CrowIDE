@@ -16,8 +16,7 @@ namespace Crow.Coding {
     public class ProjectFileNode : ProjectItemNode {		
 		bool isOpened = false;
 		DateTime accessTime;
-		string source;
-		string origSource;
+		string source, origSource;
 		object selectedItem;
 		int curLine, curColumn;
 
@@ -27,10 +26,8 @@ namespace Crow.Coding {
 		/// dictionnary of boolean per editor, when FALSE, editor must reload content from project node.
 		/// </summary>
 		public Dictionary<object, bool> RegisteredEditors = new Dictionary<object, bool>();
-		List<String> undoStack = new List<string>();
-		List<String> redoStack = new List<string>();
 
-		public Command cmdSave, cmdSaveAs, cmdOpen, cmdClose, cmdUndo, cmdRedo;
+		public Command cmdSave, cmdSaveAs, cmdOpen, cmdClose;//, cmdUndo, cmdRedo;
 
 		public ProjectFileNode ()
 		{
@@ -52,23 +49,22 @@ namespace Crow.Coding {
 			{ Caption = "Open", Icon = CrowIDE.IcoOpen, CanExecute = true };
 			cmdClose = new Command (new Action (() => OnQueryClose (this,null))) 
 			{ Caption = "Close File", Icon = CrowIDE.IcoQuit, CanExecute = false };
-			cmdUndo = new Command (new Action (() => Undo (null))) 
+			/*cmdUndo = new Command (new Action (() => Undo (null))) 
 			{ Caption = "Undo", Icon = CrowIDE.IcoUndo, CanExecute = false };
 			cmdRedo = new Command (new Action (() => Redo (null))) 
-			{ Caption = "Redo", Icon = CrowIDE.IcoRedo, CanExecute = false };
+			{ Caption = "Redo", Icon = CrowIDE.IcoRedo, CanExecute = false };*/
 
 			Commands.Insert (0, cmdOpen);
 			Commands.Insert (1, cmdSave);
 			Commands.Insert (2, cmdSaveAs);
-			Commands.Insert (3, cmdUndo);
-			Commands.Insert (4, cmdRedo);
+			//Commands.Insert (3, cmdUndo);
+			//Commands.Insert (4, cmdRedo);
 			Commands.Add (cmdClose);
 		}
 
 		public string LogicalName =>
 			Item.HasMetadata ("LogicalName") ? Item.GetMetadata ("LogicalName").EvaluatedValue :
 				$"{Project.DisplayName}.{Item.EvaluatedInclude.Replace('/','.').Replace('\\','.')}";
-
 		public string Link => Item.GetMetadata ("Link")?.EvaluatedValue;
 		public CopyToOutputState CopyToOutputDirectory {
 			get => Item.HasMetadata ("CopyToOutputDirectory") ?
@@ -84,7 +80,7 @@ namespace Crow.Coding {
 		}
 
 		public bool IsOpened {
-			get { return isOpened; }
+			get => isOpened;
 			set {
 				if (isOpened == value)
 					return;
@@ -92,12 +88,7 @@ namespace Crow.Coding {
 
 				cmdOpen.CanExecute = !isOpened;
 				cmdClose.CanExecute = isOpened;
-				cmdSave.CanExecute = isOpened && IsDirty;
-
-				if (isOpened) 
-					Project.solution.OpenItem (this);
-				else
-					Project.solution.CloseItem (this);				
+				cmdSave.CanExecute = isOpened && IsDirty;									
 
 				NotifyValueChanged ("IsOpened", isOpened);
 			}
@@ -142,18 +133,17 @@ namespace Crow.Coding {
 		public string GetSourceWithoutOpening () {
 			if (IsOpened)
 				return Source;
-			using (StreamReader sr = new StreamReader (FullPath)) {
-				return sr.ReadToEnd ();
-			}
+			using (StreamReader sr = new StreamReader (FullPath)) 
+				return sr.ReadToEnd ();			
 		}
 		public string Source {
 			get {
 				if (!IsOpened)
-					Open ();					
+					return GetSourceWithoutOpening ();
 				else {
 					if (DateTime.Compare (
-						    accessTime,
-						    System.IO.File.GetLastWriteTime (FullPath)) < 0)
+							accessTime,
+							System.IO.File.GetLastWriteTime (FullPath)) < 0)
 						Console.WriteLine ("File has been modified outside CrowIDE");
 				}
 				return source;
@@ -163,13 +153,7 @@ namespace Crow.Coding {
 					return;
 				
 				srcEditMtx.EnterWriteLock ();
-
-				undoStack.Add (source);
-				cmdUndo.CanExecute = true;
-				redoStack.Clear ();
-				cmdRedo.CanExecute = false;
 				source = value;
-
 				NotifyValueChanged ("Source", source);
 				NotifyValueChanged ("IsDirty", IsDirty);
 
@@ -178,9 +162,7 @@ namespace Crow.Coding {
 				srcEditMtx.ExitWriteLock ();
 			}
 		}
-		public bool IsDirty {
-			get { return source != origSource; }
-		}
+		public bool IsDirty => source != origSource;
 		public int CurrentColumn{
 			get { return curColumn; }
 			set {
@@ -213,15 +195,15 @@ namespace Crow.Coding {
 
 		public virtual void Open () {			
 			accessTime = File.GetLastWriteTime (FullPath);
-			using (StreamReader sr = new StreamReader (FullPath)) {
+			using (StreamReader sr = new StreamReader (FullPath))
 				source = sr.ReadToEnd ();
-			}
 			origSource = source;
+			Project.solution.OpenItem (this);
 			IsOpened = true;
 			NotifyValueChanged ("IsDirty", false);
 		}
 		public virtual void Save () {
-			if (!IsDirty)
+			if (!(IsDirty || IsOpened))
 				return;
 			using (StreamWriter sw = new StreamWriter (FullPath)) {
 				sw.Write (source);
@@ -230,7 +212,7 @@ namespace Crow.Coding {
 			NotifyValueChanged ("IsDirty", false);
 		}
 		public virtual void SaveAs () {
-			if (!IsDirty)
+			if (!IsOpened)
 				return;
 			using (StreamWriter sw = new StreamWriter (FullPath)) {
 				sw.Write (source);
@@ -241,8 +223,9 @@ namespace Crow.Coding {
 		public void Close () {
 			origSource = source = null;
 			IsOpened = false;
+			Project.solution.CloseItem (this);
 		}
-		public void Undo(object sender){
+		/*public void Undo(object sender){
 			undo();
 			signalOtherRegisteredEditors (sender);
 		}
@@ -289,7 +272,7 @@ namespace Crow.Coding {
 				cmdRedo.CanExecute = false;
 			srcEditMtx.ExitWriteLock ();
 
-		}
+		}*/
 
 		public void onDoubleClick (object sender, MouseButtonEventArgs e){
 			if (IsOpened)

@@ -9,6 +9,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
+using MSB = Microsoft.Build;
 
 namespace Crow
 {
@@ -219,5 +220,26 @@ namespace Crow
 		public static TextChange Inverse (this TextChange tch, SourceText src)
 			=> new TextChange (string.IsNullOrEmpty (tch.NewText) ? new TextSpan (tch.Span.Start, 0) : new TextSpan (tch.Span.Start, tch.NewText.Length),
 				tch.Span.IsEmpty ? "" : src.GetSubText (tch.Span).ToString ());
+
+		static class ItemNames
+		{
+			public const string AdditionalFiles = nameof (AdditionalFiles);
+			public const string Analyzer = nameof (Analyzer);
+			public const string Compile = nameof (Compile);
+			public const string CscCommandLineArgs = nameof (CscCommandLineArgs);
+			public const string DocFileItem = nameof (DocFileItem);
+			public const string EditorConfigFiles = nameof (EditorConfigFiles);
+			public const string Import = nameof (Import);
+			public const string ProjectReference = nameof (ProjectReference);
+			public const string Reference = nameof (Reference);
+			public const string ReferencePath = nameof (ReferencePath);
+			public const string VbcCommandLineArgs = nameof (VbcCommandLineArgs);
+		}
+
+		/*********************************************/
+		public static IEnumerable<MSB.Framework.ITaskItem> GetMetadataReferences (this MSB.Execution.ProjectInstance executedProject)
+		   => executedProject.GetItems (ItemNames.ReferencePath);
+		public static IEnumerable<MSB.Framework.ITaskItem> GetCompilerCommandLineArgs (this MSB.Execution.ProjectInstance executedProject)
+			=> executedProject.GetItems (ItemNames.CscCommandLineArgs);
 	}
 }

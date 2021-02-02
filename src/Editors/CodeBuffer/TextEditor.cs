@@ -506,14 +506,14 @@ namespace Crow.Text
 				case Key.S:
 					projFile.Save ();
 					break;
-				case Key.W:
+				/*case Key.W:
 					editorMutex.EnterWriteLock ();
 					if (IFace.Shift)
 						projFile.Redo (null);
 					else
 						projFile.Undo (null);
 					editorMutex.ExitWriteLock ();
-					break;
+					break;*/
 				default:
 					Console.WriteLine ("");
 					break;

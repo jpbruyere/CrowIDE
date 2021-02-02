@@ -28,22 +28,25 @@
 		<EmbeddedResource Include="ui\DefaultTemplates\*.template">
 			<LogicalName>Crow.Coding.%(Filename).template</LogicalName>
 		</EmbeddedResource>
+		<None Include="src\CustomTargets.txt">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 
 		<EmbeddedResource Include="IDE.style" />
 	</ItemGroup>
 	
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Build.Locator" Version="1.2.6" />
-		<PackageReference Include="Microsoft.Build" Version="16.*">
+		<PackageReference Include="Microsoft.Build" Version="15.*">
 			<ExcludeAssets>runtime</ExcludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.Build.Framework" Version="16.*">
+		<PackageReference Include="Microsoft.Build.Framework" Version="15.*">
 			<ExcludeAssets>runtime</ExcludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.Build.Tasks.Core" Version="16.*">
+		<PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.*">
 			<ExcludeAssets>runtime</ExcludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.*">
+		<PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.*">
 			<ExcludeAssets>runtime</ExcludeAssets>
 		</PackageReference>
 		<PackageReference Include="System.CodeDom" Version="5.0.0" />
@@ -61,6 +64,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
+		<Folder Include="src\Editors\Roslyn\tests\" />
 		<Folder Include="src\msbuild\" />			
 	</ItemGroup>
 	
@@ -72,4 +76,13 @@
 	<ItemGroup>
 	  <ProjectReference Include="Crow\Crow\Crow.csproj" />
 	</ItemGroup>
+
+	<Target Name="CustomBeforeBuild" AfterTargets="ResolveReferences">		
+        <Message Importance="high" Text="Running MyCustomTarget1...$(SolutionDir) @(ReferencePath->'%(Identity)')" />
+		<WriteLinesToFile File="$(SolutionDir)\test.txt" Lines="@(ReferenceCopyLocalPaths)" Overwrite="true" Encoding="Unicode" />
+		<Message Importance="high" Text="$(MSBuildUserExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.targets\ImportBefore\" />
+		<CreateProperty Value="@(ReferencePath)">
+			<Output TaskParameter="Value" PropertyName="ResolvedReferences" />
+		</CreateProperty>
+    </Target>
 </Project>

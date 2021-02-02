@@ -2,8 +2,8 @@
 <MenuItem MinimumSize="20,20" Height="Fit" Width="Fit" Caption="Context Menu" Data="{ContextCommands}" Orientation="Vertical"
 	IsOpened ="true" Visible="{/IsOpened}">
 	<Template>		
-		<Border Background="0.2,0.2,0.2,0.8" Foreground="Black" CornerRadius="2">
-			<GenericStack Orientation="{./Orientation}" Name="ItemsContainer" Margin="5"/>
+		<Border Background="0.2,0.2,0.2,0.8" Foreground="Black" CornerRadius="2">			
+			<GenericStack Height="Fit" VerticalAlignment="Top" Orientation="{./Orientation}" Name="ItemsContainer" Margin="5"/>			
 		</Border>		
 	</Template>
 	<ItemTemplate>

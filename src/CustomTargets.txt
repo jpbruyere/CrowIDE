@@ -1,0 +1,6 @@
+﻿<Project>
+	<Target Name="CustomBeforeBuild" AfterTargets="ResolveReferences" Outputs="$(ResolvedReferences2)" Returns="$(ResolvedReferences2)">		
+        <Message Importance="high" Text="$(IntermediateOutputPath)$(MSBuildProjectName).resolved @(ReferencePath->'%(Identity)')" />
+		<WriteLinesToFile File="$(IntermediateOutputPath)$(MSBuildProjectName).resolved" Lines="@(ReferencePath)" Overwrite="true" Encoding="Unicode" />
+    </Target>
+</Project>
