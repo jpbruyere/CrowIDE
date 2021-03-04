@@ -18,14 +18,9 @@ namespace Crow.Coding
 		}
 		#endregion		
 
-		public SyntaxTree SyntaxTree {
-			get {
-				if (IsOpened)
-					return RegisteredEditors.Keys.OfType<RoslynEditor> ().FirstOrDefault ()?.SyntaxTree;
-				return CSharpSyntaxTree.ParseText (Source,CSharpParseOptions.Default, FullPath);
-			}
-			//internal set { NotifyValueChanged ("SyntaxTree", SyntaxTree); NotifyValueChanged ("RootNode", RootNode); }
-		}
+		public SyntaxTree SyntaxTree => IsOpened ?
+				RegisteredEditors.Keys.OfType<RoslynEditor> ().FirstOrDefault ()?.SyntaxTree :
+				CSharpSyntaxTree.ParseText (Source,CSharpParseOptions.Default, FullPath);
 		public SyntaxNode RootNode => SyntaxTree?.GetRoot ();
 	}
 }

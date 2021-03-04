@@ -25,6 +25,6 @@
 		<Label DataSource="{../editor.Error}" Text="{Message}"
 			Visible="{../editor.HasError}"
 			Height="Fit" Width="Stretched" Background="DarkRed" Foreground="White"
-			TextAlignment="TopLeft" Multiline="true"/>
+			TextAlignment="Left" Multiline="true"/>
 	</VerticalStack>
 </TabItem>

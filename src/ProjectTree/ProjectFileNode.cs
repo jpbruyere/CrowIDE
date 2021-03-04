@@ -140,12 +140,9 @@ namespace Crow.Coding {
 			get {
 				if (!IsOpened)
 					return GetSourceWithoutOpening ();
-				else {
-					if (DateTime.Compare (
-							accessTime,
-							System.IO.File.GetLastWriteTime (FullPath)) < 0)
-						Console.WriteLine ("File has been modified outside CrowIDE");
-				}
+				else 
+					NotifyValueChanged ("ExternalyModified", ExternalyModified);				
+				
 				return source;
 			}
 			set {
@@ -163,6 +160,9 @@ namespace Crow.Coding {
 			}
 		}
 		public bool IsDirty => source != origSource;
+		public bool ExternalyModified =>
+			(DateTime.Compare (accessTime, System.IO.File.GetLastWriteTime (FullPath)) < 0);
+				
 		public int CurrentColumn{
 			get { return curColumn; }
 			set {
