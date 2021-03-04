@@ -1,0 +1,3 @@
+﻿<VerticalStack Height="Fit" Width="200" Background="Yellow">
+	<Label/>
+</VerticalStack>

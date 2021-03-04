@@ -799,18 +799,34 @@ namespace Crow.Coding
 					IFace.MouseCursor = MouseCursor.ibeam;				
 			}
 
-			/*if (syntaxTree != null) {
-				SyntaxNode root = syntaxTree.GetRoot ();				
-				SyntaxToken tok = root.FindToken (hoverPos, true);
-				Console.WriteLine(tok.CSKind ().ToString ());
-				Console.WriteLine (tok.Kind().ToString ());
-				Console.WriteLine (tok.RawKind.ToString ());
-				SyntaxNode sn = root.FindNode (TextSpan.FromBounds (hoverPos, hoverPos + 1), true, true);
-				Console.WriteLine (sn.Kind ());
+			if (syntaxTree != null) {
+				try {
+					SyntaxNode root = SyntaxTree.GetRoot ();				
+					SyntaxToken tok = root.FindToken (hoverPos, true);
+
+					SyntaxNode sn = tok.Parent;// root.FindNode (TextSpan.FromBounds (hoverPos, hoverPos + 1), true, true);
+					Console.WriteLine ("===================================");
+					Console.WriteLine($"TOK:{tok.CSKind ()}, {tok.RawKind}");
+					Console.WriteLine($"node: {sn.Kind ()}");
+					NotifyValueChanged ("CurrentToken", tok);					
+					if (Compilation == null)
+						return;
+					
+					SemanticModel model = Compilation.GetSemanticModel (SyntaxTree);
+					SymbolInfo symbInfo = model.GetSymbolInfo (sn);
+					ISymbol symbol = symbInfo.Symbol;
+					if (symbol == null) 
+						Console.WriteLine ($"SymbolInfo: {symbInfo.CandidateReason}");
+					else
+						Console.WriteLine ($"Symbol: Kind:{symbol.Kind} name:{symbol.Name} containing type:{symbol.ContainingType}.");
+					
+				} catch (Exception ex) {					
+					Console.WriteLine (ex);
+				}
+
+            }
 
 
-				NotifyValueChanged ("CurrentToken", tok);
-            }*/
 
 			/*if (!HasFocus || !buffer.SelectionInProgress)
 				return;
@@ -818,6 +834,13 @@ namespace Crow.Coding
 			//mouse is down
 			updateCurrentPosFromMouseLocalPos();
 			buffer.SetSelEndPos ();*/
+		}
+		CSProjectItem CSProjectItm => this.projFile as CSProjectItem;
+		public Compilation Compilation {
+			get => CSProjectItm.Project.Compilation;
+			set {
+				CSProjectItm.Project.Compilation = value;
+			}
 		}
 		public override void onMouseDown (object sender, MouseButtonEventArgs e)
 		{
@@ -1068,7 +1091,11 @@ namespace Crow.Coding
 
 		void apply (TextChange tch) {
 			buffer = buffer.WithChanges (tch);
-			SyntaxTree = syntaxTree.WithChangedText (buffer);			
+			SyntaxTree newTree = syntaxTree.WithChangedText (buffer);
+			Compilation comp = Compilation;
+			if (comp != null) 
+				Compilation = comp.ReplaceSyntaxTree (syntaxTree, newTree);
+			SyntaxTree = newTree;		
 
 			if (string.IsNullOrEmpty (tch.NewText))
 				CurrentPos = tch.Span.Start;

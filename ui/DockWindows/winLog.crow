@@ -16,7 +16,7 @@
 												Background="{./Background}"
 												Path="#Crow.Icons.expandable.svg" SvgSub="{./IsChecked}"/>
 											<Label Style="ControlCaption" Text="{./Caption}" Width="60" />
-											<Label Style="ControlCaption" Text="{./Caption}" />
+											<Label Style="ControlCaption" Text="{²MainLoggerVerbosity}" />
 										</HorizontalStack>
 									</Border>
 								</Template>

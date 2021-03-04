@@ -22,6 +22,7 @@ namespace Crow.Coding
 		int skippedLines;
 		Context ctx;
 		RoslynEditor editor;
+		SemanticModel semanticModel;
 		FontExtents fe;
 		double y, lineNumWidth;
 		Rectangle bounds;
@@ -37,13 +38,15 @@ namespace Crow.Coding
 		{
 			this.editor = editor;
 			tf = editor.formatting["default"];
-
 			/*if (printedLines == 0)
 				checkPrintMargin ();*/
 		}
 
 		public void Draw (Context ctx, SyntaxNode node) {
 			this.ctx = ctx;
+
+			if (editor.Compilation != null)											
+				semanticModel = editor.Compilation.GetSemanticModel (node.SyntaxTree);
 
 			printLineNumbers = (editor.IFace as CrowIDE).PrintLineNumbers;
 			printedLinesNumbers = new int[visibleLines];
@@ -133,8 +136,25 @@ namespace Crow.Coding
 		{			
 			if (cancel)
 				return;
+			if (semanticModel != null) {
+				SymbolInfo symbInfo = semanticModel.GetSymbolInfo (node);				
+				symbol = symbInfo.Symbol;
+				/*if (symbol != null) {
+					Console.WriteLine ($"Symbol: Kind:{symbol.Kind} {symbol.Name} {symbol.ContainingNamespace}.{symbol.ContainingType}.");
+				}*/
+			}
+
 			base.Visit (node);
+			symbol = null;
 		}
+		
+		public override void VisitSkippedTokensTrivia(SkippedTokensTriviaSyntax node) {
+			Console.WriteLine ($"\tskipped: {node.ToString()}");
+			base.VisitSkippedTokensTrivia (node);
+
+		}
+		ISymbol symbol;
+		
 		public override void VisitToken (SyntaxToken token)
 		{
 			if (cancel)
@@ -151,6 +171,9 @@ namespace Crow.Coding
 				SyntaxKind kind = token.Kind ();
 
 				if (!token.IsPartOfStructuredTrivia ()) {
+					/*if (symbol != null) {						
+						Console.WriteLine ($"Symbol: Kind:{symbol.Kind} {symbol.Name} {symbol.ContainingNamespace}.{symbol.ContainingType}.");
+					}*/
 					if (SyntaxFacts.IsPredefinedType (kind))
 						tf = editor.formatting["PredefinedType"];
 					else if (SyntaxFacts.IsAccessibilityModifier (kind))

@@ -168,21 +168,19 @@ namespace Crow.Coding
 
 
 			var host = MefHostServices.Create (MSBuildMefHostServices.DefaultAssemblies);			
-			ProgressLogger = new ProgressLog (this);
-			projectCollection = new ProjectCollection (null, new ILogger [] { new IdeLogger (this) }, ToolsetDefinitionLocations.Default) {
-				//DefaultToolsVersion = DEFAULT_TOOLS_VERSION,
-			};			
+			ProgressLogger = new ProgressLog (this);			
 
-			//projectCollection.AddToolset (new Toolset (Microsoft.Build.Utilities.ToolLocationHelper.CurrentToolsVersion,
-//				Path.GetDirectoryName (msbuildRoot), projectCollection, string.Empty));
+			projectCollection = new ProjectCollection (null,
+										new ILogger [] { new IdeLogger (this, MainLoggerVerbosity) },
+										ToolsetDefinitionLocations.Default);
 
 			projectCollection.SetGlobalProperty ("RestoreConfigFile", Path.Combine (
 							Path.Combine (
 								Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "NuGet"),
 								"NuGet.Config"));
 			string crowIdePath = Path.GetDirectoryName (Assembly.GetEntryAssembly ().Location);
-			projectCollection.SetGlobalProperty ("CrowIDEPath", crowIdePath);				
-
+			projectCollection.SetGlobalProperty ("CrowIDEPath", crowIdePath);
+			//https://docs.microsoft.com/en-us/visualstudio/msbuild/customize-your-build?view=vs-2019
 			projectCollection.SetGlobalProperty ("CustomBeforeMicrosoftCommonTargets", Path.Combine(crowIdePath, @"src\CustomCrowIDE.targets"));
 			//projectCollection.SetGlobalProperty ("CustomAfterMicrosoftCommonProps", Path.Combine (crowIdePath, @"src\CustomCrowIDE.props"));
 			
@@ -195,7 +193,6 @@ namespace Crow.Coding
 
 			instFileDlg = Instantiator.CreateFromImlFragment
 				(this, "<FileDialog Caption='Open File' CurrentDirectory='{²CurrentDirectory}' SearchPattern='*.sln' OkClicked='onFileOpen'/>");
-				
 		}
 
 		public void onFileOpen (object sender, EventArgs e)
@@ -316,7 +313,7 @@ namespace Crow.Coding
 		}
 
 		public bool ReopenLastSolution {
-			get { return Crow.Configuration.Global.Get<bool>("ReopenLastSolution");}
+			get => Crow.Configuration.Global.Get<bool>("ReopenLastSolution");
 			set {
 				if (ReopenLastSolution == value)
 					return;
@@ -325,13 +322,14 @@ namespace Crow.Coding
 			}
 		}
 		public LoggerVerbosity MainLoggerVerbosity {
-			get => projectCollection == null ? LoggerVerbosity.Normal : projectCollection.Loggers.First ().Verbosity;
+			get => Crow.Configuration.Global.Get<LoggerVerbosity>("MainLoggerVerbosity");
 			set {
 				if (MainLoggerVerbosity == value)
 					return;
 				if (projectCollection != null)
 					projectCollection.Loggers.First ().Verbosity = value;
-				NotifyValueChanged ("MainLoggerVerbosity", MainLoggerVerbosity);
+				Crow.Configuration.Global.Set ("MainLoggerVerbosity", value);
+				NotifyValueChanged ("MainLoggerVerbosity", value);
 			}
 		}
 		public string MainLoggerSearchString {

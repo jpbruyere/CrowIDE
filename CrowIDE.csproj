@@ -3,12 +3,12 @@
 	<PropertyGroup>
 		<TargetFramework>netcoreapp3.1</TargetFramework>
 		<!--<TargetFramework>net472</TargetFramework>-->
-		<OutputType>WinExe</OutputType>
+		<OutputType>Exe</OutputType>
 		<StartupObject>Crow.Coding.Startup</StartupObject>
 		<AssemblyVersion>$(CrowVersion)</AssemblyVersion>
 		<EnableDefaultItems>false</EnableDefaultItems>
-		<SelfContained>false</SelfContained>
-		<UseAppHost>false</UseAppHost>
+		<!--<SelfContained>true</SelfContained>
+		<RuntimeIdentifier>linux-x64</RuntimeIdentifier>-->
 		<OutputPath>$(SolutionDir)build\$(Configuration)\</OutputPath>
 		<IntermediateOutputPath>$(SolutionDir)build\obj\$(Configuration)\</IntermediateOutputPath>		
 	</PropertyGroup>

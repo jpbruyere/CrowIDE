@@ -6,17 +6,15 @@
 					CurrentLine="{²CurrentLine}" CurrentColumn="{²CurrentColumn}" HasFocus="{IsSelected}"
 					Foreground="Jet" Background="White" Width="Stretched" Height="Stretched"
 					ProjectNode="{}"  KeyDown="textView_KeyDown"/>
-			<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}"
-					   LargeIncrement="{../editor.VisibleLines}"
-					   CursorSize="{../editor.ChildHeightRatio}"
-				Maximum="{../editor.MaxScrollY}" Orientation="Vertical"/>
+			<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}" Maximum="{../editor.MaxScrollY}"
+					   LargeIncrement="{../editor.VisibleLines}" CursorSize="{../editor.ChildHeightRatio}"/>
 		</HorizontalStack>
-		<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../editor.ScrollX}"
-				Maximum="{../editor.MaxScrollX}"
-				LargeIncrement="{../editor.VisibleColumns}"
-				CursorSize="{../editor.ChildWidthRatio}"/>			
+		<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../editor.ScrollX}" Maximum="{../editor.MaxScrollX}"
+				   LargeIncrement="{../editor.VisibleColumns}" CursorSize="{../editor.ChildWidthRatio}"/>			
 		<HorizontalStack Height="Fit" Spacing="10">
 			<Label Text="{../../editor.HoverError}" Width="Stretched"/>
+			<Label Text="{../../editor.CurrentToken}" Width="Stretched"/>
+			
 			<Widget Background="Red" Width="5" Height="5" Visible="{IsDirty}"/>
 			<Label Text="Abs Pos:" Foreground="Black"/>
 			<Label Text="{../../editor.CurrentPos}" />
@@ -26,10 +24,10 @@
 			<Label Text="{CurrentLine}"/>
 			<Label Text="column:" Foreground="Black"/>
 			<Label Text="{CurrentColumn}"/>
-			<Label Text="ScrollX:" Foreground="Black"/>
+			<!--<Label Text="ScrollX:" Foreground="Black"/>
 			<Label Text="{../../editor.ScrollX}"/>
 			<Label Text="ScrollY:" Foreground="Black"/>
-			<Label Text="{../../editor.ScrollY}"/>
+			<Label Text="{../../editor.ScrollY}"/>-->
 		</HorizontalStack>
 	</VerticalStack>
 </TabItem>

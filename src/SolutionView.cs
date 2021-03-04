@@ -283,7 +283,8 @@ namespace Crow.Coding
 			}
 			
 			//SelectedItem = selItem;
-			selItem.IsSelected = true;
+			if (selItem != null)
+				selItem.IsSelected = true;
 		}
 
 		/*void onSelectedItemChanged (object sender, SelectionChangeEventArgs e){							

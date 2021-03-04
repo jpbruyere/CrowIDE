@@ -11,7 +11,7 @@ namespace Crow.Coding
 	public class IdeLogger : ILogger
 	{
 		IEventSource eventSource;
-		LoggerVerbosity verbosity = LoggerVerbosity.Diagnostic;
+		LoggerVerbosity verbosity;
 		CrowIDE ide;
 
 		public LoggerVerbosity Verbosity {
@@ -28,9 +28,10 @@ namespace Crow.Coding
 		} 
 		public string Parameters { get; set; }
 
-		public IdeLogger (CrowIDE ide)
+		public IdeLogger (CrowIDE ide, LoggerVerbosity verbosity = LoggerVerbosity.Diagnostic)
 		{
 			this.ide = ide;
+			this.verbosity = verbosity;
 		}
 		public void Initialize (IEventSource eventSource) {
 			this.eventSource = eventSource;
