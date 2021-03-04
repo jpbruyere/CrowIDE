@@ -180,7 +180,12 @@ namespace Crow.Coding
 							Path.Combine (
 								Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "NuGet"),
 								"NuGet.Config"));
+			string crowIdePath = Path.GetDirectoryName (Assembly.GetEntryAssembly ().Location);
+			projectCollection.SetGlobalProperty ("CrowIDEPath", crowIdePath);				
 
+			projectCollection.SetGlobalProperty ("CustomBeforeMicrosoftCommonTargets", Path.Combine(crowIdePath, @"src\CustomCrowIDE.targets"));
+			//projectCollection.SetGlobalProperty ("CustomAfterMicrosoftCommonProps", Path.Combine (crowIdePath, @"src\CustomCrowIDE.props"));
+			
 			initCommands ();
 
 			Widget go = Load (@"#ui.CrowIDE.crow");

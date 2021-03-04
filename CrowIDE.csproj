@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<TargetFramework>netcoreapp3.1</TargetFramework>
 		<!--<TargetFramework>net472</TargetFramework>-->
-		<OutputType>Exe</OutputType>
+		<OutputType>WinExe</OutputType>
 		<StartupObject>Crow.Coding.Startup</StartupObject>
 		<AssemblyVersion>$(CrowVersion)</AssemblyVersion>
 		<EnableDefaultItems>false</EnableDefaultItems>
@@ -28,7 +28,10 @@
 		<EmbeddedResource Include="ui\DefaultTemplates\*.template">
 			<LogicalName>Crow.Coding.%(Filename).template</LogicalName>
 		</EmbeddedResource>
-		<None Include="src\CustomTargets.txt">
+		<None Include="src\CustomCrowIDE.props">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Include="src\CustomCrowIDE.targets">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 
@@ -48,7 +51,7 @@
 		</PackageReference>
 		<PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.*">
 			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>
+		</PackageReference>	
 		<PackageReference Include="System.CodeDom" Version="5.0.0" />
 		<PackageReference Include="SQLitePCLRaw.core" Version="2.0.3" />
 
@@ -64,7 +67,6 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<Folder Include="src\Editors\Roslyn\tests\" />
 		<Folder Include="src\msbuild\" />			
 	</ItemGroup>
 	
@@ -77,12 +79,12 @@
 	  <ProjectReference Include="Crow\Crow\Crow.csproj" />
 	</ItemGroup>
 
-	<Target Name="CustomBeforeBuild" AfterTargets="ResolveReferences">		
+	<!--<Target Name="CustomBeforeBuild" AfterTargets="ResolveReferences">		
         <Message Importance="high" Text="Running MyCustomTarget1...$(SolutionDir) @(ReferencePath->'%(Identity)')" />
 		<WriteLinesToFile File="$(SolutionDir)\test.txt" Lines="@(ReferenceCopyLocalPaths)" Overwrite="true" Encoding="Unicode" />
 		<Message Importance="high" Text="$(MSBuildUserExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.targets\ImportBefore\" />
 		<CreateProperty Value="@(ReferencePath)">
 			<Output TaskParameter="Value" PropertyName="ResolvedReferences" />
 		</CreateProperty>
-    </Target>
+    </Target>-->
 </Project>

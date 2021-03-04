@@ -1062,6 +1062,7 @@ namespace Crow.Coding
 		{
 			TextChange tch = new TextChange (selection, newText);
 			undoStack.Push (tch.Inverse (buffer));
+			redoStack.Clear ();
 			apply (tch);
 		}
 

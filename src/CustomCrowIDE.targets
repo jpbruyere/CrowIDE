@@ -1,0 +1,19 @@
+﻿<!--<Project>
+ <Target Name="CrowIDEGetResolvedReferences" AfterTargets="ResolveReferences" Outputs="$(localProp)">
+	 <PropertyGroup>
+		 <localProp>Y</localProp>
+	 </PropertyGroup>
+	 <ItemGroup>
+		 <MySourceItemsWithMetadata Include="@(ReferencePath)"/>
+	 </ItemGroup>
+	 <Message Importance="High" Text="@(ReferencePath)" />
+	 <Output TaskParameter="TargetOutputs" ItemName="@(ReferencePath)" />
+ </Target>
+</Project>-->
+
+<Project>
+	<Target Name="CustomBeforeBuild" AfterTargets="ResolveReferences">		
+        <Message Importance="high" Text="resolve cache -> $(CrowIDEResolveCache) @(ReferencePath->'%(Identity)')" />
+		<WriteLinesToFile File="$(CrowIDEResolveCache)" Lines="@(ReferencePath)" Overwrite="true" Encoding="Unicode" />
+    </Target>
+</Project>

@@ -76,17 +76,19 @@ namespace Crow.Coding
 
 			IDE.projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (path) + Path.DirectorySeparatorChar);			
 			IDE.projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
+			IDE.projectCollection.SetGlobalProperty ("CrowIDEResolveCache", "obj/");			
 
 			IDE.ProgressNotify (10);
 
 			//ide.projectCollection.HostServices
 			buildParams = new BuildParameters (ide.projectCollection) {
 				Loggers = ide.projectCollection.Loggers,
+				
 				/*ResetCaches = true,*/
 				LogInitialPropertiesAndItems = true,
-				LogTaskInputs = true,
+				LogTaskInputs = true,				
 				/*UseSynchronousLogging = true*/
-			};
+			};			
 			//projectCollection.IsBuildEnabled = false;
 
 			BuildManager.DefaultBuildManager.ResetCaches ();
