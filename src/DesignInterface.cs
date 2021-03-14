@@ -19,7 +19,7 @@ namespace Crow.Coding
 		{
 
 			surf = new ImageSurface (Format.Argb32, 100, 100);
-
+			initDictionaries ();
 			loadStyling ();
 		}
 
@@ -38,12 +38,9 @@ namespace Crow.Coding
 
 		public override Widget CreateInstance (string path)
 		{
-			ProjectFileNode pi;
-
-			if (ProjFile.Project.solution.TryGetProjectFileFromPath (path, out pi))
-				return CreateITorFromIMLFragment (pi.Source).CreateInstance();					
-		
-			return null;
+			using (Stream s = GetStreamFromPath(path)) {
+				return new IML.Instantiator (this, s, path).CreateInstance ();
+            }
 		}
 		public override Stream GetStreamFromPath (string path) {
 			ProjectFileNode pi;

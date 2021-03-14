@@ -45,7 +45,7 @@ namespace Crow.Coding
 
 		public bool TryGetFold (int line, out Fold fold) {
 			lock (mutex) {
-				if (refs.ContainsKey (line)) {
+				if (refs != null && refs.ContainsKey (line)) {
 					fold = refs[line];
 					return true;
 				}

@@ -18,6 +18,12 @@
 					<TextBox Width="Stretched" Text="{²MSBuildRoot}"/>
 					<Button Caption="..." MouseClick="onClickSelectMSBuildRoot" MinimumSize="0,0"/>
 				</HorizontalStack>
+				<HorizontalStack Height="Fit">
+					<Label Width="200" Text="Netcoredbg path"/>
+					<TextBox Width="Stretched" Text="{²NetcoredbgPath}"/>
+					<Button Caption="..." MouseClick="onClickSelectNetcoredbgPath" MinimumSize="0,0"/>
+				</HorizontalStack>
+				<ComboBox Data="{AvailableSyntaxThemes}" SelectedItem="{²SyntaxThemeName}"/>
 			</VerticalStack>
 		</TabItem>
 		<TabItem Caption="Text Editor" SelectedBackground="Jet">

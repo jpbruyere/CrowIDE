@@ -84,11 +84,11 @@ namespace Crow.Coding
 				if (IsReady) {
 					if (Monitor.TryEnter (IFace.UpdateMutex)) {
 						if (!projFile.RegisteredEditors [this]) {
-							projFile.RegisteredEditors [this] = true;
 							updateEditorFromProjFile ();
+							projFile.RegisteredEditors[this] = true;
 						} else if (EditorIsDirty) {
-							EditorIsDirty = false;
 							updateProjFileFromEditor ();
+							EditorIsDirty = false;
 						}
 						updateCheckPostProcess ();
 						Monitor.Exit (IFace.UpdateMutex);

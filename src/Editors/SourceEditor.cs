@@ -197,8 +197,7 @@ namespace Crow.Coding
 
 			isDirty = false;
 			CurrentLine = requestedLine;
-			CurrentColumn = requestedCol;
-			projFile.RegisteredEditors [this] = true;
+			CurrentColumn = requestedCol;			
 		}
 		protected override void updateProjFileFromEditor ()
 		{

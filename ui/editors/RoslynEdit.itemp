@@ -3,6 +3,7 @@
 	<VerticalStack Background="Jet">
 		<HorizontalStack >
 			<RoslynEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"
+					ExecutingLine="{ExecutingLine}"
 					CurrentLine="{²CurrentLine}" CurrentColumn="{²CurrentColumn}" HasFocus="{IsSelected}"
 					Foreground="Jet" Background="White" Width="Stretched" Height="Stretched"
 					ProjectNode="{}"  KeyDown="textView_KeyDown"/>
@@ -13,13 +14,33 @@
 				   LargeIncrement="{../editor.VisibleColumns}" CursorSize="{../editor.ChildWidthRatio}"/>			
 		<HorizontalStack Height="Fit" Spacing="10">
 			<Label Text="{../../editor.HoverError}" Width="Stretched"/>
-			<Label Text="{../../editor.CurrentToken}" Width="Stretched"/>
+			
+			<!--<VerticalStack RootDataLevel="true" DataSourceType="Microsoft.CodeAnalysis.ISymbol" DataSource="{../../editor.CurrentSymbol}">
+				<HorizontalStack Spacing="5" >
+					<Label Foreground="Black" Text="Name:"/>
+					<Label Foreground="Black" Text="{Name}"/>
+				</HorizontalStack>
+				<HorizontalStack RootDataLevel="true" Spacing="5" >
+					<Label Foreground="Black" Text="NameSpace:"/>
+					<Label Foreground="Black" Text="{ContainingNamespace}"/>
+				</HorizontalStack>
+			</VerticalStack>
+			<VerticalStack RootDataLevel="true" DataSource="{../../editor.CurrentSyntaxNode}">
+				<HorizontalStack Spacing="5" >
+					<Label Foreground="Black" Text="Node:"/>
+					<Label Foreground="Black" Text="{Kind}"/>
+				</HorizontalStack>			
+			</VerticalStack>-->
 			
 			<Widget Background="Red" Width="5" Height="5" Visible="{IsDirty}"/>
 			<Label Text="Abs Pos:" Foreground="Black"/>
 			<Label Text="{../../editor.CurrentPos}" />
 			<Label Text="Hover Line:" Foreground="Black"/>
 			<Label Text="{../../editor.HoverLine}"/>
+			<Label Text="Hover Col:" Foreground="Black"/>
+			<Label Text="{../../editor.HoverColumn}"/>
+			<Label Text="Visual Col:" Foreground="Black"/>
+			<Label Text="{../../editor.VisualColumn}"/>
 			<Label Text="Line:" Foreground="Black"/>
 			<Label Text="{CurrentLine}"/>
 			<Label Text="column:" Foreground="Black"/>

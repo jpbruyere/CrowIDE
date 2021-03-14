@@ -1,0 +1,18 @@
+﻿<?xml version="1.0"?>
+<HorizontalStack>
+	<Popper Caption="{./CurrentColor}">
+		<Template>
+			<CheckBox Caption="{./Caption}" IsChecked="{²./IsPopped}">
+				<Template>
+					<HorizontalStack Margin="1" Height="Stretched" Spacing="3">
+						<Border Width="18" Height="12" CornerRadius="3"
+							Background="{../../../../../CurrentColor}">
+						</Border>
+						<Label Width="Stretched" Text="{./Caption}" />
+					</HorizontalStack>
+				</Template>
+			</CheckBox>
+		</Template>
+		<ColorPicker CurrentColor="{²../../../CurrentColor}" />
+	</Popper>
+</HorizontalStack>

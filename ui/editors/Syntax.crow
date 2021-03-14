@@ -1,3 +1,33 @@
-﻿<VerticalStack Height="Fit" Width="200" Background="Yellow">
-	<Label/>
-</VerticalStack>
+﻿<Border RootDataLevel="true"  DataSourceType="Crow.Coding.RoslynEditor" BorderWidth="1" Foreground="Black" Fit="true" Background="${TooltipBackground}" >
+	<VerticalStack DataSource="{CurrentSymbol}">
+		<!--<Label Foreground="Black" Text="{CurrentSymbol}"/>-->
+		<VerticalStack RootDataLevel="true" DataSourceType="Microsoft.CodeAnalysis.ISymbol">
+			<HorizontalStack Spacing="5" >
+				<Label Foreground="Black" Text="Name:"/>
+				<Label Foreground="Black" Text="{Name}"/>
+			</HorizontalStack>
+			<HorizontalStack Spacing="5" >
+				<Label Foreground="Black" Text="NameSpace:"/>
+				<Label Foreground="Black" Text="{ContainingNamespace}"/>
+			</HorizontalStack>
+			<HorizontalStack Spacing="5" >
+				<Label Foreground="Black" Text="Containing Type:"/>
+				<Label Foreground="Black" Text="{ContainingType}"/>
+			</HorizontalStack>
+			<!--<HorizontalStack Spacing="5" >
+				<Label Foreground="Black" Text="Kind:"/>
+				<Label Foreground="Black" Text="{Kind}"/>
+			</HorizontalStack>			-->
+		</VerticalStack>
+		<HorizontalStack Spacing="5" Margin="5" DataSource="{CurrentToken}">
+			<Label Foreground="Black" Text="Kind:"/>
+			<Label Foreground="Black" Text="{CSKind}"/>			
+		</HorizontalStack>
+		<VerticalStack DataSource="{CurrentSyntaxNode}">
+			<HorizontalStack Spacing="5" >
+				<Label Foreground="Black" Text="Node:"/>
+				<Label Foreground="Black" Text="{Kind}"/>
+			</HorizontalStack>			
+		</VerticalStack>
+	</VerticalStack>
+</Border>

@@ -34,8 +34,11 @@
 		<None Include="src\CustomCrowIDE.targets">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
-
+		<None Include="SyntaxThemes\*.*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 		<EmbeddedResource Include="IDE.style" />
+		<EmbeddedResource Include="default.config" />
 	</ItemGroup>
 	
 	<ItemGroup>
@@ -64,10 +67,6 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.8.0-5.final" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="3.8.0-5.final" />
 		<PackageReference Include="Microsoft.VisualStudio.TestPlatform.ObjectModel" />
-	</ItemGroup>
-	
-	<ItemGroup>
-		<Folder Include="src\msbuild\" />			
 	</ItemGroup>
 	
 	<ItemGroup>

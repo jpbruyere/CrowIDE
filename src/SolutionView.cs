@@ -43,6 +43,10 @@ namespace Crow.Coding
 		ObservableList<ProjectItemNode> openedItems = new ObservableList<ProjectItemNode>();
 		ObservableList<GraphicObjectDesignContainer> toolboxItems;
 
+		public Command CMDDebugStart, CMDDebugPause, CMDDebugStop, CMDDebugStepIn, CMDDebugStepOver, CMDDebugStepOut;
+		DebugSession dbgSession;
+		public ObservableList<BreakPoint> BreakPoints = new ObservableList<BreakPoint> ();
+
 		public string Directory => Path.GetDirectoryName (path);
 
 		public Dictionary<string, string> StylingConstants;
@@ -63,6 +67,8 @@ namespace Crow.Coding
 		/// </summary>
 		public SolutionView (CrowIDE ide, string path)
 		{
+			initCommands ();
+
 			this.IDE = ide;
 			this.path = path;
 
@@ -130,8 +136,38 @@ namespace Crow.Coding
 		#endregion
 
 
+		void initCommands () {
+			CMDDebugStart = new Command (new Action (() => debug_start()))
+			{ Caption = "Start", CanExecute = true };
+			CMDDebugPause = new Command (new Action (() => dbgSession.Pause ()))
+			{ Caption = "Pause", CanExecute = false };
+			CMDDebugStop = new Command (new Action (() => debug_stop ()))
+			{ Caption = "Stop", CanExecute = false };
 
-        public void Build (params string [] targets)
+			CMDDebugStepIn = new Command (new Action (() => dbgSession.StepIn ()))
+			{ Caption = "Step in", CanExecute = false };
+			CMDDebugStepOut = new Command (new Action (() => dbgSession.StepOut ()))
+			{ Caption = "Step out", CanExecute = false };
+			CMDDebugStepOver = new Command (new Action (() => dbgSession.StepOver ()))
+			{ Caption = "Step over", CanExecute = false };
+		}
+
+		void debug_start () {
+			if (dbgSession == null) {
+				dbgSession = new DebugSession (StartupProject);
+				dbgSession.Start ();
+			} else if (dbgSession.CurrentState == DebugSession.Status.Stopped)
+				dbgSession.Continue ();
+			else if (dbgSession.CurrentState == DebugSession.Status.Exited)
+				dbgSession.Start ();
+			else
+                System.Diagnostics.Debugger.Break ();
+		}
+		void debug_stop () {
+			dbgSession.Stop ();			
+		}
+
+		public void Build (params string [] targets)
 		{
 			BuildRequestData buildRequest = new BuildRequestData (path, projectProperties, CrowIDE.DEFAULT_TOOLS_VERSION, targets, null);
 			BuildResult buildResult = BuildManager.DefaultBuildManager.Build (buildParams, buildRequest);
@@ -357,7 +393,6 @@ namespace Crow.Coding
 			}
 
 		}
-
 		/*void onSelectedItemChanged (object sender, SelectionChangeEventArgs e)
 		{
 			Console.WriteLine ($"solution.onSelectedItemChanged: {e.NewValue}");

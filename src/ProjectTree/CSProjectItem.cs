@@ -15,12 +15,32 @@ namespace Crow.Coding
 		#region CTOR
 		public CSProjectItem (ProjectItemNode pi) : base (pi)
 		{
+			syntaxTree = CSharpSyntaxTree.ParseText (Source, Project.parseOptions, FullPath);			
 		}
-		#endregion		
+		#endregion
 
-		public SyntaxTree SyntaxTree => IsOpened ?
-				RegisteredEditors.Keys.OfType<RoslynEditor> ().FirstOrDefault ()?.SyntaxTree :
-				CSharpSyntaxTree.ParseText (Source,CSharpParseOptions.Default, FullPath);
-		public SyntaxNode RootNode => SyntaxTree?.GetRoot ();
+		SyntaxTree syntaxTree;
+		int executingLine = -1;
+		public SyntaxTree SyntaxTree {
+			get => syntaxTree;
+			set {
+				if (syntaxTree == value)
+					return;				
+				if (Project?.Compilation != null)
+					Project.Compilation = Project.Compilation.ReplaceSyntaxTree (syntaxTree, value);
+				syntaxTree = value;
+				NotifyValueChanged ("SyntaxTree", syntaxTree);
+			}
+		}
+
+		public int ExecutingLine {
+			get { return executingLine; }
+			set {
+				if (executingLine == value)
+					return;
+				executingLine = value;
+				NotifyValueChanged ("ExecutingLine", executingLine);				
+			}
+		}
 	}
 }

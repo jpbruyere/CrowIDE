@@ -47,8 +47,8 @@ namespace Crow.Coding
 		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, cmdCloseSolution, CMDQuit,
 		CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDHelp, CMDAbout, CMDOptions,
 		CMDViewGTExp, CMDViewProps, CMDViewProj, CMDViewProjProps, CMDViewErrors, CMDViewLog, CMDViewSolution, CMDViewEditor, CMDViewProperties,
-		CMDViewToolbox, CMDViewSchema, CMDViewStyling,CMDViewDesign, CMDViewSyntaxTree,
-		CMDBuild, CMDClean, CMDRestore;
+		CMDViewToolbox, CMDViewSchema, CMDViewStyling,CMDViewDesign, CMDViewSyntaxTree, CMDViewSyntaxThemeEditor,
+		CMDBuild, CMDClean, CMDRestore, CMDStartDebug;
 
 		void initCommands () {
 			CMDNew = new Command(new Action(newFile)) { Caption = "New", Icon = IcoNew, CanExecute = true};
@@ -89,6 +89,8 @@ namespace Crow.Coding
 			{ Caption = "Graphic Tree Explorer", CanExecute = true};
 			CMDViewSyntaxTree = new Command (new Action (() => loadWindow ("#ui.winSyntaxTree.crow", currentSolution)))
 			{ Caption = "Syntax Tree", CanExecute = true };
+			CMDViewSyntaxThemeEditor = new Command (new Action (() => loadWindow ("#ui.winThemeEditor.crow", this)))
+			{ Caption = "Syntax Theme Editor", CanExecute = true };
 
 			CMDBuild = new Command(new Action(() => CurrentSolution?.Build ("Build")))
 			{ Caption = "Compile Solution", CanExecute = false};
@@ -164,10 +166,7 @@ namespace Crow.Coding
 		}
 
 		void initIde() {
-
-
-
-			var host = MefHostServices.Create (MSBuildMefHostServices.DefaultAssemblies);			
+			//var host = MefHostServices.Create (MSBuildMefHostServices.DefaultAssemblies);			
 			ProgressLogger = new ProgressLog (this);			
 
 			projectCollection = new ProjectCollection (null,
@@ -193,6 +192,8 @@ namespace Crow.Coding
 
 			instFileDlg = Instantiator.CreateFromImlFragment
 				(this, "<FileDialog Caption='Open File' CurrentDirectory='{²CurrentDirectory}' SearchPattern='*.sln' OkClicked='onFileOpen'/>");
+
+			reloadSyntaxTheme ();
 		}
 
 		public void onFileOpen (object sender, EventArgs e)
@@ -226,6 +227,16 @@ namespace Crow.Coding
 					currentSolution.CloseSolution ();
 				CurrentProject = null;
 				CurrentSolution = null;
+			}
+		}
+
+		public string NetcoredbgPath {
+			get => Configuration.Global.Get<string> ("NetcoredbgPath");
+			set {
+				if (value == NetcoredbgPath)
+					return;
+				Configuration.Global.Set ("NetcoredbgPath", value);
+				NotifyValueChanged (value);
 			}
 		}
 
@@ -311,7 +322,16 @@ namespace Crow.Coding
 			FileDialog fd = sender as FileDialog;
 			MSBuildRoot = fd.SelectedDirectory;
 		}
-
+		public void onClickSelectNetcoredbgPath (object sender, EventArgs e) {
+			this.LoadIMLFragment (@"
+				<FileDialog Caption='Select netcoredbg executable path' CurrentDirectory='{NetcoredbgPath}'
+							ShowFiles='true' ShowHidden='true' OkClicked='onSelectNetcoredbgPath'/>
+			").DataSource = this;
+		}
+		public void onSelectNetcoredbgPath (object sender, EventArgs e) {
+			FileDialog fd = sender as FileDialog;
+			NetcoredbgPath = fd.SelectedFileFullPath;
+		}
 		public bool ReopenLastSolution {
 			get => Crow.Configuration.Global.Get<bool>("ReopenLastSolution");
 			set {
@@ -357,6 +377,70 @@ namespace Crow.Coding
 				}
 			}
 		}
+		void refreshAllEditors () {
+			if (CurrentSolution == null)
+				return;
+			foreach (ProjectFileNode pfn in CurrentSolution.OpenedItems.OfType<ProjectFileNode> ()) {
+				foreach (Editor editor in pfn.RegisteredEditors.Keys.OfType<Editor> ()) 
+					editor.RegisterForRedraw ();				
+			}
+		}
+		public Dictionary<string, TextFormatting> SyntaxTheme;
+
+		void reloadSyntaxTheme () {			
+			if (!File.Exists (syntaxThemeFile))
+				return;
+			SyntaxTheme = new Dictionary<string, TextFormatting> ();
+			using (StreamReader sr = new StreamReader(syntaxThemeFile)) {
+				while (!sr.EndOfStream) {
+					string l = sr.ReadLine ();
+					string[] tmp = l.Split ('=');
+					SyntaxTheme.Add (tmp[0].Trim (), TextFormatting.Parse (tmp[1].Trim ()));
+				}
+            }
+			NotifyValueChanged ("SyntaxTheme", SyntaxTheme);
+			refreshAllEditors ();
+		}
+		void saveSyntaxTheme () {
+			using (StreamWriter sw = new StreamWriter (syntaxThemeFile)) {
+				foreach (string key in SyntaxTheme.Keys) {
+					sw.WriteLine ($"{key} = {SyntaxTheme[key]}");
+				}
+			}
+		}
+
+		private void onClickReloadSyntaxTheme (object sender, MouseButtonEventArgs e) {
+			reloadSyntaxTheme ();
+		}
+		private void onClickSaveSyntaxTheme (object sender, MouseButtonEventArgs e) {
+			saveSyntaxTheme ();
+		}
+		private void onClickSaveSyntaxThemeAs (object sender, MouseButtonEventArgs e) {
+			throw new NotImplementedException ();
+		}
+
+		string syntaxThemeDirectory => Path.Combine (Path.GetDirectoryName (Assembly.GetEntryAssembly ().Location), "SyntaxThemes");
+		string syntaxThemeFile => Path.Combine (syntaxThemeDirectory, $"{SyntaxThemeName}.syntax");
+
+		public string[] AvailableSyntaxThemes {
+			get {
+				string[] tmp = Directory.GetFiles (syntaxThemeDirectory);
+                for (int i = 0; i < tmp.Length; i++)
+					tmp[i] = Path.GetFileNameWithoutExtension (tmp[i]);
+				return tmp;
+            }
+        }
+		public string SyntaxThemeName {
+			get { return Configuration.Global.Get<string> ("SyntaxThemeName"); }
+			set {
+				if (SyntaxThemeName == value)
+					return;
+				Configuration.Global.Set ("SyntaxThemeName", value);
+				NotifyValueChanged ("SyntaxThemeName", (object)SyntaxThemeName);
+				reloadSyntaxTheme ();
+			}
+		}
+
 		public bool AutoFoldRegions {
 			get { return Crow.Configuration.Global.Get<bool> ("AutoFoldRegions"); }
 			set {

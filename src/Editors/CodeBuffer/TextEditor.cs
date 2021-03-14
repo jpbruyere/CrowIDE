@@ -92,8 +92,7 @@ namespace Crow.Text
 			buffer.editMutex.ExitWriteLock ();
 
 			isDirty = false;
-			oldSource = projFile.Source;
-			projFile.RegisteredEditors [this] = true;
+			oldSource = projFile.Source;			
 		}
 		protected override void updateProjFileFromEditor ()
 		{

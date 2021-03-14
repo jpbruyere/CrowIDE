@@ -118,6 +118,11 @@ namespace Crow
 			}
 			return buffCol;
 		}
+
+		/// <summary>
+		/// return effective character position in TextLine from tabulated visual column index.
+		/// </summary>
+		/// <returns>If visual column is outside line bounds, return negative line length</returns>
 		public static int GetCharPosFromVisualColumn (this TextLine tl, int visualColumn, int tabSize = 4)
 		{
 			int i = 0;
@@ -137,7 +142,7 @@ namespace Crow
 				}
 				buffCol++;
 			}			
-			return buffCol - tl.Start;
+			return (buffCol == tl.End) ? -(buffCol - tl.Start) : buffCol - tl.Start;
 		}
 		/// <summary>
 		/// return End pos of TextLine including linebreak if Start = End without line break

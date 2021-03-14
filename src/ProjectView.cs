@@ -18,6 +18,7 @@ using Project = Microsoft.Build.Evaluation.Project;
 using Microsoft.Build.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections;
+using System.Threading.Tasks;
 
 namespace Crow.Coding
 {
@@ -49,12 +50,28 @@ namespace Crow.Coding
 			}
 
 			project.ReevaluateIfNecessary ();
-
+			
 			initCommands ();
 
+			parseOptions = CSharpParseOptions.Default;
+
+			ProjectProperty langVersion = project.GetProperty ("LangVersion");
+			if (langVersion != null && Enum.TryParse<LanguageVersion> (langVersion.EvaluatedValue, out LanguageVersion lv))
+				parseOptions = parseOptions.WithLanguageVersion (lv);
+			else
+				parseOptions = parseOptions.WithLanguageVersion (LanguageVersion.Default);
+
+			ProjectProperty constants = project.GetProperty ("DefineConstants");
+			if (constants != null)
+				parseOptions = parseOptions.WithPreprocessorSymbols (constants.EvaluatedValue.Split (';'));
+
 			populateTreeNodes ();
+
+			Task.Run (() => getcompilation ());
 		}
         #endregion
+
+		
 
         void initCommands () {
 			cmdSave = new Crow.Command (new Action (() => Save ())) { Caption = "Save", Icon = new SvgPicture ("#Icons.save.svg"), CanExecute = true };
@@ -108,8 +125,9 @@ namespace Crow.Coding
 		public string ProjectGuid {
 			get { return solutionProject.ProjectGuid; }
 		}
-		public string AssemblyName => project.AllEvaluatedProperties.Where (p => p.Name == "AssemblyName").FirstOrDefault ().EvaluatedValue;
+		public string AssemblyName => project.GetPropertyValue ("AssemblyName");
 		public string OutputType => project.AllEvaluatedProperties.Where (p => p.Name == "OutputType").FirstOrDefault ().EvaluatedValue;
+		public string OutputAssembly => Path.Combine (project.GetPropertyValue ("OutputPath"), project.GetPropertyValue ("TargetFrameworks"), AssemblyName + ".exe");
 		public OutputKind OutputKind {
 			get {
                 switch (OutputType) {
@@ -174,14 +192,14 @@ namespace Crow.Coding
 			ProjectNode refs = new ProjectNode (this, ItemType.ReferenceGroup, "References");
 			root.AddChild (refs);
 
-			/*Console.ForegroundColor = ConsoleColor.Green;
+			Console.ForegroundColor = ConsoleColor.Green;
 			Console.WriteLine ($"Evaluated Globals properties for {DisplayName}");
 			foreach (ProjectProperty item in project.AllEvaluatedProperties.OrderBy(p=>p.Name)) {
 				Console.ForegroundColor = ConsoleColor.White;
 				Console.Write ($"\t{item.Name,-40} = ");
 				Console.ForegroundColor = ConsoleColor.Gray;
 				Console.WriteLine ($"{item.EvaluatedValue}");
-			}*/
+			}
 			//ProjectInstance pInst = project.CreateProjectInstance ();
 			string[] defaultTargets = { "Build", "Rebuild", "Pack", "Clean"  };
 			
@@ -220,9 +238,9 @@ namespace Crow.Coding
 					Caption = pti.Name,
 				});
             }
-			
 
-			foreach (ProjectItem pn in project.AllEvaluatedItems) {
+			foreach (ProjectItem pn in project.AllEvaluatedItems) {				
+
 				/*if (Path.GetFileName (pn.EvaluatedInclude) == "samples.style")
 					System.Diagnostics.Debugger.Break ();*/
 				solution.IDE.ProgressNotify (1);
@@ -331,9 +349,7 @@ namespace Crow.Coding
 			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
 
 			BuildRequestData request = new BuildRequestData (pi, new string[] { target }, null);			
-			BuildResult result = BuildManager.DefaultBuildManager.Build (solution.buildParams, request);
-
-			getcompilation ();
+			BuildResult result = BuildManager.DefaultBuildManager.Build (solution.buildParams, request);			
 
 		}
 		//    if (ParentProject != null)
@@ -446,19 +462,19 @@ namespace Crow.Coding
 		//    return parameters.OutputAssembly;
 		//}
 
-		public bool TryGetProjectFileFromPath (string path, out ProjectFileNode pi)
+		public bool TryGetProjectFileFromPath (string path, out ProjectFileNode pi, bool caseSensitive = false)
 		{
 			if (path.StartsWith ("#", StringComparison.Ordinal))
-				pi = Flatten.OfType<ProjectFileNode> ().FirstOrDefault 
+				pi = Flatten.OfType<ProjectFileNode> ().FirstOrDefault
 					(f => f.Type == ItemType.EmbeddedResource && f.LogicalName == path.Substring (1));
 			else
-				pi = Flatten.OfType<ProjectFileNode> ().FirstOrDefault (pp => pp.FullPath == path);
+				pi = Flatten.OfType<ProjectFileNode> ().FirstOrDefault (pp => string.Equals (pp.FullPath, path, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
 
 			if (pi != null)
 				return true;
 
 			foreach (ProjectItemNode pr in Flatten.OfType<ProjectItemNode> ().Where (pn => pn.Type == ItemType.ProjectReference)) {
-				ProjectView p = solution.Projects.FirstOrDefault (pp => pp.FullPath == pr.FullPath);
+				ProjectView p =  solution.Projects.FirstOrDefault (pp => string.Equals (pp.FullPath, pr.FullPath, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
 				if (p == null)
 					continue;
 				if (p.TryGetProjectFileFromPath (path, out pi))
@@ -545,8 +561,9 @@ namespace Crow.Coding
 		public IEnumerable<SyntaxTree> SyntaxTrees => Flatten.OfType<CSProjectItem> ().Select (pf => pf.SyntaxTree);
 		
 		CSharpCompilationOptions compileOptions;
+		public CSharpParseOptions parseOptions;
 		List<MetadataReference> metadataReferences;
-		Compilation compilation;
+		public Compilation Compilation;
 
 		void updateCompileOptions () {			
 			compileOptions = new CSharpCompilationOptions (
@@ -567,10 +584,13 @@ namespace Crow.Coding
 					if (File.Exists(dll))
 						metadataReferences.Add (MetadataReference.CreateFromFile (dll));
 				}
-			}
+			}			
 			return true;
 		}
 
+		/*Stream tryGetRessourceFromMetadataReference (string assemblyName, string ressourceName) {
+			
+        }*/
 
 		string resolvedCacheFile {
 			get {
@@ -581,16 +601,6 @@ namespace Crow.Coding
 			}
         }		
 
-		public Compilation Compilation {
-			get {
-				if (compilation == null)
-					getcompilation ();
-				return compilation;
-			}
-			set {
-				compilation = value;
-			}
-		}
 		void getcompilation () {
             try {
 				if (compileOptions == null)
@@ -600,7 +610,7 @@ namespace Crow.Coding
 						return;
 				}
 								
-				compilation = CSharpCompilation.Create (this.AssemblyName, SyntaxTrees, metadataReferences, compileOptions);				
+				Compilation = CSharpCompilation.Create (this.AssemblyName, SyntaxTrees, metadataReferences, compileOptions);				
 			} catch (Exception e) {
 				Console.WriteLine (e);
             }
