@@ -124,9 +124,6 @@ namespace Crow.Coding
 				}
 
 				if (curState == States.BlockComment) {
-					if (currentTok != TokenType.Unknown)
-						Debugger.Break ();
-
 					currentTok.Start = CurrentPosition;
 					currentTok.Type = (BufferParser.TokenType)TokenType.BlockComment;
 					currentTok += ReadLineUntil ("-->");

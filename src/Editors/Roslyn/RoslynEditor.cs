@@ -517,7 +517,7 @@ namespace Crow.Coding
 			if (selection.IsEmpty)
 				base.onDraw (gr);
 
-			if (!IsReady || buffer == null)
+			if (!IsReady || buffer == null || visibleLines == 0)
 				return;
 
 			gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
@@ -784,7 +784,7 @@ namespace Crow.Coding
 
 		public override void onMouseMove (object sender, MouseMoveEventArgs e)
 		{
-			base.onMouseMove (sender, e);
+			//base.onMouseMove (sender, e);
 
 			Rectangle screenSlot = ScreenCoordinates (Slot);
 			mouseLocalPos = e.Position - screenSlot.TopLeft - ClientRectangle.TopLeft;
@@ -1105,18 +1105,6 @@ namespace Crow.Coding
 		Stack<TextChange> undoStack = new Stack<TextChange> ();
 		Stack<TextChange> redoStack = new Stack<TextChange> ();
 
-		void undo () {
-			if (undoStack.TryPop (out TextChange tch)) {
-				redoStack.Push (tch.Inverse (buffer));
-				apply (tch);
-			}
-		}
-		void redo () {
-			if (redoStack.TryPop (out TextChange tch)) {
-				undoStack.Push (tch.Inverse (buffer));
-				apply (tch);
-			}
-		}
 
 		void replaceSelection (string newText)
 		{
@@ -1139,7 +1127,37 @@ namespace Crow.Coding
 			Task.Run (() => updateFolds ());
 
 			RegisterForRedraw ();
+			EditorIsDirty = true;
+
+			CMDUndo.CanExecute = undoStack.Count > 0;
+			CMDRedo.CanExecute = redoStack.Count > 0;
 		}
-		#endregion
-	}
+
+        protected override void undo () {
+			if (undoStack.TryPop (out TextChange tch)) {
+				redoStack.Push (tch.Inverse (buffer));
+				apply (tch);
+			}
+		}
+
+		protected override void redo () {
+			if (redoStack.TryPop (out TextChange tch)) {
+				undoStack.Push (tch.Inverse (buffer));
+				apply (tch);
+			}
+		}
+
+		protected override void cut () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void copy () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void paste () {
+            throw new NotImplementedException ();
+        }
+        #endregion
+    }
 }

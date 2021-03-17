@@ -2,38 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Crow.Coding
 {
-    public class DebugSession : IValueChange {
-        #region IValueChange implementation
-        public event EventHandler<ValueChangeEventArgs> ValueChanged;
-        public void NotifyValueChanged (string MemberName, object _value) {
-            //Debug.WriteLine ("Value changed: {0}->{1} = {2}", this, MemberName, _value);
-            ValueChanged.Raise (this, new ValueChangeEventArgs (MemberName, _value));
-        }
-        public void NotifyValueChanged (object _value, [CallerMemberName] string caller = null) {
-            NotifyValueChanged (caller, _value);
-        }
-        #endregion
+    public class NetcoredbgDebugger : Debugger { 
 
-        public enum Status
-        {
-            /// <summary>netcoredbg process created, project loaded, breakpoints requested</summary>
-            Init,
-            /// <summary>exec-run sent</summary>
-            Starting,
-            /// <summary>running state received</summary>
-            Running,
-            /// <summary>stopped event received</summary>
-            Stopped,
-            /// <summary>debugged program exited</summary>
-            Exited,
-        }
         enum MIAttributeType
         {
             Value,
@@ -46,103 +20,26 @@ namespace Crow.Coding
             public ReadOnlySpan<char> Name;
             public ReadOnlySpan<char> Value;
         }
-
-
-        ProjectView project;
+        
         Process procdbg;
-        SolutionView solution => project.solution;        
-
-        ObservableList<BreakPoint> breakPoints => project.solution.BreakPoints;                
-        Dictionary<int, BreakPoint> registeredBreakPoints = new Dictionary<int, BreakPoint> ();
-
-        Status currentState = Status.Init;
-        bool breakOnStartup = false;
         Queue<string> pendingRequest = new Queue<string> ();
         CSProjectItem executingFile;
         int executingLine = -1;
 
-        public Status CurrentState {
-            get => currentState;
-            set {
-                if (currentState == value)
-                    return;
-                currentState = value;
-                switch (currentState) {
-                case Status.Init:
-                    solution.CMDDebugStart.CanExecute = false;
-                    solution.CMDDebugPause.CanExecute = false;
-                    solution.CMDDebugStop.CanExecute = false;
-                    solution.CMDDebugStepIn.CanExecute = false;
-                    solution.CMDDebugStepOut.CanExecute = false;
-                    solution.CMDDebugStepOver.CanExecute = false;
-                    break;
-                case Status.Starting:
-                    solution.CMDDebugStart.CanExecute = false;
-                    solution.CMDDebugPause.CanExecute = false;
-                    solution.CMDDebugStop.CanExecute = false;
-                    break;
-                case Status.Running:
-                    solution.CMDDebugStart.CanExecute = false;
-                    solution.CMDDebugPause.CanExecute = true;
-                    solution.CMDDebugStop.CanExecute = true;
-                    solution.CMDDebugStepIn.CanExecute = false;
-                    solution.CMDDebugStepOut.CanExecute = false;
-                    solution.CMDDebugStepOver.CanExecute = false;
-                    resetExecutinLine ();
-                    break;
-                case Status.Stopped:
-                    solution.CMDDebugStart.CanExecute = true;
-                    solution.CMDDebugPause.CanExecute = false;
-                    solution.CMDDebugStop.CanExecute = true;
-                    solution.CMDDebugStepIn.CanExecute = true;
-                    solution.CMDDebugStepOut.CanExecute = true;
-                    solution.CMDDebugStepOver.CanExecute = true;
-                    break;
-                case Status.Exited:
-                    solution.CMDDebugStart.CanExecute = true;
-                    solution.CMDDebugPause.CanExecute = false;
-                    solution.CMDDebugStop.CanExecute = false;
-                    solution.CMDDebugStepIn.CanExecute = false;
-                    solution.CMDDebugStepOut.CanExecute = false;
-                    solution.CMDDebugStepOver.CanExecute = false;
-                    resetExecutinLine ();
-                    break;
-                }
-                NotifyValueChanged (CurrentState);
-            }
-        }
-        void resetExecutinLine () {
-            if (executingFile == null)
-                return;
-            executingFile.ExecutingLine = -1;
-            executingFile = null;            
-        }
-        public bool BreakOnStartup {
-            get => breakOnStartup;
-            set {
-                if (BreakOnStartup == value)
-                    return;
-                breakOnStartup = value;
-                NotifyValueChanged (breakOnStartup);
-            }
-        }        
 
-        public ProjectView Project {
-            get => project;
+        public override ProjectView Project {
+            get => base.Project;
             set {
-                if (project == value)
+                if (base.Project == value)
                     return;
-                project = value;
-
+                base.Project = value;
                 CreateNewRequest ($"-file-exec-and-symbols {project.OutputAssembly}");
                 CreateNewRequest ($"-environment-cd {Path.GetDirectoryName (project.OutputAssembly)}");
-
-                NotifyValueChanged (Project);
             }
         }
 
         #region CTOR
-        public DebugSession (ProjectView project) {
+        public NetcoredbgDebugger (ProjectView project) {
             
             procdbg = new Process ();
             procdbg.StartInfo.FileName = project.solution.IDE.NetcoredbgPath;
@@ -172,6 +69,12 @@ namespace Crow.Coding
         }
         #endregion
 
+        protected override void ResetCurrentExecutingLocation () {
+            if (executingFile == null)
+                return;
+            executingFile.ExecutingLine = -1;
+            executingFile = null;
+        }
         /// <summary>
         /// send request on netcoredbg process stdin
         /// </summary>
@@ -193,36 +96,38 @@ namespace Crow.Coding
             }
         }
 
-        public void Start () {
+        #region Debugger abstract class implementation
+        public override void Start () {
             CurrentState = Status.Starting;
             CreateNewRequest ($"-exec-run");
         }
-        public void Pause () {
+        public override void Pause () {
             CreateNewRequest ($"-exec-interrupt");
         }
-        public void Continue () {
+        public override void Continue () {
             CreateNewRequest ($"-exec-continue");
         }
-        public void Stop () {
+        public override void Stop () {
             CreateNewRequest ($"-exec-abort");
         }
 
-        public void StepIn () {
+        public override void StepIn () {
             CreateNewRequest ($"-exec-step");
         }
-        public void StepOver () {
+        public override void StepOver () {
             CreateNewRequest ($"-exec-next");
         }
-        public void StepOut () {
+        public override void StepOut () {
             CreateNewRequest ($"-exec-finish");
         }
 
-        public void InsertBreakPoint (BreakPoint bp) {
+        public override void InsertBreakPoint (BreakPoint bp) {
             CreateNewRequest ($"-break-insert {bp.File.FullPath}:{bp.Line + 1}");
         }
-        public void DeleteBreakPoint (int breakPointIndex) {
+        public override void DeleteBreakPoint (int breakPointIndex) {
             CreateNewRequest ($"-break-delete {breakPointIndex}");
         }
+        #endregion
 
         private void BreakPoints_ListRemove (object sender, ListChangedEventArg e) {
             DeleteBreakPoint (e.Index);            
@@ -372,7 +277,7 @@ namespace Crow.Coding
                     if (reason.SequenceEqual ("exited")) {
                         CurrentState = Status.Exited;
                         TryGetNextMIAttributeValue ("exit-code", ref data, out ReadOnlySpan<char> exit_code);                        
-                    } else if (reason.SequenceEqual ("entry-point-hit") && !breakOnStartup) {
+                    } else if (reason.SequenceEqual ("entry-point-hit") && !BreakOnStartup) {
                         Continue ();
                     } else {
                         Console.WriteLine ($"Stopped reason:{reason.ToString ()}");
@@ -392,7 +297,7 @@ namespace Crow.Coding
                             executingFile.ExecutingLine = executingLine;
                             executingFile.CurrentLine = executingLine;
                         } else {
-                            resetExecutinLine ();
+                            ResetCurrentExecutingLocation ();
                             print_unknown_datas ($"current executing file ({strPath}) not found.");
                         }
                     }

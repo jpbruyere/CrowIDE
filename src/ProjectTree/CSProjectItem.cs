@@ -32,7 +32,9 @@ namespace Crow.Coding
 				NotifyValueChanged ("SyntaxTree", syntaxTree);
 			}
 		}
-
+		/// <summary>
+		/// Positive value means debugger execution location is in this file on line #, negative otherwise.
+		/// </summary>
 		public int ExecutingLine {
 			get { return executingLine; }
 			set {

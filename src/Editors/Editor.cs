@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013-2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2013-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -10,22 +10,22 @@ namespace Crow.Coding
 {
 	public abstract class Editor : ScrollingObject
 	{
-		/*public CommandGroup FileCommands;
+		public CommandGroup FileCommands;
 
 		public CommandGroup EditCommands;
 		public Command CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste;
 
 		void initCommands () {
-			CMDUndo = new Command (new Action (undo)) { Caption = "Undo", Icon = IcoUndo, CanExecute = false };
-			CMDRedo = new Command (new Action (redo)) { Caption = "Redo", Icon = IcoRedo, CanExecute = false };
-			CMDCut = new Command (new Action (cut)) { Caption = "Cut", Icon = IcoCut, CanExecute = false };
-			CMDCopy = new Command (new Action (copy)) { Caption = "Copy", Icon = IcoCopy, CanExecute = false };
-			CMDPaste = new Command (new Action (paste)) { Caption = "Paste", Icon = IcoPaste, CanExecute = false };
-
-		}*/
+			CMDUndo = new Command (new Action (undo)) { Caption = "Undo", Icon = CrowIDE.IcoUndo, CanExecute = false };
+			CMDRedo = new Command (new Action (redo)) { Caption = "Redo", Icon = CrowIDE.IcoRedo, CanExecute = false };
+			CMDCut = new Command (new Action (cut)) { Caption = "Cut", Icon = CrowIDE.IcoCut, CanExecute = false };
+			CMDCopy = new Command (new Action (copy)) { Caption = "Copy", Icon = CrowIDE.IcoCopy, CanExecute = false };
+			CMDPaste = new Command (new Action (paste)) { Caption = "Paste", Icon = CrowIDE.IcoPaste, CanExecute = false };
+		}
 
 		#region CTOR
-		protected Editor ():base(){
+		protected Editor () : base () {
+			initCommands ();
 			Thread t = new Thread (backgroundThreadFunc);
 			t.IsBackground = true;
 			t.Start ();
@@ -76,7 +76,7 @@ namespace Crow.Coding
 		protected abstract void updateEditorFromProjFile ();
 		protected abstract void updateProjFileFromEditor ();
 		protected abstract bool EditorIsDirty { get; set; }
-		protected virtual bool IsReady { get { return true; }}
+		protected virtual bool IsReady { get => true; }
 		protected virtual void updateCheckPostProcess () {}
 
 		protected void backgroundThreadFunc () {
@@ -97,6 +97,17 @@ namespace Crow.Coding
 				Thread.Sleep (100);
 			}	
 		}
+
+        protected override void onFocused (object sender, EventArgs e) {
+            base.onFocused (sender, e);
+			(IFace as CrowIDE).CurrentEditor = this;
+        }
+
+		protected abstract void undo ();
+		protected abstract void redo ();
+		protected abstract void cut ();
+		protected abstract void copy ();
+		protected abstract void paste ();
 	}
 }
 

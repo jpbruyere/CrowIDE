@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013-2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2013-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -44,7 +44,7 @@ namespace Crow.Coding
 		ObservableList<GraphicObjectDesignContainer> toolboxItems;
 
 		public Command CMDDebugStart, CMDDebugPause, CMDDebugStop, CMDDebugStepIn, CMDDebugStepOver, CMDDebugStepOut;
-		DebugSession dbgSession;
+		NetcoredbgDebugger dbgSession;
 		public ObservableList<BreakPoint> BreakPoints = new ObservableList<BreakPoint> ();
 
 		public string Directory => Path.GetDirectoryName (path);
@@ -154,11 +154,11 @@ namespace Crow.Coding
 
 		void debug_start () {
 			if (dbgSession == null) {
-				dbgSession = new DebugSession (StartupProject);
+				dbgSession = new NetcoredbgDebugger (StartupProject);
 				dbgSession.Start ();
-			} else if (dbgSession.CurrentState == DebugSession.Status.Stopped)
+			} else if (dbgSession.CurrentState == NetcoredbgDebugger.Status.Stopped)
 				dbgSession.Continue ();
-			else if (dbgSession.CurrentState == DebugSession.Status.Exited)
+			else if (dbgSession.CurrentState == NetcoredbgDebugger.Status.Exited)
 				dbgSession.Start ();
 			else
                 System.Diagnostics.Debugger.Break ();

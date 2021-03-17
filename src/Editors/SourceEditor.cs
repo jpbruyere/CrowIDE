@@ -732,7 +732,6 @@ namespace Crow.Coding
 
 				gr.MoveTo (x, y + fe.Ascent);
 				gr.ShowText (lstr);
-				gr.Fill ();
 
 				if (buffer.SelectionInProgress && lineIndex >= buffer.SelectionStart.Y && lineIndex <= buffer.SelectionEnd.Y &&
 					!(lineIndex == buffer.SelectionStart.Y && lPtr + lstr.Length <= selStartCol) &&
@@ -759,8 +758,7 @@ namespace Crow.Coding
 					gr.Operator = Operator.Over;
 					gr.SetSource (selfg);
 					gr.MoveTo (x, y + fe.Ascent);
-					gr.ShowText (lstr);
-					gr.Fill ();
+					gr.ShowText (lstr);					
 					gr.Restore ();
 				}
 				x += (int)lstr.Length * fe.MaxXAdvance;
@@ -1190,6 +1188,26 @@ namespace Crow.Coding
 			buffer.Insert (e.KeyChar.ToString());
 			buffer.ResetSelection ();
 		}
-		#endregion
-	}
+
+        protected override void undo () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void redo () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void cut () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void copy () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void paste () {
+            throw new NotImplementedException ();
+        }
+        #endregion
+    }
 }

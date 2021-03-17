@@ -29,12 +29,13 @@ namespace Crow.Coding
 		public static Picture IcoSave = new SvgPicture ("#Icons.save.svg");
 		public static Picture IcoSaveAs = new SvgPicture ("#Icons.save.svg");
 		public static Picture IcoQuit = new SvgPicture ("#Icons.sign-out.svg");
-		public static Picture IcoUndo = new SvgPicture ("#Icons.undo.svg");
-		public static Picture IcoRedo = new SvgPicture ("#Icons.redo.svg");
+		public static string IcoUndo = "#Icons.undo.svg";
+		public static string IcoRedo = "#Icons.redo.svg";
 
-		public static Picture IcoCut = new SvgPicture ("#Icons.scissors.svg");
-		public static Picture IcoCopy = new SvgPicture ("#Icons.copy-file.svg");
-		public static Picture IcoPaste = new SvgPicture ("#Icons.paste-on-document.svg");
+		public static string IcoCut = "#Icons.scissors.svg";
+		public static string IcoCopy = "#Icons.copy-file.svg";
+		public static string IcoPaste = "#Icons.paste-on-document.svg";
+		public static string IcoCloseSolution = IcoPaste;
 		public static Picture IcoHelp = new SvgPicture ("#Icons.question.svg");
 
 		public static Picture IcoReference = new SvgPicture ("#Icons.cube.svg");
@@ -65,7 +66,7 @@ namespace Crow.Coding
 			CMDOptions = new Command(new Action(() => loadWindow("#ui.Options.crow", this))) { Caption = "Editor Options", Icon = new SvgPicture("#Icons.tools.svg") };
 
 			cmdCloseSolution = new Command(new Action(closeSolution))
-			{ Caption = "Close Solution", Icon = new SvgPicture("#Icons.paste-on-document.svg"), CanExecute = false};
+			{ Caption = "Close Solution", Icon = IcoCloseSolution, CanExecute = false};
 
 			CMDViewErrors = new Command(new Action(() => loadWindow ("#ui.winErrors.crow",this)))
 			{ Caption = "Errors pane"};
@@ -142,6 +143,7 @@ namespace Crow.Coding
 
 		SolutionView currentSolution;
 		ProjectView currentProject;
+		Editor currentEditor;
 
 		public CrowIDE () : base (1024, 800) { }
 
@@ -256,7 +258,7 @@ namespace Crow.Coding
 				CMDBuild.CanExecute = CMDClean.CanExecute = CMDRestore.CanExecute = (currentSolution != null);
 				cmdCloseSolution.CanExecute = (currentSolution != null);
 				lock (UpdateMutex)
-					NotifyValueChanged ("CurrentSolution", currentSolution);
+					NotifyValueChanged (currentSolution);
 			}
 		}
 		public ProjectView CurrentProject {
@@ -268,12 +270,22 @@ namespace Crow.Coding
 
 				CMDViewProjProps.CanExecute = (currentProject != null);
 				
-				lock (UpdateMutex) {
-					NotifyValueChanged ("CurrentProject", currentProject);
-				}
+				lock (UpdateMutex)
+					NotifyValueChanged (currentProject);				
 			}
 		}
-
+		/// <summary>
+		/// Currently focused editor.
+		/// </summary>
+		public Editor CurrentEditor {
+			get => currentEditor;
+			set {
+				if (currentEditor == value)
+					return;
+				currentEditor = value;
+				NotifyValueChanged (currentEditor);				
+			}
+		}
 		public string LastOpenSolution {
 			get { return Crow.Configuration.Global.Get<string>("LastOpenSolution");}
 			set {

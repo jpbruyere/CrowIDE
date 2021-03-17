@@ -1,9 +1,7 @@
 ﻿<?xml version="1.0"?>
 <!--<Widget Background="{./Background}"/>-->
-<Border BorderWidth="1" Foreground="Black" CornerRadius="{./CornerRadius}"
-				Background="{./Background}"
-				MouseEnter="./onBorderMouseEnter"
-				MouseLeave="./onBorderMouseLeave">
+<Border	Name="SizeHandle" BorderWidth="1" Foreground="Black" CornerRadius="{./CornerRadius}"
+		StickyMouse="8" StickyMouseEnabled="{./IsFloating}" Background="{./Background}">
 	<VerticalStack Spacing="0">
 		<HorizontalStack Visible="{./IsDocked}" Height="Fit" Margin="1" Background="Jet">
 			<Label  Text="{./Caption}" TextAlignment="Left" Width="Stretched"

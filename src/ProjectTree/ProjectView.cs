@@ -19,6 +19,7 @@ using Microsoft.Build.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace Crow.Coding
 {
@@ -95,9 +96,7 @@ namespace Crow.Coding
 		public CompilerResults CompilationResults;
 		//public List<ProjectView> dependantProjects = new List<ProjectView> ();
 		//public ProjectView ParentProject = null;
-
-		internal Microsoft.CodeAnalysis.ProjectId projectId;
-
+		
 		public override string DisplayName => solutionProject.ProjectName;
 
 		public bool IsLoaded {
@@ -126,8 +125,11 @@ namespace Crow.Coding
 			get { return solutionProject.ProjectGuid; }
 		}
 		public string AssemblyName => project.GetPropertyValue ("AssemblyName");
+		public string OutputPath => project.AllEvaluatedProperties.Where (p => p.Name == "OutputPath").FirstOrDefault ().EvaluatedValue;
+		public string IntermediateOutputPath => project.AllEvaluatedProperties.Where (p => p.Name == "IntermediateOutputPath").FirstOrDefault ().EvaluatedValue;
 		public string OutputType => project.AllEvaluatedProperties.Where (p => p.Name == "OutputType").FirstOrDefault ().EvaluatedValue;
-		public string OutputAssembly => Path.Combine (project.GetPropertyValue ("OutputPath"), project.GetPropertyValue ("TargetFrameworks"), AssemblyName + ".exe");
+		public string OutputAssembly => Path.Combine (project.GetPropertyValue ("OutputPath"), project.GetPropertyValue ("TargetFrameworks"), AssemblyName + AssemblyExtension);
+		public string AssemblyExtension => RuntimeInformation.IsOSPlatform (OSPlatform.Windows) ? ".exe" : "";
 		public OutputKind OutputKind {
 			get {
                 switch (OutputType) {
@@ -153,11 +155,11 @@ namespace Crow.Coding
 			bool.Parse (project.AllEvaluatedProperties.Where (p => p.Name == "SignAssembly").FirstOrDefault ().EvaluatedValue);
 		public string TargetFrameworkVersion => project.AllEvaluatedProperties.Where (p => p.Name == "TargetFrameworkVersion").FirstOrDefault ().EvaluatedValue;
 		public string Description => project.AllEvaluatedProperties.Where (p => p.Name == "Description").FirstOrDefault ().EvaluatedValue;
-		public string OutputPath => project.AllEvaluatedProperties.Where (p => p.Name == "OutputPath").FirstOrDefault ().EvaluatedValue;
-		public string IntermediateOutputPath => project.AllEvaluatedProperties.Where (p => p.Name == "IntermediateOutputPath").FirstOrDefault ().EvaluatedValue;
 		public string StartupObject => project.AllEvaluatedProperties.Where (p => p.Name == "StartupObject").FirstOrDefault ().EvaluatedValue;
-		public bool DebugSymbols => false;// nodeProps["DebugSymbols"] == null ? false : bool.Parse (nodeProps["DebugSymbols"]?.InnerText); }        
-		public int WarningLevel => 0;
+		public bool DebugSymbols =>
+			bool.Parse (project.AllEvaluatedProperties.Where (p => p.Name == "DebugSymbols").FirstOrDefault ().EvaluatedValue);
+		public int WarningLevel =>
+			int.Parse (project.AllEvaluatedProperties.Where (p => p.Name == "WarningLevel").FirstOrDefault ().EvaluatedValue);
 		public string Name => project.GetProperty ("MSBuildProjectName").EvaluatedValue;
 		#endregion
 
@@ -174,7 +176,6 @@ namespace Crow.Coding
 			if (pp.Predecessor != null)
 				printProperty (pp.Predecessor, ++depth);
 		}
-
 		void printEvaluatedItems(Project p)
 		{
 			foreach (ProjectItem pn in p.AllEvaluatedItems) {
@@ -186,23 +187,17 @@ namespace Crow.Coding
 
 			}
 		}
-		void populateTreeNodes ()
-		{
-			ProjectNode root = new ProjectNode (this, ItemType.VirtualGroup, RootNamespace);
-			ProjectNode refs = new ProjectNode (this, ItemType.ReferenceGroup, "References");
-			root.AddChild (refs);
-
+		void printEvamiatedProperties () {
 			Console.ForegroundColor = ConsoleColor.Green;
 			Console.WriteLine ($"Evaluated Globals properties for {DisplayName}");
-			foreach (ProjectProperty item in project.AllEvaluatedProperties.OrderBy(p=>p.Name)) {
+			foreach (ProjectProperty item in project.AllEvaluatedProperties.OrderBy (p => p.Name)) {
 				Console.ForegroundColor = ConsoleColor.White;
 				Console.Write ($"\t{item.Name,-40} = ");
 				Console.ForegroundColor = ConsoleColor.Gray;
 				Console.WriteLine ($"{item.EvaluatedValue}");
 			}
-			//ProjectInstance pInst = project.CreateProjectInstance ();
-			string[] defaultTargets = { "Build", "Rebuild", "Pack", "Clean"  };
-			
+		}
+		void addTargetBuildCommandFromProjectItems () {
 			foreach (ProjectTargetInstance pti in project.Targets.Values) {
 				/*Console.WriteLine ($"{pti.Name} => In: {pti.Inputs} Out:{pti.Outputs} ret:{pti.Returns}  {pti.Children.Count}");
                 foreach (ProjectTargetInstanceChild ptic in pti.Children) {
@@ -226,10 +221,10 @@ namespace Crow.Coding
 						Console.WriteLine ($"\t\t{p}");
 					}
 				}*/
-				
+
 				/*if (!defaultTargets.Contains (pti.Name))
 					continue;*/
-				if (pti.Name.StartsWith('_'))
+				if (pti.Name.StartsWith ('_'))
 					continue;
 				/*
 				Console.WriteLine ($"Depends: {pti.Children.Count} {pti.Name} ret: {pti.Returns} {pti.BeforeTargets} -> {pti.AfterTargets}");*/
@@ -237,21 +232,19 @@ namespace Crow.Coding
 				{
 					Caption = pti.Name,
 				});
-            }
+			}
+		}
+		void populateTreeNodes ()
+		{
+			ProjectNode root = new ProjectNode (this, ItemType.VirtualGroup, RootNamespace);
+			ProjectNode refs = new ProjectNode (this, ItemType.ReferenceGroup, "References");
+			root.AddChild (refs);
 
-			foreach (ProjectItem pn in project.AllEvaluatedItems) {				
+			string[] defaultTargets = { "Build", "Rebuild", "Pack", "Clean"  };			
 
-				/*if (Path.GetFileName (pn.EvaluatedInclude) == "samples.style")
-					System.Diagnostics.Debugger.Break ();*/
+			foreach (ProjectItem pn in project.AllEvaluatedItems) {								
 				solution.IDE.ProgressNotify (1);
-				/*if (pn.EvaluatedInclude.EndsWith ("dll"))
-                    System.Diagnostics.Debugger.Break ();
-                foreach (ProjectMetadata md in pn.Metadata) {
-					if (md.EvaluatedValue.EndsWith ("dll"))
-						System.Diagnostics.Debugger.Break ();
-					if (md.Location.File.EndsWith ("dll"))
-						System.Diagnostics.Debugger.Break ();
-				}*/
+
 				switch (pn.ItemType) {
 				case "ProjectReferenceTargets":
 					Commands.Add (new Crow.Command (new Action (() => Compile (pn.EvaluatedInclude))) {
@@ -323,7 +316,6 @@ namespace Crow.Coding
 				item.Parent = this;
 			}
 
-
 			IsLoaded = true;
 		}
 
@@ -342,9 +334,7 @@ namespace Crow.Coding
 		{
 			/*var nativeSharedMethod = typeof (SolutionFile).Assembly.GetType ("Crow.Build.Shared.NativeMethodsShared");
 			var isMonoField = nativeSharedMethod.GetField ("_isMono", BindingFlags.Static | BindingFlags.NonPublic);
-			isMonoField.SetValue (null, true);
-
-			Environment.SetEnvironmentVariable ("MSBUILD_EXE_PATH", "/usr/share/dotnet/sdk/3.1.101/MSBuild.dll");*/
+			isMonoField.SetValue (null, true);*/
 			solution.IDE.projectCollection.SetGlobalProperty ("CrowIDEResolveCache", resolvedCacheFile);
 			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
 
@@ -352,115 +342,6 @@ namespace Crow.Coding
 			BuildResult result = BuildManager.DefaultBuildManager.Build (solution.buildParams, request);			
 
 		}
-		//    if (ParentProject != null)
-		//        ParentProject.Compile ();
-
-		//    CSharpCodeProvider cp = new CSharpCodeProvider ();
-		//    CompilerParameters parameters = new CompilerParameters ();
-
-		//    foreach (ProjectReference pr in flattenNodes.OfType<ProjectReference> ()) {
-		//        Project p = solution.Projects.FirstOrDefault (pp => pp.ProjectGuid == pr.ProjectGUID);
-		//        if (p == null)
-		//            throw new Exception ("referenced project not found");
-		//        parameters.ReferencedAssemblies.Add (p.Compile ());
-		//    }
-
-		//    string outputDir = getDirectoryWithTokens (this.OutputPath);
-		//    string objDir = getDirectoryWithTokens (this.IntermediateOutputPath);
-
-		//    Directory.CreateDirectory (outputDir);
-		//    Directory.CreateDirectory (objDir);
-
-		//    parameters.OutputAssembly = System.IO.Path.Combine (outputDir, this.AssemblyName);
-
-		//    // True - exe file generation, false - dll file generation
-		//    if (this.OutputType == "Library") {
-		//        parameters.GenerateExecutable = false;
-		//        parameters.CompilerOptions += " /target:library";
-		//        parameters.OutputAssembly += ".dll";
-		//    } else {
-		//        parameters.GenerateExecutable = true;
-		//        parameters.CompilerOptions += " /target:exe";
-		//        parameters.OutputAssembly += ".exe";
-		//        parameters.MainClass = this.StartupObject;
-		//    }
-
-		//    parameters.GenerateInMemory = false;
-		//    parameters.IncludeDebugInformation = this.DebugSymbols;
-		//    parameters.TreatWarningsAsErrors = this.TreatWarningsAsErrors;
-		//    parameters.WarningLevel = this.WarningLevel;
-		//    parameters.CompilerOptions += " /noconfig";
-		//    if (this.AllowUnsafeBlocks)
-		//        parameters.CompilerOptions += " /unsafe";
-		//    parameters.CompilerOptions += " /delaysign+";
-		//    parameters.CompilerOptions += " /debug:full /debug+";
-		//    parameters.CompilerOptions += " /optimize-";
-		//    parameters.CompilerOptions += " /define:\"DEBUG;TRACE\"";
-		//    parameters.CompilerOptions += " /nostdlib";
-
-
-
-		//    foreach (ProjectItem pi in flattenNodes.Where (p => p.Type == ItemType.Reference)) {
-
-		//        if (string.IsNullOrEmpty (pi.HintPath)) {
-		//            parameters.CompilerOptions += " /reference:/usr/lib/mono/4.5/" + pi.Path + ".dll";
-		//            continue;
-		//        }
-		//        parameters.ReferencedAssemblies.Add (pi.Path);
-		//        string fullHintPath = System.IO.Path.GetFullPath (System.IO.Path.Combine (RootDir, pi.HintPath.Replace ('\\', '/')));
-		//        if (File.Exists (fullHintPath)) {
-		//            string outPath = System.IO.Path.Combine (outputDir, System.IO.Path.GetFileName (fullHintPath));
-		//            if (!File.Exists (outPath))
-		//                File.Copy (fullHintPath, outPath);
-		//        }
-		//    }
-		//    parameters.CompilerOptions += " /reference:/usr/lib/mono/4.5/System.Core.dll";
-		//    parameters.CompilerOptions += " /reference:/usr/lib/mono/4.5/mscorlib.dll";
-		//    //parameters.ReferencedAssemblies.Add ("System.Core");
-		//    //parameters.ReferencedAssemblies.Add ("mscorlib.dll");
-
-
-		//    IEnumerable<ProjectFile> pfs = flattenNodes.OfType<ProjectFile> ();
-
-		//    foreach (ProjectFile pi in pfs.Where (p => p.Type == ItemType.EmbeddedResource)) {
-
-		//        string absPath = pi.AbsolutePath;
-		//        string logicName = pi.LogicalName;
-		//        if (string.IsNullOrEmpty (logicName))
-		//            parameters.CompilerOptions += string.Format (" /resource:{0},{1}", absPath, this.Name + "." + pi.Path.Replace ('/', '.'));
-		//        else
-		//            parameters.CompilerOptions += string.Format (" /resource:{0},{1}", absPath, logicName);
-		//    }
-		//    foreach (ProjectFile pi in pfs.Where (p => p.Type == ItemType.None)) {
-		//        if (pi.CopyToOutputDirectory == CopyToOutputState.Never)
-		//            continue;
-		//        string source = pi.AbsolutePath;
-		//        string target = System.IO.Path.Combine (outputDir, pi.Path);
-		//        Directory.CreateDirectory (System.IO.Path.GetDirectoryName (target));
-
-		//        if (File.Exists (target)) {
-		//            if (pi.CopyToOutputDirectory == CopyToOutputState.PreserveNewest) {
-		//                if (DateTime.Compare (
-		//                        System.IO.File.GetLastWriteTime (source),
-		//                        System.IO.File.GetLastWriteTime (target)) < 0)
-		//                    continue;
-		//            }
-		//            File.Delete (target);
-		//        }
-		//        System.Diagnostics.Debug.WriteLine ("copy " + source + " to " + target);
-		//        File.Copy (source, target);
-		//    }
-		//    string[] files = pfs.Where (p => p.Type == ItemType.Compile).Select (p => p.AbsolutePath).ToArray ();
-
-		//    System.Diagnostics.Debug.WriteLine ("---- start compilation of :" + parameters.OutputAssembly);
-		//    System.Diagnostics.Debug.WriteLine (parameters.CompilerOptions);
-
-		//    CompilationResults = cp.CompileAssemblyFromFile (parameters, files);
-
-		//    solution.UpdateErrorList ();
-
-		//    return parameters.OutputAssembly;
-		//}
 
 		public bool TryGetProjectFileFromPath (string path, out ProjectFileNode pi, bool caseSensitive = false)
 		{
@@ -488,7 +369,7 @@ namespace Crow.Coding
 			IEnumerable<ProjectFileNode> tmpFiles =
 			    Flatten.OfType<ProjectFileNode> ().Where (pp => pp.Type == ItemType.EmbeddedResource && pp.Extension == ".template");
 			foreach (ProjectFileNode pi in tmpFiles) {
-				string clsName = System.IO.Path.GetFileNameWithoutExtension (pi.RelativePath);
+				string clsName = Path.GetFileNameWithoutExtension (pi.RelativePath);
 				if (solution.DefaultTemplates.ContainsKey (clsName))
 				        continue;
 				solution.DefaultTemplates[clsName] = pi.FullPath;
@@ -587,10 +468,6 @@ namespace Crow.Coding
 			}			
 			return true;
 		}
-
-		/*Stream tryGetRessourceFromMetadataReference (string assemblyName, string ressourceName) {
-			
-        }*/
 
 		string resolvedCacheFile {
 			get {

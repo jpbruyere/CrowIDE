@@ -5,14 +5,14 @@
 			<MenuItem Command="{CMDNew}" />
 			<MenuItem Command="{CMDOpen}" />
 			<MenuItem Command="{cmdCloseSolution}" />
-			<MenuItem DataSource="{SelectedItem}" Command="{cmdSave}" />
+			<MenuItem DataSource="{SelectedItem}" Command="{cmdSave}"/>
 			<MenuItem DataSource="{SelectedItem}" Command="{cmdSaveAs}" />
 			<MenuItem DataSource="{SelectedItem}" Command="{cmdClose}" />
 			<MenuItem Command="{CMDQuit}" />
 		</MenuItem>
-		<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="100" DataSource="{CurrentSolution}"  RootDataLevel="true">
-			<MenuItem DataSource="{SelectedItem}" Command="{cmdUndo}" />
-			<MenuItem DataSource="{SelectedItem}" Command="{cmdRedo}" />
+		<MenuItem Caption="Edit" Name="edit" Width="Fit" PopWidth="100" DataSource="{CurrentEditor}"  RootDataLevel="true">
+			<MenuItem Command="{CMDUndo}" />
+			<MenuItem Command="{CMDRedo}" />
 			<MenuItem Command="{CMDCut}" />
 			<MenuItem Command="{CMDCopy}" />
 			<MenuItem Command="{CMDPaste}" />

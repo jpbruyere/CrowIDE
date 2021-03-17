@@ -582,7 +582,7 @@ namespace Crow.Coding
 				return;
 			createDraggedObj (godc.CrowType);
 		}
-		protected override void onDragLeave (object sender, DragDropEventArgs e)
+		public override void onDragLeave (object sender, DragDropEventArgs e)
 		{
 			base.onDragLeave (sender, e);
 			GraphicObjectDesignContainer godc = e.DragSource.DataSource as GraphicObjectDesignContainer;
@@ -884,5 +884,25 @@ namespace Crow.Coding
 				break;
 			}
 		}
-	}
+
+        protected override void undo () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void redo () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void cut () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void copy () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void paste () {
+            throw new NotImplementedException ();
+        }
+    }
 }

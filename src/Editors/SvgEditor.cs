@@ -113,7 +113,27 @@ namespace Crow.Coding
 			if ((layoutType | LayoutingType.Sizing) > 0)
 				updateMaxScrolls ();
 		}
-		#endregion
-	}
+
+        protected override void undo () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void redo () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void cut () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void copy () {
+            throw new NotImplementedException ();
+        }
+
+        protected override void paste () {
+            throw new NotImplementedException ();
+        }
+        #endregion
+    }
 }
 
