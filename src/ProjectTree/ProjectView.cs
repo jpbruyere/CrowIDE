@@ -29,7 +29,7 @@ namespace Crow.Coding
 		ProjectInSolution solutionProject;
 		Project project;
 
-		Crow.Command cmdSave, cmdOpen, cmdCompile, cmdSetAsStartProj, cmdNewFile;
+		Crow.Command cmdSave, cmdOpen, cmdSetAsStartProj, cmdNewFile;
 
 		#region CTOR
 		public ProjectView (SolutionView sol, ProjectInSolution sp) {
@@ -47,7 +47,7 @@ namespace Crow.Coding
 			foreach (string pr in props) {
 				ProjectProperty pp = project.AllEvaluatedProperties.Where (ep => ep.Name == pr).FirstOrDefault ();
 				if (pp == null)
-					project.SetGlobalProperty (pr, "true");
+					project.SetProperty (pr, "true");
 			}
 
 			project.ReevaluateIfNecessary ();
@@ -77,9 +77,6 @@ namespace Crow.Coding
         void initCommands () {
 			cmdSave = new Crow.Command (new Action (() => Save ())) { Caption = "Save", Icon = new SvgPicture ("#Icons.save.svg"), CanExecute = true };
 			cmdOpen = new Crow.Command (new Action (() => populateTreeNodes ())) { Caption = "Open", Icon = new SvgPicture ("#Icons.open.svg"), CanExecute = false };
-			cmdCompile = new Crow.Command (new Action (() => Compile ("Restore"))) {
-				Caption = "Restore",
-			};
 			cmdSetAsStartProj = new Crow.Command (new Action (() => setAsStartupProject ())) {
 				Caption = "Set as Startup Project"
 			};
@@ -89,7 +86,15 @@ namespace Crow.Coding
 				CanExecute = true
 			};
 
-			Commands = new CommandGroup (cmdOpen, cmdSave, cmdSetAsStartProj, cmdCompile, cmdNewFile);
+			Commands = new CommandGroup (cmdOpen, cmdSave, cmdSetAsStartProj, cmdNewFile);
+
+			string[] defaultTargets = {"Restore", "Build", "Rebuild", "Pack", "Clean"  };	
+			foreach (string target in defaultTargets)
+			{
+				Commands.Add (new Crow.Command (new Action (() => Compile (target))) {
+						Caption = target});
+
+			}		
 		}				
 
 		public SolutionView solution;
@@ -197,6 +202,16 @@ namespace Crow.Coding
 				Console.WriteLine ($"{item.EvaluatedValue}");
 			}
 		}
+		void printEvamiatedProperties (ProjectInstance pi) {
+			Console.ForegroundColor = ConsoleColor.Green;
+			Console.WriteLine ($"Evaluated Globals properties for {DisplayName}");
+			foreach (ProjectPropertyInstance item in pi.Properties.OrderBy (p => p.Name)) {
+				Console.ForegroundColor = ConsoleColor.White;
+				Console.Write ($"\t{item.Name,-40} = ");
+				Console.ForegroundColor = ConsoleColor.Gray;
+				Console.WriteLine ($"{item.EvaluatedValue}");
+			}
+		}
 		void addTargetBuildCommandFromProjectItems () {
 			foreach (ProjectTargetInstance pti in project.Targets.Values) {
 				/*Console.WriteLine ($"{pti.Name} => In: {pti.Inputs} Out:{pti.Outputs} ret:{pti.Returns}  {pti.Children.Count}");
@@ -239,8 +254,6 @@ namespace Crow.Coding
 			ProjectNode root = new ProjectNode (this, ItemType.VirtualGroup, RootNamespace);
 			ProjectNode refs = new ProjectNode (this, ItemType.ReferenceGroup, "References");
 			root.AddChild (refs);
-
-			string[] defaultTargets = { "Build", "Rebuild", "Pack", "Clean"  };			
 
 			foreach (ProjectItem pn in project.AllEvaluatedItems) {								
 				solution.IDE.ProgressNotify (1);
@@ -336,8 +349,7 @@ namespace Crow.Coding
 			var isMonoField = nativeSharedMethod.GetField ("_isMono", BindingFlags.Static | BindingFlags.NonPublic);
 			isMonoField.SetValue (null, true);*/
 			solution.IDE.projectCollection.SetGlobalProperty ("CrowIDEResolveCache", resolvedCacheFile);
-			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);
-
+			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);			
 			BuildRequestData request = new BuildRequestData (pi, new string[] { target }, null);			
 			BuildResult result = BuildManager.DefaultBuildManager.Build (solution.buildParams, request);			
 

@@ -28,52 +28,19 @@ namespace Crow.Coding
 
 			printer = new SyntaxNodePrinter (this);
 			foldingManager = new FoldingManager (this);
-
-			/*formatting ["constant"] = new TextFormatting (Color.Blue, Color.Transparent, true);
-			formatting ["primitive"] = new TextFormatting (Color.DarkCyan, Color.Transparent);
-			formatting ["operator"] = new TextFormatting (Color.DarkRed, Color.Transparent, true);
-			formatting ["modifier"] = new TextFormatting (Color.RoyalBlue, Color.Transparent);
-			formatting ["typekind"] = new TextFormatting (Color.OliveDrab, Color.Transparent);
-			formatting ["async"] = new TextFormatting (Color.YellowGreen, Color.Transparent);
-			formatting ["linq"] = new TextFormatting (Color.Yellow, Color.Transparent);
-			formatting ["preproc"] = new TextFormatting (Color.DarkOrange, Color.Transparent, true);
-			formatting ["comment"] = new TextFormatting (Color.Green, Color.Transparent, false, true);
-
-			formatting ["PredefinedType"] = new TextFormatting (Color.Red, Color.Transparent, true);
-			formatting ["identifier"] = new TextFormatting (Color.Jet, Color.Transparent, true);
-			formatting ["litteral"] = new TextFormatting (Color.Crimson, Color.Transparent, false, true);*/
-
-			/*formatting.Add ((int)XMLParser.TokenType.AttributeName, new TextFormatting (Color.DarkSlateGrey, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementName, new TextFormatting (Color.DarkBlue, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementStart, new TextFormatting (Color.Black, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementEnd, new TextFormatting (Color.Black, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.ElementClosing, new TextFormatting (Color.Black, Color.Transparent));
-
-			formatting.Add ((int)XMLParser.TokenType.AttributeValueOpening, new TextFormatting (Color.Crimson, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.AttributeValueClosing, new TextFormatting (Color.Crimson, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.AttributeValue, new TextFormatting (Color.FireBrick, Color.Transparent, false, true));
-			formatting.Add ((int)XMLParser.TokenType.XMLDecl, new TextFormatting (Color.ForestGreen, Color.Transparent));
-			formatting.Add ((int)XMLParser.TokenType.Content, new TextFormatting (Color.DimGrey, Color.Transparent, false, true));
-
-			formatting.Add ((int)BufferParser.TokenType.BlockComment, new TextFormatting (Color.Grey, Color.Transparent, false, true));
-			formatting.Add ((int)BufferParser.TokenType.LineComment, new TextFormatting (Color.Grey, Color.Transparent, false, true));
-			formatting.Add ((int)BufferParser.TokenType.OperatorOrPunctuation, new TextFormatting (Color.Black, Color.Transparent));
-			formatting.Add ((int)8300, new TextFormatting (Color.Teal, Color.Transparent));*/
-
 		}
         #endregion
 
 		#region private and protected fields
 
-		int tabSize = 4;
-		string oldSource = "";
+		int tabSize = 4;		
 		
 		volatile bool isDirty = false;
 
 		internal const int leftMarginGap = 3;   //gap between items in margin and text
 		internal const int breakPointsGap = 16;	//column for breakpoints
 		internal const int foldSize = 9;        //folding rectangles size
-		internal int foldMargin = 9;            // { get { return parser == null ? 0 : parser.SyntacticTreeMaxDepth * foldHSpace; }}//folding margin size
+		internal int foldMargin = 9;            // folding margin size
 
 		internal bool foldingEnabled = true;
 
@@ -130,6 +97,8 @@ namespace Crow.Coding
 		}
 
 		int longestLineCharCount = 0, longestLineIdx = 0;
+		int lastVisualColumn = -1;
+
 
 		void findLongestLineAndUpdateMaxScrollX () {
 			longestLineCharCount = 0;
@@ -169,19 +138,12 @@ namespace Crow.Coding
 			if (buffer == null) 
 				MaxScrollY = 0;
 			else {
-				int unfoldedLines = buffer.Lines.Count - printer.SkippedLines;
+				int unfoldedLines = buffer.Lines.Count - foldingManager.FoldedLines;
 				MaxScrollY = Math.Max (0, unfoldedLines - visibleLines);
 				NotifyValueChanged ("ChildHeightRatio", Slot.Height * visibleLines / unfoldedLines);
 			}
 		}
 		
-		void toogleFolding (int line) {
-			if (foldingManager.TryGetFold (line, out Fold fold)) {
-				fold.IsFolded = !fold.IsFolded;
-				RegisterForRedraw ();
-			}
-		}
-
 		#region Editor overrides
 		protected override void updateEditorFromProjFile () {
 			Debug.WriteLine ("\t\tSourceEditor updateEditorFromProjFile");
@@ -197,8 +159,7 @@ namespace Crow.Coding
 			measureLeftMargin ();
 			findLongestLineAndUpdateMaxScrollX ();
 
-			isDirty = false;
-			oldSource = projFile.Source;
+			isDirty = false;			
 
 			RegisterForGraphicUpdate ();
 		}
@@ -219,116 +180,6 @@ namespace Crow.Coding
 		}
 		#endregion
 
-		#region Buffer events handlers
-		void Buffer_BufferCleared (object sender, EventArgs e) {
-			editorMutex.EnterWriteLock ();
-
-			longestLineCharCount = 0;
-			longestLineIdx = 0;
-			measureLeftMargin ();
-			MaxScrollX = MaxScrollY = 0;
-
-			RegisterForGraphicUpdate ();
-			notifyPositionChanged ();
-			isDirty = true;
-
-			editorMutex.ExitWriteLock ();
-		}
-		void Buffer_LineAdditionEvent (object sender, CodeBufferEventArgs e) {
-			/*for (int i = 0; i < e.LineCount; i++) {
-				int lptr = e.LineStart + i;
-				int charCount = buffer[lptr].PrintableLength;
-				if (charCount > buffer.longestLineCharCount) {
-					buffer.longestLineIdx = lptr;
-					buffer.longestLineCharCount = charCount;
-				}else if (lptr <= buffer.longestLineIdx)
-					buffer.longestLineIdx++;
-				if (parser == null)
-					continue;
-				parser.TryParseBufferLine (e.LineStart + i);
-			}
-
-			if (parser != null)
-				parser.reparseSource ();*/
-
-			measureLeftMargin ();
-
-
-			updateMaxScrollY ();
-			RegisterForGraphicUpdate ();
-			notifyPositionChanged ();
-			isDirty = true;
-		}
-		void Buffer_LineRemoveEvent (object sender, CodeBufferEventArgs e) {
-			/*bool trigFindLongestLine = false;
-			for (int i = 0; i < e.LineCount; i++) {
-				int lptr = e.LineStart + i;
-				if (lptr <= buffer.longestLineIdx)
-					trigFindLongestLine = true;
-			}
-			if (trigFindLongestLine)
-				findLongestLineAndUpdateMaxScrollX ();*/
-
-			measureLeftMargin ();
-
-			updateMaxScrollY ();
-			RegisterForGraphicUpdate ();
-			notifyPositionChanged ();
-			isDirty = true;
-		}
-		void Buffer_LineUpadateEvent (object sender, CodeBufferEventArgs e) {
-			/*bool trigFindLongestLine = false;
-			for (int i = 0; i < e.LineCount; i++) {
-
-				int lptr = e.LineStart + i;
-				if (lptr == buffer.longestLineIdx)
-					trigFindLongestLine = true;
-				else if (buffer[lptr].PrintableLength > buffer.longestLineCharCount) {
-					buffer.longestLineCharCount = buffer[lptr].PrintableLength;
-					buffer.longestLineIdx = lptr;
-				}
-			}
-			if (trigFindLongestLine)
-				findLongestLineAndUpdateMaxScrollX ();*/
-
-			RegisterForGraphicUpdate ();
-			notifyPositionChanged ();
-			isDirty = true;
-		}
-		void Buffer_PositionChanged (object sender, EventArgs e) {
-			//Console.WriteLine ("Position changes: ({0},{1})", buffer.CurrentLine, buffer.CurrentColumn);
-			/*int cc = buffer.CurrentTabulatedColumn;
-
-			if (cc > visibleColumns + ScrollX) {
-				ScrollX = cc - visibleColumns;
-			} else if (cc < ScrollX)
-				ScrollX = cc;
-			
-			RegisterForGraphicUpdate ();
-			updateOnScreenCurLineFromBuffCurLine ();
-			notifyPositionChanged ();*/
-		}
-
-		void Buffer_SelectionChanged (object sender, EventArgs e) {
-			RegisterForGraphicUpdate ();
-		}
-		void Buffer_FoldingEvent (object sender, CodeBufferEventArgs e) {
-
-			updateMaxScrollY ();
-			RegisterForGraphicUpdate ();
-		}
-		#endregion
-
-		void notifyPositionChanged () {
-			/*try {				
-				NotifyValueChanged ("CurrentLine", CurrentLine+1);
-				NotifyValueChanged ("CurrentColumn", buffer.CurrentColumn+1);
-				NotifyValueChanged ("CurrentLineHasError", CurrentLineHasError);
-				NotifyValueChanged ("CurrentLineError", CurrentLineError);
-			} catch (Exception ex) {
-				Console.WriteLine (ex.ToString ());
-			}*/
-		}
 
 		int currentLine, currentColumn, executingLine = -1;
 		#region Public Crow Properties
@@ -401,7 +252,6 @@ namespace Crow.Coding
 		}
 		#endregion
 
-
 		int getTabulatedColumn (int col, int line) {
 			int start = buffer.Lines[line].Start;
 			SourceText st = buffer.GetSubText (TextSpan.FromBounds (start, start + col));
@@ -427,7 +277,6 @@ namespace Crow.Coding
 		}
 		int getTabulatedColumn (Point pos) => getTabulatedColumn (pos.X,pos.Y);
 
-		int lastVisualColumn = -1;
 		void move (int hDelta, int vDelta = 0)
 		{
 			if (buffer?.Length == 0)
@@ -881,7 +730,10 @@ namespace Crow.Coding
 			}*/
 
 			if (mouseLocalPos.X < leftMargin) {
-				toogleFolding (hoverLine);
+				if (foldingManager.TryToogleFold (hoverLine)) {				
+					updateMaxScrollY ();
+					RegisterForRedraw ();			
+				}
 				//toogleFolding (buffer.IndexOf (PrintedLines [(int)Math.Max (0, Math.Floor (mouseLocalPos.Y / (fe.Ascent+fe.Descent)))]));
 				return;
 			}
@@ -1125,6 +977,7 @@ namespace Crow.Coding
 
 			selection = default;
 			Task.Run (() => updateFolds ());
+			updateMaxScrollY();
 
 			RegisterForRedraw ();
 			EditorIsDirty = true;

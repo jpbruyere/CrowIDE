@@ -18,6 +18,7 @@ namespace Crow.Coding
 		public readonly TextSpan Span;
 		public readonly int LineStart;
 		public readonly int LineEnd;
+		public int LineCount => LineEnd - LineStart;
 		public Fold (TextSpan span, int start, int end, SyntaxKind kind, string identifier = "") {
 			Span = span;
 			Kind = kind;
@@ -43,6 +44,8 @@ namespace Crow.Coding
 
 		bool autoFoldRegions, AutoFoldComments;
 
+		public int FoldedLines;
+
 		public bool TryGetFold (int line, out Fold fold) {
 			lock (mutex) {
 				if (refs != null && refs.ContainsKey (line)) {
@@ -51,6 +54,19 @@ namespace Crow.Coding
 				}
 				fold = null;
 				return false;
+			}
+		}
+		public bool TryToogleFold (int line) {
+			lock (mutex) {
+				if (refs == null || !refs.ContainsKey (line)) 
+					return false;
+				Fold f = refs[line];
+				f.IsFolded = !f.IsFolded;
+				if (f.IsFolded)
+					FoldedLines += f.LineCount - 1;
+				else
+					FoldedLines -= f.LineCount - 1;
+				return true;
 			}
 		}
 
@@ -84,7 +100,7 @@ namespace Crow.Coding
 			CrowIDE ide = editor.IFace as CrowIDE;
 			autoFoldRegions = ide.AutoFoldRegions;
 			AutoFoldComments = ide.AutoFoldComments;
-
+			FoldedLines = 0;
 			lock (mutex) {
 
 
@@ -127,7 +143,7 @@ namespace Crow.Coding
 					TextSpan.FromBounds (start.SourceSpan.Start, node.GetLocation ().SourceSpan.End),
 					startL, node.GetLocation ().GetLineSpan ().StartLinePosition.Line, SyntaxKind.RegionDirectiveTrivia));
 				if (autoFoldRegions)
-					refs[startL].IsFolded = true;
+					TryToogleFold (startL);
 			}
 
             base.VisitEndRegionDirectiveTrivia (node);
@@ -151,7 +167,7 @@ namespace Crow.Coding
 			if (lps.Start.Line < endL) {
 				refs[lps.Start.Line] = (new Fold (node.GetLocation ().SourceSpan, lps.Start.Line, endL, node.Kind ()));
 				if (AutoFoldComments)
-					refs[lps.Start.Line].IsFolded = true;
+					TryToogleFold (lps.Start.Line);					
 			}
 			base.VisitDocumentationCommentTrivia (node);			
         }

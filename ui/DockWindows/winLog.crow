@@ -3,7 +3,7 @@
 	<VerticalStack Spacing="0">
 		<HorizontalStack Height="Fit">
 			<CheckBox Fit="true" Caption="Scroll on output" IsChecked="{²../../log.ScrollOnOutput}"/>
-			<!--<EnumSelector Caption="Verbosity" EnumValue="{²MainLoggerVerbosity}" Fit="true">
+			<EnumSelector Caption="Verbosity" EnumValue="{²MainLoggerVerbosity}" Fit="true">
 				<Template>
 					<Popper Caption="{./Caption}" CornerRadius="{./CornerRadius}" Foreground="{./Foreground}" Background="{./Background}">
 						<Template>
@@ -25,7 +25,7 @@
 						<VerticalStack Name="Content" Fit="true" Background="DarkGrey"/>
 					</Popper>
 				</Template>
-			</EnumSelector>-->
+			</EnumSelector>
 			<TextBox Text="{²MainLoggerSearchString}" Width="Stretched" KeyDown="../../log.onSearch"/>
 		</HorizontalStack>
 		<HorizontalStack Spacing="0" >
