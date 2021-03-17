@@ -44,17 +44,17 @@
 		</MenuItem>
 	</Menu>
 	<HorizontalStack RootDataLevel="true" DataSource="{CurrentSolution}" Height="Fit" >
-		<Label Margin="3" Text="{}" Background="Jet" Width="Fit"/>
+		<!--<Label Margin="3" Text="{}" Background="Jet" Width="Fit"/>
 		<Label Margin="3" Text="{ActiveConfiguration}" Background="Jet" Width="100"/>
-		<Label Margin="3" Text="{ActivePlatform}" Background="Jet" Width="100"/>
+		<Label Margin="3" Text="{ActivePlatform}" Background="Jet" Width="100"/>-->
 		<ComboBox Width="Fit" Data="{Configurations}" SelectedItem="{²ActiveConfiguration}"/>
 		<ComboBox Width="Fit" Data="{Platforms}" SelectedItem="{²ActivePlatform}"/>
-		<Button  Command="{CMDDebugStart}"/>
-		<Button  Command="{CMDDebugPause}"/>
-		<Button  Command="{CMDDebugStop}"/>
-		<Button  Command="{CMDDebugStepIn}"/>
-		<Button  Command="{CMDDebugStepOut}"/>
-		<Button  Command="{CMDDebugStepOver}"/>
+		<Button Style="IcoBut" Command="{CMDDebugStart}"/>
+		<Button Style="IcoBut" Command="{CMDDebugPause}"/>
+		<Button Style="IcoBut" Command="{CMDDebugStop}"/>
+		<Button Style="IcoBut" Command="{CMDDebugStepIn}"/>
+		<Button Style="IcoBut" Command="{CMDDebugStepOut}"/>
+		<Button Style="IcoBut" Command="{CMDDebugStepOver}"/>
 	</HorizontalStack>
 	<DockStack Name="mainDock"  RootDataLevel="true" />
 	<HorizontalStack Margin="2" Background="DimGrey" Height="20">

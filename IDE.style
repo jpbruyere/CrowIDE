@@ -1,6 +1,7 @@
 ﻿//test
 SmallFont = "consolas, 10";
 CodeFont = "consolas, 12";
+IconSize = "20";
 
 Label {    
     //Foreground="Jet";
@@ -24,15 +25,15 @@ MemberViewHStack {
 }
 
 IcoBut {
-	Template = "#Crow.Coding.IcoBut.template";
+	Template = "#ui.IcoBut.template";
 	MinimumSize = "10,10";
-	Width = "8";
-	Height = "14";
-	Background = "Black";
+	Width = "${IconSize}";
+	Height = "${IconSize}";
+	Background = "Onyx";
 }
 
 WinSchema {
-	Template="#Crow.Coding.ui.DockWindows.WinSchemaItem.template";
+	Template="#ui.DockWindows.WinSchemaItem.template";
 	Focusable = "true";
 	MinimumSize="150,50";
 	Width = "Fit";

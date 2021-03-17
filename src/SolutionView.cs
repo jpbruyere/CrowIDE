@@ -138,18 +138,18 @@ namespace Crow.Coding
 
 		void initCommands () {
 			CMDDebugStart = new Command (new Action (() => debug_start()))
-			{ Caption = "Start", CanExecute = true };
+			{ Caption = "Start", Icon = "#Icons.debug-step-into.svg", CanExecute = true };
 			CMDDebugPause = new Command (new Action (() => dbgSession.Pause ()))
-			{ Caption = "Pause", CanExecute = false };
+			{ Caption = "Pause", Icon = "#Icons.debug-step-into.svg", CanExecute = false };
 			CMDDebugStop = new Command (new Action (() => debug_stop ()))
-			{ Caption = "Stop", CanExecute = false };
+			{ Caption = "Stop", Icon = "#Icons.debug-step-into.svg", CanExecute = false };
 
 			CMDDebugStepIn = new Command (new Action (() => dbgSession.StepIn ()))
-			{ Caption = "Step in", CanExecute = false };
+			{ Caption = "Step in", Icon = "#Icons.debug-step-into.svg", CanExecute = false };
 			CMDDebugStepOut = new Command (new Action (() => dbgSession.StepOut ()))
-			{ Caption = "Step out", CanExecute = false };
+			{ Caption = "Step out", Icon = "#Icons.debug-step-out.svg", CanExecute = false };
 			CMDDebugStepOver = new Command (new Action (() => dbgSession.StepOver ()))
-			{ Caption = "Step over", CanExecute = false };
+			{ Caption = "Step over", Icon = "#Icons.debug-step-over.svg", CanExecute = false };
 		}
 
 		void debug_start () {

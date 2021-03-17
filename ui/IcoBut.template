@@ -1,7 +1,9 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
-<Border Background="{./Background}" Name="Content"
-	BorderWidth="1" BorderStyle="Normal"
-	MouseDown="{BorderStyle=Sunken}"
-	MouseUp="{BorderStyle=Normal}">
-	<Image Margin="1" Path="#icons.blank-file" />
+<Border Background="{./Background}" Name="Content" Tooltip="{./Caption}"
+	Foreground="Transparent" CornerRadius="{../CornerRadius}" BorderWidth="1"
+	MouseEnter="{Foreground=vgradient|0:White|0.2:Grey|0.9:Grey|1:Black}"
+	MouseLeave="{Foreground=Transparent}"
+	MouseDown="{Foreground=vgradient|0:Black|0.05:Grey|0.85:Grey|1:White}"
+	MouseUp="{Foreground=vgradient|0:White|0.2:Grey|0.9:Grey|1:Black}">
+	<Image Margin="1" Path="{./Icon}" />
 </Border>
