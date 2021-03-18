@@ -210,6 +210,15 @@ namespace Crow
 		//kind is a language extension, not found by crow.
 		public static SyntaxKind CSKind (this SyntaxToken tok) => tok.Kind ();
 		public static SyntaxKind CSKind (this SyntaxTrivia tok) => tok.Kind ();
+		public static int Depth (this SyntaxNode node) {
+			int depth = 0;
+			SyntaxNode n = node.Parent;
+			while (n != null) {
+				depth++;
+				n = n.Parent;
+			}
+			return depth;
+		}
 
 		public static bool IsWhiteSpaceOrNewLine (this SyntaxToken tok) {
 			SyntaxKind k = tok.Kind ();

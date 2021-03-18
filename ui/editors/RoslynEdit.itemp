@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
-<TabItem QueryClose="OnQueryClose" IsSelected="{²IsSelected}" Template="#ui.EditTabItem.template">
+<TabItem QueryClose="OnQueryClose" IsSelected="{²IsSelected}" Caption="{DisplayName}" Template="#ui.EditTabItem.template">
 	<VerticalStack Background="Jet">
 		<HorizontalStack >
 			<RoslynEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"

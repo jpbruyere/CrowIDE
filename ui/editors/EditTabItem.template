@@ -7,13 +7,14 @@
 		HorizontalAlignment="Left"
 		Height="{./TabHeight}"
 		Width="{./TabWidth}">
-		<Widget Width="5" Height="5" Background="Blue" Visible="{IsDirty}"/>
-		<Widget Width="5" Height="5" Background="Green" Visible="{IsSelected}"/>
-		<Widget Width="5" Height="5" Background="Orange" Visible="{./IsActiveTab}"/>
-		<Label Name="caption" Text="{DisplayName}" Foreground="Jet" Width="Stretched" Tooltip="{FullPath}"/>
-		<Label Text="{./ViewIndex}" Foreground="Jet" Width="Fit"/>
-		<Border CornerRadius="5" BorderWidth="1" Foreground="Transparent"  Height="12" Width="12" Background="Jet"
-					MouseEnter="{Foreground=Black}" MouseLeave="{Foreground=Transparent}">
+		<Widget Width="5" Height="5" Background="Blue" Visible="{IsDirty}" Tooltip="IsDirty"/>
+		<!--<Widget Width="5" Height="5" Background="Green" Visible="{IsSelected}" Tooltip="item IsSelected"/>
+		<Widget Width="5" Height="5" Background="Orange" Visible="{./IsActiveTab}" Tooltip="IsActiveTab"/>
+		<Widget Width="5" Height="5" Background="Pink" Visible="{./IsSelected}" Tooltip="tab.IsSelected"/>-->
+		<Label Name="caption" Text="{./Caption}" Foreground="Jet" Width="Stretched" Tooltip="{FullPath}"/>
+		<!--<Label Text="{./ViewIndex}" Foreground="Jet" Width="Fit"/>-->
+		<Border CornerRadius="5" BorderWidth="1" Foreground="Transparent"  Height="12" Width="12" Background="Grey"
+					MouseEnter="{Foreground=RoyalBlue}" MouseLeave="{Foreground=Transparent}">
 			<Image Focusable="true" Name="Image" Margin="0" Width="Stretched" Height="Stretched" Path="#Crow.Icons.exit2.svg"
 				 MouseClick="./butCloseTabClick"/>
 		</Border>

@@ -84,6 +84,9 @@ namespace Crow.Coding
 		protected TextExtents te;
 
 		Point mouseLocalPos;
+
+		int longestLineCharCount = 0, longestLineIdx = 0;
+		int lastVisualColumn = -1;
 		#endregion
 
 		internal void measureLeftMargin () {
@@ -95,9 +98,6 @@ namespace Crow.Coding
 			if (leftMargin > 0)
 				leftMargin += leftMarginGap;
 		}
-
-		int longestLineCharCount = 0, longestLineIdx = 0;
-		int lastVisualColumn = -1;
 
 
 		void findLongestLineAndUpdateMaxScrollX () {
@@ -119,7 +119,7 @@ namespace Crow.Coding
 		/// Updates visible line in widget, adapt max scroll y and updatePrintedLines
 		/// </summary>
 		void updateVisibleLines () {
-			visibleLines = (int)Math.Floor ((double)ClientRectangle.Height / (fe.Ascent + fe.Descent));
+			visibleLines = (int)Math.Floor ((double)ClientRectangle.Height / lineHeight);
 			NotifyValueChanged ("VisibleLines", visibleLines);
 			updateMaxScrollY ();
 			RegisterForGraphicUpdate ();
@@ -328,6 +328,7 @@ namespace Crow.Coding
 					TextSpan.FromBounds (CurrentPos, selStartPos);			
 		}
 
+		internal double lineHeight;
 		#region GraphicObject overrides
 		public override Font Font {
 			get { return base.Font; }
@@ -338,8 +339,9 @@ namespace Crow.Coding
 					gr.SetFontSize (Font.Size);
 
 					fe = gr.FontExtents;
-					fe.MaxXAdvance = gr.TextExtents ("A").XAdvance;
-				}				
+					fe.MaxXAdvance = gr.TextExtents ("A").XAdvance;					
+				}
+				lineHeight = fe.Ascent + fe.Descent;
 				MaxScrollY = 0;
 				RegisterForGraphicUpdate ();
 			}
@@ -347,7 +349,7 @@ namespace Crow.Coding
 		public override int measureRawSize(LayoutingType lt)
 		{
 			if (lt == LayoutingType.Height)
-				return (int)Math.Ceiling((fe.Ascent+fe.Descent) * buffer.Lines.Count) + Margin * 2;
+				return (int)Math.Ceiling(lineHeight * buffer.Lines.Count) + Margin * 2;
 
 			return (int)(fe.MaxXAdvance * longestLineCharCount) + Margin * 2 + leftMargin;
 		}
@@ -379,12 +381,11 @@ namespace Crow.Coding
 			editorMutex.EnterReadLock ();
 
 			Rectangle cb = ClientRectangle;
-
-			int skippedLinesSave = printer.SkippedLines;
+			Stopwatch sw = Stopwatch.StartNew();			
 			printer.Draw (gr, SyntaxTree.GetRoot ());
+			sw.Stop();
+			Console.WriteLine ($"SyntaxPrinter: {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
 			printedLines = printer.printedLinesNumbers;
-			if (skippedLinesSave != printer.SkippedLines)
-				updateMaxScrollY ();
 
 			#region draw text cursor	
 			if (!selection.IsEmpty) {
@@ -402,9 +403,9 @@ namespace Crow.Coding
 				int visualLineStart = Array.IndexOf (printedLines, startTl.LineNumber);
 
 				double xStart = cb.X + visualColStart * fe.MaxXAdvance + leftMargin;
-				double yStart = cb.Y + visualLineStart * (fe.Ascent + fe.Descent);
+				double yStart = cb.Y + visualLineStart * lineHeight;
 				RectangleD r = new RectangleD (xStart,
-					yStart, (visualColEnd - visualColStart) * fe.MaxXAdvance, (fe.Ascent + fe.Descent));
+					yStart, (visualColEnd - visualColStart) * fe.MaxXAdvance, lineHeight);
 
 				gr.Operator = Operator.DestOver;
 				gr.SetSource (selbg);
@@ -419,14 +420,14 @@ namespace Crow.Coding
 					int visualLineEnd = Array.IndexOf (printedLines, endTl.LineNumber);
 					r.Left = cb.X + leftMargin;
 					for (int l = visualLineStart + 1; l < (visualLineEnd < 0 ? printedLines.Length : visualLineEnd); l++) {
-						r.Top += (fe.Ascent + fe.Descent);
+						r.Top += lineHeight;
 						TextLine tl = buffer.Lines [printedLines [l]];
 						r.Width = Math.Min(cb.Width - leftMargin, buffer.TabulatedCol (tabSize, tl.Start, tl.GetEnd () - ScrollX) * fe.MaxXAdvance);
 						gr.Rectangle (r);
 						gr.Fill ();
 					}
 					if (visualLineEnd >= 0) {
-						r.Top += (fe.Ascent + fe.Descent);
+						r.Top += lineHeight;
 						r.Width = Math.Min (cb.Width - leftMargin, Math.Max (1, visualColEnd) * fe.MaxXAdvance);
 						gr.Rectangle (r);
 						gr.Fill ();
@@ -443,9 +444,9 @@ namespace Crow.Coding
 				int visualCol = buffer.TabulatedCol (tabSize, tl.Start, CurrentPos) - ScrollX;
 				int visualLine = Array.IndexOf (printedLines, tl.LineNumber);
 				if (visualLine >= 0) {
-					double cursorX = cb.X + visualCol * fe.MaxXAdvance + leftMargin;
-					gr.MoveTo (0.5 + cursorX, cb.Y + visualLine * (fe.Ascent + fe.Descent));
-					gr.LineTo (0.5 + cursorX, cb.Y + (visualLine + 1) * (fe.Ascent + fe.Descent));
+					double cursorX = 0.5 + cb.X + visualCol * fe.MaxXAdvance + leftMargin;
+					gr.MoveTo (cursorX, cb.Y + visualLine * lineHeight);
+					gr.LineTo (cursorX, cb.Y + (visualLine + 1) * lineHeight);
 					gr.Stroke ();
 				}
 			}
@@ -475,9 +476,9 @@ namespace Crow.Coding
 			int visualLineStart = Array.IndexOf (printedLines, startTl.LineNumber);
 
 			double xStart = cb.X + visualColStart * fe.MaxXAdvance + leftMargin;
-			double yStart = cb.Y + visualLineStart * (fe.Ascent + fe.Descent);
+			double yStart = cb.Y + visualLineStart * lineHeight;
 			RectangleD r = new RectangleD (xStart,
-				yStart, (visualColEnd - visualColStart) * fe.MaxXAdvance, (fe.Ascent + fe.Descent));
+				yStart, (visualColEnd - visualColStart) * fe.MaxXAdvance, lineHeight);
 
 			gr.LineWidth = 1;
 			gr.SetSource (Colors.Red);
@@ -500,7 +501,7 @@ namespace Crow.Coding
 				int visualLineEnd = Array.IndexOf (printedLines, endTl.LineNumber);
 				r.Left = cb.X + leftMargin;
 				for (int l = visualLineStart + 1; l < (visualLineEnd < 0 ? printedLines.Length : visualLineEnd); l++) {
-					r.Top += (fe.Ascent + fe.Descent);
+					r.Top += lineHeight;
 					TextLine tl = buffer.Lines[printedLines[l]];
 					r.Width = Math.Min (cb.Width - leftMargin, buffer.TabulatedCol (tabSize, tl.Start, tl.GetEnd () - ScrollX) * fe.MaxXAdvance);
 					gr.MoveTo (r.BottomLeft);
@@ -511,7 +512,7 @@ namespace Crow.Coding
 					gr.Stroke ();
 				}
 				if (visualLineEnd >= 0) {
-					r.Top += (fe.Ascent + fe.Descent);
+					r.Top += lineHeight;
 					r.Width = Math.Min (cb.Width - leftMargin, Math.Max (1, visualColEnd) * fe.MaxXAdvance);
 					gr.MoveTo (r.BottomLeft);
 					if (r.Width > 0)
@@ -557,21 +558,6 @@ namespace Crow.Coding
 				currentPos = value;
 				NotifyValueChangedAuto (currentPos);
 			}
-		}
-
-        public override void onMouseEnter (object sender, MouseMoveEventArgs e)
-		{
-			base.onMouseEnter (sender, e);
-			if (e.X - ScreenCoordinates(Slot).X < leftMargin + ClientRectangle.X)
-				IFace.MouseCursor = MouseCursor.arrow;
-			else
-				IFace.MouseCursor = MouseCursor.ibeam;
-		}
-		public override void onMouseLeave (object sender, MouseMoveEventArgs e)
-		{
-			base.onMouseLeave (sender, e);
-			hideOverlay ();
-			IFace.MouseCursor = MouseCursor.arrow;
 		}
 
 		Widget overlay;
@@ -644,7 +630,7 @@ namespace Crow.Coding
 				return;
 			}
 
-			int hvl = (int)Math.Max (0, Math.Floor (mouseLocalPos.Y / (fe.Ascent + fe.Descent)));
+			int hvl = (int)Math.Max (0, Math.Floor (mouseLocalPos.Y / lineHeight));
 			HoverLine = printedLines[Math.Min (printedLines.Length - 1, hvl)];
 			int curVisualCol = ScrollX + (int)Math.Round ((mouseLocalPos.X - leftMargin) / fe.MaxXAdvance);
 			
@@ -690,7 +676,7 @@ namespace Crow.Coding
 				SymbolInfo symbInfo = model.GetSymbolInfo (CurrentSyntaxNode);
 				CurrentSymbol = symbInfo.Symbol;
 
-				showOverlay ("Syntax", new Point (e.Position.X, screenSlot.Top + (int)((hvl + 1) * (fe.Ascent + fe.Descent))), this);				
+				showOverlay ("Syntax", new Point (e.Position.X, screenSlot.Top + (int)((hvl + 1) * lineHeight)), this);				
 
 			} catch (Exception ex) {					
 				Console.WriteLine (ex);
@@ -713,6 +699,20 @@ namespace Crow.Coding
 			set {
 				CSProjectItm.Project.Compilation = value;
 			}
+		}
+        public override void onMouseEnter (object sender, MouseMoveEventArgs e)
+		{
+			base.onMouseEnter (sender, e);
+			if (e.X - ScreenCoordinates(Slot).X < leftMargin + ClientRectangle.X)
+				IFace.MouseCursor = MouseCursor.arrow;
+			else
+				IFace.MouseCursor = MouseCursor.ibeam;
+		}
+		public override void onMouseLeave (object sender, MouseMoveEventArgs e)
+		{
+			base.onMouseLeave (sender, e);
+			hideOverlay ();
+			IFace.MouseCursor = MouseCursor.arrow;
 		}
 		public override void onMouseDown (object sender, MouseButtonEventArgs e)
 		{
@@ -784,8 +784,8 @@ namespace Crow.Coding
 					editorMutex.ExitWriteLock ();
 					break;
 				default:
-					Console.WriteLine ("");
-					break;
+					base.onKeyDown (sender, e);
+					return;
 				}
 			}
 
@@ -910,8 +910,9 @@ namespace Crow.Coding
 			//case Key.F8:
 			//	toogleFolding (buffer.CurrentLine);
 			//	break;
-			//default:
-				//break;
+			default:
+				base.onKeyDown (sender, e);
+				return;
 			}
 			RegisterForGraphicUpdate ();
 		}
@@ -967,6 +968,8 @@ namespace Crow.Coding
 		}
 
 		void apply (TextChange tch) {
+			editorMutex.EnterWriteLock();
+
 			buffer = buffer.WithChanges (tch);
 			SyntaxTree = SyntaxTree.WithChangedText (buffer);
 
@@ -976,11 +979,14 @@ namespace Crow.Coding
 				CurrentPos = tch.Span.Start + tch.NewText.Length;
 
 			selection = default;
-			Task.Run (() => updateFolds ());
+			//Task.Run (() => updateFolds ());
+			updateFolds ();
 			updateMaxScrollY();
 
 			RegisterForRedraw ();
 			EditorIsDirty = true;
+
+			editorMutex.ExitWriteLock();
 
 			CMDUndo.CanExecute = undoStack.Count > 0;
 			CMDRedo.CanExecute = redoStack.Count > 0;
