@@ -74,7 +74,7 @@ Splitter {
 DockWindow {
     //Background="0.18,0.18,0.18,0.9";
     Background="DimGrey";
-	//Resizable="true";
+	Resizable="true";
 }
 ColorPicker {
 	Width="200";

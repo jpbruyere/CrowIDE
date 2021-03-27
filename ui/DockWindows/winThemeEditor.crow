@@ -1,20 +1,24 @@
 ﻿<?xml version="1.0"?>
 <DockWindow Caption="Syntax Theme Editor" Height="60%" Width="80%">
-	<VerticalStack>
+	<VerticalStack Margin="5">
 		<Label Text="{SyntaxThemeName}"/>
 		<ListBox RootDataLevel="true" Data="{SyntaxTheme}">
+			<Template>
+				<Scroller  Name="scroller1"  >
+					<Table Margin="1" Columns="name,Stretched;foreground,150;background,150;bold,Fit;Italic,Fit" Background="DarkGrey" Spacing="1"
+						Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
+				</Scroller>			
+			</Template>
 			<ItemTemplate>
-				<HorizontalStack Height="Fit" >
-					<Label Text="{Key}" Width="200" />
-					<HorizontalStack  DataSource="{Value}"  >
-						<ColorPicker RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Foreground}" Width="150"
-									 Template="#ui.ColorPicker2.template"/>
-						<ColorPicker RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Background}" Width="150"
-									 Template="#ui.ColorPicker2.template"/>
-						<CheckBox Fit="true" Caption="Bold" IsChecked="{²Bold}"/>
-						<CheckBox Fit="true" Caption="Italic" IsChecked="{²Italic}"/>
-					</HorizontalStack>				
-				</HorizontalStack>
+				<TableRow Height="Fit" Spacing="1" Margin="0">
+					<Label Margin="2" Text="{Key}" Background="Grey" Height="Stretched"/>					
+					<ColorPicker Margin="0" DataSource="{Value}" RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Foreground}" Background="Grey" Height="Stretched" Width="Stretched"
+								 Template="#ui.ColorPicker2.template"/>
+					<ColorPicker Margin="0" DataSource="{Value}" RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Background}" Background="Grey" Height="Stretched" Width="Stretched"
+								 Template="#ui.ColorPicker2.template"/>
+					<CheckBox DataSource="{Value}" Caption="Bold" IsChecked="{²Bold}" Background="Grey" Height="Stretched"/>
+					<CheckBox DataSource="{Value}" Caption="Italic" IsChecked="{²Italic}" Background="Grey" Height="Stretched"/>					
+				</TableRow>
 			</ItemTemplate>
 		</ListBox>
 		<HorizontalStack Fit="True" HorizontalAlignment="Right">

@@ -36,7 +36,7 @@ namespace Crow.Coding
 
 		public SyntaxNodePrinter (RoslynEditor editor) : base (SyntaxWalkerDepth.StructuredTrivia)
 		{
-			this.editor = editor;
+			this.editor = editor;			
 			
 		}
 		BreakPoint[] breakPoints;
@@ -210,7 +210,7 @@ namespace Crow.Coding
 					}
 				}
 
-				print (token.ToString ().TabulatedText (tabSize, currentCol), kind);
+				print (token.ToString (), kind);
 			}
 
 			VisitTrailingTrivia (token);
@@ -250,13 +250,6 @@ namespace Crow.Coding
 				return;
 			if (printLineNumbers) {
 				RectangleD mgR = new RectangleD (bounds.X + RoslynEditor.breakPointsGap, y, editor.leftMargin - RoslynEditor.leftMarginGap - RoslynEditor.breakPointsGap, Math.Ceiling (editor.lineHeight));
-				//if (cl.exception != null) {
-				//	mgBg = Color.Red;
-				//	if (CurrentLine == lineIndex)
-				//		mgFg = Color.White;
-				//	else
-				//		mgFg = Color.LightGrey;
-				//}else 
 				Color mgFg = Colors.Jet;
 				Color mgBg = Colors.Grey;
 				if (editor.CurrentLine == currentLine && editor.HasFocus) {

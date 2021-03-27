@@ -220,7 +220,7 @@ namespace Crow.Coding {
 			origSource = source;
 			NotifyValueChanged ("IsDirty", false);
 		}
-		public void Close () {
+		public virtual void Close () {
 			origSource = source = null;
 			IsOpened = false;
 			Project.solution.CloseItem (this);

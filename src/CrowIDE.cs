@@ -420,16 +420,37 @@ namespace Crow.Coding
 				}
 			}
 		}
-
-		private void onClickReloadSyntaxTheme (object sender, MouseButtonEventArgs e) {
-			reloadSyntaxTheme ();
+		void saveSyntaxThemeAs ()
+		{
+			string dir = Path.GetDirectoryName (syntaxThemeFile);
+			if (string.IsNullOrEmpty (dir))
+				dir = Directory.GetCurrentDirectory ();
+			LoadIMLFragment (@"<FileDialog Width='60%' Height='50%' Caption='Save as ...' CurrentDirectory='" +
+				dir + "' SelectedFile='" +
+				Path.GetFileName(syntaxThemeFile) + "' OkClicked='saveSyntaxThemeAsDialog_OkClicked'/>").DataSource = this;
 		}
-		private void onClickSaveSyntaxTheme (object sender, MouseButtonEventArgs e) {
+		void saveSyntaxThemeAsDialog_OkClicked (object sender, EventArgs e)
+		{
+			FileDialog fd = sender as FileDialog;
+
+			if (string.IsNullOrEmpty (fd.SelectedFileFullPath))
+				return;
+
+			if (File.Exists(fd.SelectedFileFullPath)) {
+				MessageBox mb = MessageBox.ShowModal (this, MessageBox.Type.YesNo, "File exists, overwrite?");
+				mb.Yes += (sender2, e2) => {
+					SyntaxThemeName = Path.GetFileNameWithoutExtension(fd.SelectedFile);
+					saveSyntaxTheme ();
+				};
+				return;
+			}
+
+			SyntaxThemeName = Path.GetFileNameWithoutExtension(fd.SelectedFile);
 			saveSyntaxTheme ();
 		}
-		private void onClickSaveSyntaxThemeAs (object sender, MouseButtonEventArgs e) {
-			throw new NotImplementedException ();
-		}
+		private void onClickReloadSyntaxTheme (object sender, MouseButtonEventArgs e) => reloadSyntaxTheme ();
+		private void onClickSaveSyntaxTheme (object sender, MouseButtonEventArgs e) => saveSyntaxTheme ();
+		private void onClickSaveSyntaxThemeAs (object sender, MouseButtonEventArgs e) => saveSyntaxThemeAs ();
 
 		string syntaxThemeDirectory => Path.Combine (Path.GetDirectoryName (Assembly.GetEntryAssembly ().Location), "SyntaxThemes");
 		string syntaxThemeFile => Path.Combine (syntaxThemeDirectory, $"{SyntaxThemeName}.syntax");
@@ -443,7 +464,7 @@ namespace Crow.Coding
             }
         }
 		public string SyntaxThemeName {
-			get { return Configuration.Global.Get<string> ("SyntaxThemeName"); }
+			get => Configuration.Global.Get<string> ("SyntaxThemeName");
 			set {
 				if (SyntaxThemeName == value)
 					return;
@@ -454,7 +475,7 @@ namespace Crow.Coding
 		}
 
 		public bool AutoFoldRegions {
-			get { return Crow.Configuration.Global.Get<bool> ("AutoFoldRegions"); }
+			get => Crow.Configuration.Global.Get<bool> ("AutoFoldRegions");
 			set {
 				if (AutoFoldRegions == value)
 					return;
@@ -463,7 +484,7 @@ namespace Crow.Coding
 			}
 		}
 		public bool AutoFoldComments {
-			get { return Crow.Configuration.Global.Get<bool> ("AutoFoldComments"); }
+			get => Crow.Configuration.Global.Get<bool> ("AutoFoldComments");
 			set {
 				if (AutoFoldComments == value)
 					return;
@@ -528,7 +549,7 @@ namespace Crow.Coding
 		}
 		#endregion
 
-		Window loadWindow (string path, object dataSource = null){
+		public Window loadWindow (string path, object dataSource = null){
 			try {
 				Widget g = FindByName (path);
 				if (g != null)
@@ -542,7 +563,7 @@ namespace Crow.Coding
 			}
 			return null;
 		}
-		void closeWindow (string path){
+		public void closeWindow (string path){
 			Widget g = FindByName (path);
 			if (g != null)
 				DeleteWidget (g);

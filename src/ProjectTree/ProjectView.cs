@@ -94,7 +94,9 @@ namespace Crow.Coding
 				Commands.Add (new Crow.Command (new Action (() => Compile (target))) {
 						Caption = target});
 
-			}		
+			}
+			Commands.Add (new Command(new Action(() => solution.IDE.loadWindow ("#ui.winProjectProperties.crow",solution.IDE)))
+				{ Caption = "Properties", CanExecute = true});
 		}				
 
 		public SolutionView solution;
@@ -129,6 +131,7 @@ namespace Crow.Coding
 		public string ProjectGuid {
 			get { return solutionProject.ProjectGuid; }
 		}
+		public ICollection<ProjectProperty> Properties => project.Properties;
 		public string AssemblyName => project.GetPropertyValue ("AssemblyName");
 		public string OutputPath => project.AllEvaluatedProperties.Where (p => p.Name == "OutputPath").FirstOrDefault ().EvaluatedValue;
 		public string IntermediateOutputPath => project.AllEvaluatedProperties.Where (p => p.Name == "IntermediateOutputPath").FirstOrDefault ().EvaluatedValue;

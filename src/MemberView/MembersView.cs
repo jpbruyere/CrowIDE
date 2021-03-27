@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013-2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2013-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -17,9 +17,7 @@ namespace Crow.Coding
 
 		public MembersView () : base() {}
 
-		//cache property containers per type
-		//Dictionary<string,PropertyContainer[]> propContainersCache = new Dictionary<string, PropertyContainer[]>();
-		Dictionary<string,List<CategoryContainer>> categoryContainersCache = new Dictionary<string,List<CategoryContainer>> ();
+		Dictionary<string,List<CategoryContainer>> categoryContainersCache = new Dictionary<string,List<CategoryContainer>> (10);
 
 		[DefaultValue(null)]
 		public virtual object Instance {
@@ -46,7 +44,7 @@ namespace Crow.Coding
 				Type it = instance.GetType ();
 				if (!categoryContainersCache.ContainsKey (it.FullName)) {
 					MemberInfo[] members = it.GetMembers (BindingFlags.Public | BindingFlags.Instance);
-					List<PropertyContainer> props = new List<PropertyContainer> ();
+					List<PropertyContainer> props = new List<PropertyContainer> (50);
 					foreach (MemberInfo m in members) {
 						if (m.MemberType == MemberTypes.Property) {
 							PropertyInfo pi = m as PropertyInfo;
@@ -57,15 +55,13 @@ namespace Crow.Coding
 							props.Add (new PropertyContainer (this, pi));
 						}
 					}
-					//propContainersCache.Add (it.FullName, props.OrderBy (p => p.Name).ToArray ());
-					List<CategoryContainer> categories = new List<CategoryContainer> ();
+					List<CategoryContainer> categories = new List<CategoryContainer> (20);
 
-					foreach (IGrouping<string,PropertyContainer> ig in props.OrderBy (p => p.Name).GroupBy(pc=>pc.DesignCategory)) {
+					foreach (IGrouping<string,PropertyContainer> ig in props.OrderBy (p => p.Name).GroupBy(pc=>pc.DesignCategory))
 						categories.Add(new CategoryContainer(ig.Key, ig.ToArray()));
-					}
+
 					categoryContainersCache.Add (it.FullName, categories);
 				}
-
 
 				Data = categoryContainersCache[it.FullName];
 
@@ -80,43 +76,13 @@ namespace Crow.Coding
 			}
 		}
 		public ProjectItemNode ProjectNode {
-			get { return projFile; }
+			get => projFile;
 			set {
 				if (projFile == value)
 					return;
-
-				//				if (projFile != null)
-				//					projFile.UnregisterEditor (this);
 				projFile = value;
-
-
-
-//				if (projFile != null)
-//					projFile.RegisterEditor (this);
-
 				NotifyValueChanged ("ProjectNode", projFile);
 			}
 		}
-
-//		public void updateSource () {
-//			if (projFile == null)
-//				return;
-//			projFile.UpdateSource (this, (Instance as GraphicObject).GetIML ());
-//		}
-
-//		public override void Paint (ref Context ctx)
-//		{
-//			base.Paint (ref ctx);
-//
-//			if (SelectedIndex < 0)
-//				return;
-//
-//			Rectangle r =  Parent.ContextCoordinates(Items [SelectedIndex].Slot);
-//			ctx.SetSourceRGB (0, 0, 1);
-//			ctx.Rectangle (r);
-//			ctx.LineWidth = 2;
-//			ctx.Stroke ();
-//		}
-
 	}
 }

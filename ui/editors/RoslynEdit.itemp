@@ -2,7 +2,7 @@
 <TabItem QueryClose="OnQueryClose" IsSelected="{²IsSelected}" Caption="{DisplayName}" Template="#ui.EditTabItem.template">
 	<VerticalStack Background="Jet">
 		<HorizontalStack >
-			<RoslynEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"
+			<RoslynEditor2 Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"
 					ExecutingLine="{ExecutingLine}"
 					CurrentLine="{²CurrentLine}" CurrentColumn="{²CurrentColumn}" HasFocus="{IsSelected}"
 					Foreground="Jet" Background="White" Width="Stretched" Height="Stretched"
@@ -33,17 +33,17 @@
 			</VerticalStack>-->
 			
 			<Widget Background="Red" Width="5" Height="5" Visible="{IsDirty}"/>
-			<Label Text="Abs Pos:" Foreground="Black"/>
+			<Label Text="Abs Pos:" Foreground="Grey"/>
 			<Label Text="{../../editor.CurrentPos}" />
-			<Label Text="Hover Line:" Foreground="Black"/>
+			<Label Text="Hover Line:" Foreground="Grey"/>
 			<Label Text="{../../editor.HoverLine}"/>
-			<Label Text="Hover Col:" Foreground="Black"/>
+			<Label Text="Hover Col:" Foreground="Grey"/>
 			<Label Text="{../../editor.HoverColumn}"/>
-			<Label Text="Visual Col:" Foreground="Black"/>
+			<Label Text="Visual Col:" Foreground="Grey"/>
 			<Label Text="{../../editor.VisualColumn}"/>
-			<Label Text="Line:" Foreground="Black"/>
+			<Label Text="Line:" Foreground="Grey"/>
 			<Label Text="{CurrentLine}"/>
-			<Label Text="column:" Foreground="Black"/>
+			<Label Text="column:" Foreground="Grey"/>
 			<Label Text="{CurrentColumn}"/>
 			<!--<Label Text="ScrollX:" Foreground="Black"/>
 			<Label Text="{../../editor.ScrollX}"/>

@@ -1,0 +1,17 @@
+﻿<?xml version="1.0"?>
+<!--<Widget Height="50" Width="50" Background="Green"/>-->
+
+<ListBox Data="{./AvailableColors}" SelectedItem="{²./CurrentColor}" Width="200" Height="200">
+	<!--<Template>
+		<Scroller Name="scroller1" Margin="5">
+			<Wrapper Name="ItemsContainer" Height="Fit" VerticalAlignment="Top"/>
+		</Scroller>
+	</Template>
+	<ItemTemplate>
+		<Border Width="16" Height="16" Background="{}" Foreground="Transparent" Tooltip="{}"
+						MouseEnter="{Foreground=Black}"
+						MouseLeave="{Foreground=Transparent}"/>	
+	</ItemTemplate>-->
+</ListBox>
+
+

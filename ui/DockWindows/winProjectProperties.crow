@@ -1,0 +1,44 @@
+<DockWindow Name="winProjectProperties" Caption="Project Properties"  Width="20%">
+	<VerticalStack DataSource="{CurrentSolution}">
+		<Label Text="{SelectedItem}" />
+		<VerticalStack Height="Fit" DataSource="{../lbProj.SelectedItem}">
+			<HorizontalStack>
+				<Label Text="Name" />
+				<TextBox Text="{Name}" Width="Stretched"/>
+			</HorizontalStack>
+			<HorizontalStack>
+				<Label Text="Unevaluated Value" Width="150"/>
+				<TextBox Text="{UnevaluatedValue}" Width="Stretched"/>
+			</HorizontalStack>
+			<HorizontalStack>
+				<Label Text="Evaluated Value" Width="150"/>
+				<TextBox Text="{EvaluatedValue}" Width="Stretched"/>
+			</HorizontalStack>
+			<HorizontalStack>
+				<Label Text="XML" Width="150"/>
+				<Label Text="{Xml}" Width="Stretched"/>
+			</HorizontalStack>
+			<HorizontalStack>
+				<CheckBox Caption="Reserved" IsChecked="{IsReservedProperty}"/>
+				<CheckBox Caption="Environment" IsChecked="{IsEnvironmentProperty}"/>
+				<CheckBox Caption="Global" IsChecked="{IsGlobalProperty}"/>
+				<CheckBox Caption="Is Imported" IsChecked="{IsImported}"/>
+			</HorizontalStack>
+		</VerticalStack>
+		<ListBox Name="lbProj" DataSource="{SelectedItem}" Data="{Properties}" RootDataLevel="true" >
+			<Template>
+				<Scroller  Name="scroller1"  >
+					<Table Margin="1" Columns="name,50%;value,Stretched" Background="Black"
+						Spacing="1"
+						Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
+				</Scroller>			
+			</Template>
+			<ItemTemplate>
+				<TableRow Height="Fit" Spacing="1" Margin="0">
+					<Label Text="{Name}" Background="Onyx" Height="Stretched"/>
+					<TextBox Text="{UnevaluatedValue}"/>
+				</TableRow>
+			</ItemTemplate>
+		</ListBox>
+	</VerticalStack>
+</DockWindow>

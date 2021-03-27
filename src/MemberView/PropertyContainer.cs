@@ -47,11 +47,9 @@ namespace Crow.Coding
 				return dca == null ? "Divers" : dca.Name;					
 			}
 		}
-		public string Name { get { return pi.Name; }}
+		public string Name => pi.Name;
 		public object Value {
-			get {
-				return imlProjItem?.SelectedItem == null ? null : pi.GetValue(imlProjItem.SelectedItem);
-			}
+			get => imlProjItem?.SelectedItem == null ? null : pi.GetValue(imlProjItem.SelectedItem);
 			set {
 				try {
 					if (value == Value)

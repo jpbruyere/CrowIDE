@@ -32,6 +32,7 @@ namespace Crow.Coding
 				NotifyValueChanged ("SyntaxTree", syntaxTree);
 			}
 		}
+		public SyntaxNode RootNode => SyntaxTree?.GetRoot();
 		/// <summary>
 		/// Positive value means debugger execution location is in this file on line #, negative otherwise.
 		/// </summary>
