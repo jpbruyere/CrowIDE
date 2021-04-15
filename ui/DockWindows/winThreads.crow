@@ -1,0 +1,6 @@
+﻿<?xml version="1.0"?>
+<DockWindow DataSource="{CurrentSolution}" Caption="Threads"  Width="60%">
+	<Container RootDataLevel="true" DataSource="{DbgSession}">
+		<ListBox Template="#Crow.ScrollingListBox.template" Data="{Threads}" SelectedItem="{²CurrentThread}" />
+	</Container>
+</DockWindow>

@@ -255,5 +255,14 @@ namespace Crow
 		   => executedProject.GetItems (ItemNames.ReferencePath);
 		public static IEnumerable<MSB.Framework.ITaskItem> GetCompilerCommandLineArgs (this MSB.Execution.ProjectInstance executedProject)
 			=> executedProject.GetItems (ItemNames.CscCommandLineArgs);
+		public static string GetKindString (this ISymbol symbol) => symbol.Kind.ToString();
+
+		public static string GetLocationString (this Microsoft.CodeAnalysis.Diagnostic diag) {
+			if (diag.Location.IsInSource) {
+				FileLinePositionSpan flps = diag.Location.GetLineSpan();
+				return $"{flps.Path}({flps.StartLinePosition.Line + 1})";
+			}
+			return diag.Location.ToString();
+		}
 	}
 }

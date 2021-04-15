@@ -12,8 +12,23 @@
 </Project>-->
 
 <Project>
+	<!--<UsingTask AssemblyFile="/mnt/devel/CrowIDE/build/Debug/netcoreapp3.1/CrowIDE.dll" TaskName="HookTask" />-->
+	<UsingTask AssemblyFile="../CrowIDE.dll" TaskName="HookTask" />
 	<Target Name="CustomBeforeBuild" AfterTargets="ResolveReferences">		
-        <Message Importance="high" Text="resolve cache -> $(CrowIDEResolveCache) @(ReferencePath->'%(Identity)')" />
-		<WriteLinesToFile File="$(CrowIDEResolveCache)" Lines="@(ReferencePath)" Overwrite="true" Encoding="Unicode" />
+        <!--<Message Importance="high" Text="resolve cache -> $(CrowIDEResolveCache) @(ReferencePath->'%(Identity)')" />
+		<WriteLinesToFile File="$(CrowIDEResolveCache)" Lines="@(ReferencePath)" Overwrite="true" Encoding="Unicode" />-->
+		<HookTask ResolvedReferences="@(ReferencePath)" ProjectFullPath="$(MSBuildProjectFullPath)"/>
+        <!--<ItemGroup>
+            <DynamicItem Include="@(ReferencePath)"/>
+        </ItemGroup>		-->
     </Target>
+	<!--<Target Name="anotherTargetTest" AfterTargets="ResolveReferences">
+        <Message Importance="high" Text="**TEST**  @(PackageReference->'%(Identity)')" />			
+    </Target>
+	<Target Name="CustomAfterBuild2" AfterTargets="ResolveReferences" Outputs="@(ReferencePath)">		
+        <Message Importance="high" Text="AFTER BUILD TARGET" />
+        <ItemGroup>
+            <DynamicItem Include="@(ReferencePath)"/>
+        </ItemGroup>		
+    </Target>-->
 </Project>

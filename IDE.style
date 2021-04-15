@@ -1,11 +1,21 @@
 ﻿//test
-SmallFont = "consolas, 10";
-CodeFont = "consolas, 12";
-IconSize = "20";
+IdeBackground = "DarkGrey";
+IdeDockWinBackground = "DimGrey";
+IdePopBackground = "Jet";
+IdeLogBackground = "DarkGrey";
 
-Label {    
-    //Foreground="Jet";
+SmallFont = "consolas, 10";
+SmallUIFont = "sans, 10";
+CodeFont = "consolas, 12";
+IdeIconSize = "24";
+
+NumericControl {
+	Background="DarkGrey";
 }
+//Label {    
+    //Foreground="Jet";
+	//CacheEnabled="false";
+//}
 icon {
 	Width="14";
 	Height="14";
@@ -26,9 +36,9 @@ MemberViewHStack {
 
 IcoBut {
 	Template = "#ui.IcoBut.template";
-	MinimumSize = "10,10";
-	Width = "${IconSize}";
-	Height = "${IconSize}";
+	MinimumSize = "16,16";
+	Width = "${IdeIconSize}";
+	Height = "${IdeIconSize}";
 	Background = "Onyx";
 }
 
@@ -42,12 +52,8 @@ WinSchema {
 TabView {
 	TabWidth="200";
 	TabHeight="22";
-}
-TabItem {
-	AllowDrag="false";
-	Background="Grey";
-	SelectedBackground="0.9,0.9,0.91,1.0";
-  Foreground="Black";
+	Background="DarkGrey";
+	//CacheEnabled="false";
 }
 TreeItemBorder {
 	CornerRadius="2";
@@ -68,17 +74,24 @@ TreeLabel {
 	Foreground="White";
 }
 Splitter {
-	Thickness="1";
-	Background="Grey";
+	Thickness="1";	
+	Background="Transparent";
+	MouseEnter="{Background=Grey}";
+	MouseLeave="{Background=Transparent}";
 }
 DockWindow {
     //Background="0.18,0.18,0.18,0.9";
-    Background="DimGrey";
+    Background="${IdeDockWinBackground}";
 	Resizable="true";
+	Margin="0";
+}
+DockStack {
+	Margin="0";
+	Spacing="0";
 }
 ColorPicker {
 	Width="200";
-	Background="DimGrey";
+	//Background="DimGrey";
 	Foreground="Grey";
 	Margin="5";
 }
@@ -87,4 +100,7 @@ labColor {
 }
 labColorV {
 	Foreground="White";
+}
+simpleCheckBox {
+	Template="#ui.simpleCheckBox.template";
 }

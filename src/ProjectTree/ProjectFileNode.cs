@@ -60,6 +60,7 @@ namespace Crow.Coding {
 			//Commands.Insert (3, cmdUndo);
 			//Commands.Insert (4, cmdRedo);
 			Commands.Add (cmdClose);
+			Commands.Add (new Command ("test remove node", ()=> this.Parent.Childs.Remove(this)));
 		}
 
 		public string LogicalName =>
@@ -112,9 +113,8 @@ namespace Crow.Coding {
 		public void SignalEditorOfType<T> (){
 			lock (RegisteredEditors) {
 				object[] keys = RegisteredEditors.Keys.ToArray ();
-				foreach (object ed in keys) {
-					T editor = (T)ed;
-					if (editor == null)
+				foreach (object ed in keys) {					
+					if (!(ed is T editor))
 						continue;
 					RegisteredEditors [editor] = false;
 					break;
@@ -188,7 +188,7 @@ namespace Crow.Coding {
 				if (selectedItem == value)
 					return;
 				selectedItem= value;
-				Project.solution.SelectedItemElement = value;
+				Project.Solution.SelectedItemElement = value;
 				NotifyValueChanged ("SelectedItem", selectedItem);
 			}
 		}
@@ -198,7 +198,7 @@ namespace Crow.Coding {
 			using (StreamReader sr = new StreamReader (FullPath))
 				source = sr.ReadToEnd ();
 			origSource = source;
-			Project.solution.OpenItem (this);
+			Project.Solution.OpenItem (this);
 			IsOpened = true;
 			NotifyValueChanged ("IsDirty", false);
 		}
@@ -223,7 +223,7 @@ namespace Crow.Coding {
 		public virtual void Close () {
 			origSource = source = null;
 			IsOpened = false;
-			Project.solution.CloseItem (this);
+			Project.Solution.CloseItem (this);
 		}
 		/*public void Undo(object sender){
 			undo();
@@ -286,7 +286,7 @@ namespace Crow.Coding {
 		}*/
 		public void OnQueryClose (object sender, EventArgs e){
 			if (IsDirty) {
-				MessageBox mb = MessageBox.ShowModal (Project.solution.IDE,
+				MessageBox mb = MessageBox.ShowModal (Project.Solution.IDE,
 					                MessageBox.Type.YesNoCancel, $"{DisplayName} has unsaved changes.\nSave it now?");
 				mb.Yes += (object _sender, EventArgs _e) => { Save (); Close (); };
 				mb.No += (object _sender, EventArgs _e) => Close();

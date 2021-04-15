@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using BreakPoint = Crow.Coding.Debugging.BreakPoint;
 
 namespace Crow.Coding
 {
@@ -44,9 +45,9 @@ namespace Crow.Coding
 			this.ctx = ctx;
 
 			if (editor.Compilation != null) {
-				semanticModel = editor.Compilation.GetSemanticModel (node.SyntaxTree);
-				breakPoints = editor.breakPoints.Where (bp => bp.File == editor.ProjectNode && bp.IsEnabled).ToArray ();
+				semanticModel = editor.Compilation.GetSemanticModel (node.SyntaxTree);				
 			}
+			breakPoints = editor.BreakPoints.Where (bp => bp.File == editor.ProjectNode && bp.IsEnabled).ToArray ();
 
 			CrowIDE ide = editor.IFace as CrowIDE;
 
@@ -72,7 +73,8 @@ namespace Crow.Coding
 			currentLine = 0;
 			firstLine = scrollY;
 			cancel = false;
-			skipped = new Stack<Fold> ();			
+			skipped = new Stack<Fold> ();	
+			skippedLines = 0;		
 
 			lineNumWidth = ctx.TextExtents (editor.totalLines.ToString ()).Width;
 			
@@ -176,41 +178,44 @@ namespace Crow.Coding
 
 			if (token.IsKind (SyntaxKind.XmlTextLiteralNewLineToken) || token.IsKind (SyntaxKind.EndOfFileToken))
 				lineBreak ();
-			else if (!dontPrintLine) {
+			else if (SyntaxFacts.IsLiteralExpression (token.Kind ())) {
+					tf = formatting["LiteralExpression"];
+					print (Regex.Split (token.ToString (), @"\r\n|\r|\n|\\\n"), token.Kind ());
+			} else if (!dontPrintLine) {
 				SyntaxKind kind = token.Kind ();
+				
+				if (!token.IsPartOfStructuredTrivia ()) {										
+					if (SyntaxFacts.IsPredefinedType (kind))
+						tf = formatting["PredefinedType"];
+					else if (SyntaxFacts.IsAccessibilityModifier (kind))
+						tf = formatting["AccessibilityModifier"];
+					else if (SyntaxFacts.IsKeywordKind (kind))
+						tf = formatting["keyword"];
+					else if (SyntaxFacts.IsLiteralExpression (kind))
+						tf = formatting["LiteralExpression"];
+					else if (kind == SyntaxKind.IdentifierToken) {
+						if (semanticModel != null) {
+							SymbolInfo symbInfo = semanticModel.GetSymbolInfo (token.Parent);
+							symbol = symbInfo.Symbol;
+						}
 
-				if (!token.IsPartOfStructuredTrivia ()) {
-					if (semanticModel != null) {
-						SymbolInfo symbInfo = semanticModel.GetSymbolInfo (token.Parent);
-						symbol = symbInfo.Symbol;
-					}
-
-					if (symbol != null && formatting.ContainsKey (symbol.Kind.ToString ())) {
-						tf = formatting[symbol.Kind.ToString()];						
-					} else {
-						if (symbol != null)
-							Console.WriteLine ($"Symbol: Kind:{symbol.Kind}");
-						if (SyntaxFacts.IsPredefinedType (kind))
-							tf = formatting["PredefinedType"];
-						else if (SyntaxFacts.IsAccessibilityModifier (kind))
-							tf = formatting["AccessibilityModifier"];
-						/*else if (SyntaxFacts.IsName (kind))
-							tf = editor.formatting["name"];*/
-						else if (SyntaxFacts.IsKeywordKind (kind))
-							tf = formatting["keyword"];
-						else if (SyntaxFacts.IsLiteralExpression (kind))
-							tf = formatting["LiteralExpression"];
-						else if (kind == SyntaxKind.IdentifierToken) {
+						if (symbol != null && formatting.ContainsKey (symbol.Kind.ToString ()))
+							tf = formatting[symbol.Kind.ToString()];
+						else {
+							if (symbol != null)
+								Console.WriteLine ($"Symbol with no syle: Kind:{symbol.Kind}");
 							if (SyntaxFacts.IsValidIdentifier (token.Text))
 								tf = formatting["identifier"];
 							else
 								tf = formatting["default"];
-						} else
-							tf = formatting["default"];
-					}
+						}
+					} else
+						tf = formatting["default"];
+					
 				}
 
 				print (token.ToString (), kind);
+			
 			}
 
 			VisitTrailingTrivia (token);
@@ -252,7 +257,7 @@ namespace Crow.Coding
 				RectangleD mgR = new RectangleD (bounds.X + RoslynEditor.breakPointsGap, y, editor.leftMargin - RoslynEditor.leftMarginGap - RoslynEditor.breakPointsGap, Math.Ceiling (editor.lineHeight));
 				Color mgFg = Colors.Jet;
 				Color mgBg = Colors.Grey;
-				if (editor.CurrentLine == currentLine && editor.HasFocus) {
+				if (editor.CurrentLine == currentLine){// && editor.HasFocus) {
 					mgFg = Colors.Black;
 					mgBg = Colors.RoyalBlue;
 				}
@@ -311,6 +316,8 @@ namespace Crow.Coding
 
 			if (dontPrintLine) {
 				incrementCurrentLine ();
+				if (skippedLine)
+					skippedLines++;
 				if (printedLinesIndex < 0 && currentLine >= firstLine + skippedLines)
 					printedLinesIndex = 0;									
 			} else {
@@ -357,20 +364,22 @@ namespace Crow.Coding
             }
 
             if (trivia.IsKind (SyntaxKind.DisabledTextTrivia) || trivia.IsKind (SyntaxKind.MultiLineCommentTrivia)) {				
-                string[] lines = Regex.Split (trivia.ToString (), @"\r\n|\r|\n|\\\n");
+                print (Regex.Split (trivia.ToString (), @"\r\n|\r|\n|\\\n"), kind);
                 //foldable = lines.Length > 2;
-                for (int i = 0; i < lines.Length - 1; i++) {
-					if (!dontPrintLine)
-						print (lines[i].TabulatedText (tabSize, currentCol), kind);
-                    lineBreak ();
-                    if (cancel)
-                        return;
-                }
-				if (!dontPrintLine)
-					print (lines[lines.Length - 1].TabulatedText (tabSize, currentCol), kind);
             } else if (!dontPrintLine)
 				print (trivia.TabulatedText (tabSize, currentCol), kind);
         }
+		void print (string[] lines, SyntaxKind kind) {
+			for (int i = 0; i < lines.Length - 1; i++) {
+				if (!dontPrintLine)
+					print (lines[i].TabulatedText (tabSize, currentCol), kind);
+				lineBreak ();
+				if (cancel)
+					return;
+			}
+			if (!dontPrintLine)
+				print (lines[lines.Length - 1].TabulatedText (tabSize, currentCol), kind);			
+		}
 		void print (string lstr, SyntaxKind kind)
 		{
 			checkPrintMargin ();

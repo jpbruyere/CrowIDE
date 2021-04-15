@@ -1,4 +1,5 @@
 default = Jet;Transparent;False;False
+Selection = White;#B6CEE1;False;False
 keyword = Blue;Transparent;False;False
 DocumentationComment = MediumSeaGreen;Transparent;False;True
 Documentation = GreenYellow;Transparent;False;False

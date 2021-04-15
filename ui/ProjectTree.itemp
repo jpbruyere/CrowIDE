@@ -18,15 +18,14 @@
 				<Border Style="TreeItemBorder" >
 					<Group>
 						<Widget Height="Stretched" Background="RoyalBlue" Visible="{IsSelected}"/>
-						<HorizontalStack Spacing="1">
+						<HorizontalStack Spacing="5">
 							<Image Margin="1" Width="9" Height="9" Focusable="true" MouseClick="./onClickForExpand"
 								Path="{./Image}"
 								Visible="{./IsExpandable}"
 								SvgSub="{./IsExpanded}"
 								MouseEnter="{Background=LightGrey}"
 								MouseLeave="{Background=Transparent}"/>
-							<Image Style="TreeIcon"
-								Path="#Crow.Icons.crowproj.svg"/>							
+							<Image Style="TreeIcon" Picture="{Icon}"/>
 							<Label Style="TreeLabel" Text="{./Caption}"/>
 							<Label Text="(startup)" Visible="{IsStartupProject}" Fit="true"/>
 						</HorizontalStack>
@@ -35,6 +34,14 @@
 				<Container Name="Content" Visible="false"/>
 			</VerticalStack>
 		</Template>
+		<HorizontalStack Height="Fit">
+			<Widget Width="8" Height="10"/>
+			<VerticalStack Height="Fit" Name="ItemsContainer"/>
+		</HorizontalStack>
+	</Expandable>
+</ItemTemplate>
+<ItemTemplate DataType="Crow.Coding.SolutionNode" Data="Childs" >
+	<Expandable DataSourceType="TreeNode" Caption="{DisplayName}" Template="#ui.TreeExpandable.template" IsExpanded="{²IsExpanded}">
 		<HorizontalStack Height="Fit">
 			<Widget Width="8" Height="10"/>
 			<VerticalStack Height="Fit" Name="ItemsContainer"/>

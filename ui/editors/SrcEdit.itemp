@@ -1,4 +1,0 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
-<TabItem QueryClose="OnQueryClose" IsSelected="{²IsSelected}" Caption="{DisplayName}" Template="#ui.EditTabItem.template">
-	<IMLContainer Path="#ui.SourceEditor.crow"/>
-</TabItem>

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<VerticalStack DataSourceType="CrowIDE">
+<VerticalStack DataSourceType="CrowIDE" Background="${IdeBackground}">
 	<Menu>
 		<MenuItem Caption="File" Width="Fit" PopWidth="120" DataSource="{CurrentSolution}"  RootDataLevel="true">
 			<MenuItem Command="{CMDNew}" />
@@ -31,6 +31,19 @@
 			<MenuItem Command="{CMDViewGTExp}" />
 			<MenuItem Command="{CMDViewSchema}" />
 			<MenuItem Command="{CMDViewSyntaxThemeEditor}" />
+			<MenuItem Command="{CMDViewDebugger}" />
+			<MenuItem Caption="Debug..." PopWidth="150">
+				<MenuItem Data="{DebugCommands}">
+					<Template>
+						<VerticalStack Name="ItemsContainer"/>
+					</Template>
+					<ItemTemplate>
+						<MenuItem Command="{}" Width="Stretched"/>
+					</ItemTemplate>
+				</MenuItem>
+			</MenuItem>
+
+
 		</MenuItem>
 		<MenuItem Caption="Project" Fit="true" PopWidth="120">
 			<MenuItem Command="{CMDBuild}" />
@@ -47,23 +60,28 @@
 		<!--<Label Margin="3" Text="{}" Background="Jet" Width="Fit"/>
 		<Label Margin="3" Text="{ActiveConfiguration}" Background="Jet" Width="100"/>
 		<Label Margin="3" Text="{ActivePlatform}" Background="Jet" Width="100"/>-->
-		<ComboBox Width="Fit" Data="{Configurations}" SelectedItem="{²ActiveConfiguration}"/>
+		<ComboBox Width="Fit" Data="{Configurations}" SelectedItem="{²ActiveConfiguration}" />
 		<ComboBox Width="Fit" Data="{Platforms}" SelectedItem="{²ActivePlatform}"/>
-		<Button Style="IcoBut" Command="{CMDDebugStart}"/>
-		<Button Style="IcoBut" Command="{CMDDebugPause}"/>
-		<Button Style="IcoBut" Command="{CMDDebugStop}"/>
-		<Button Style="IcoBut" Command="{CMDDebugStepIn}"/>
-		<Button Style="IcoBut" Command="{CMDDebugStepOut}"/>
-		<Button Style="IcoBut" Command="{CMDDebugStepOver}"/>
+		<Widget Width="Stretched"/>
+		<Border Style="ControlBorder" Fit="True">
+			<HorizontalStack>
+				<Button Style="IcoBut" Command="{CMDDebugStart}"/>
+				<Button Style="IcoBut" Command="{CMDDebugPause}"/>
+				<Button Style="IcoBut" Command="{CMDDebugStop}"/>
+				<Button Style="IcoBut" Command="{CMDDebugStepIn}"/>
+				<Button Style="IcoBut" Command="{CMDDebugStepOut}"/>
+				<Button Style="IcoBut" Command="{CMDDebugStepOver}"/>
+			</HorizontalStack>
+		</Border>
 	</HorizontalStack>
-	<DockStack Name="mainDock"  RootDataLevel="true" />
-	<HorizontalStack Margin="2" Background="DimGrey" Height="20">
-		<ProgressBar Visible="{ProgressVisible}" Value="{ProgressValue}" Maximum="{ProgressMax}" Caption="Progress caption" Width="400" Height="Stretched">
+	<DockStack Name="mainDock"  RootDataLevel="true"/>
+	<HorizontalStack Margin="0" Height="Fit" Visible="{ProgressVisible}">
+		<ProgressBar Value="{ProgressValue}" Maximum="{ProgressMax}" Caption="Progress caption" Width="Stretched" Height="Fit" >
 			<Template>
 				<Group>
-					<Gauge Background="{./Background}" Foreground="{./Foreground}" CornerRadius="{./CornerRadius}"
+					<Gauge Background="{./Background}" Foreground="{./Foreground}" CornerRadius="{./CornerRadius}" Height="Stretched"
 						Orientation="{./Orientation}" Minimum="{./Minimum}" Maximum="{./Maximum}" Value="{./Value}"/>
-					<Label Foreground="White" Text="{ProgressMessage}" Width="Stretched"/>
+					<Label Foreground="White" Text="{ProgressMessage}" Width="Stretched" Margin="1"/>
 				</Group>			
 			</Template>
 		</ProgressBar>

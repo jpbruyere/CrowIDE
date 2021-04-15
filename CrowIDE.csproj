@@ -43,21 +43,18 @@
 	
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Build.Locator" Version="1.2.6" />
-		<PackageReference Include="Microsoft.Build" Version="15.*">
+		<PackageReference Include="Microsoft.Build" Version="16.8.*">
 			<ExcludeAssets>runtime</ExcludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.Build.Framework" Version="15.*">
+		<PackageReference Include="Microsoft.Build.Framework" Version="16.8.*">
 			<ExcludeAssets>runtime</ExcludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.*">
+		<PackageReference Include="Microsoft.Build.Tasks.Core" Version="16.8.*">
 			<ExcludeAssets>runtime</ExcludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.*">
+		<PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.8.*">
 			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>	
-		<PackageReference Include="System.CodeDom" Version="5.0.0" />
-		<PackageReference Include="SQLitePCLRaw.core" Version="2.0.3" />
-
+		</PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>    
@@ -66,24 +63,10 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="3.8.0-5.final" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.8.0-5.final" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="3.8.0-5.final" />
-		<PackageReference Include="Microsoft.VisualStudio.TestPlatform.ObjectModel" />
+		<!--<PackageReference Include="Microsoft.VisualStudio.TestPlatform.ObjectModel" />-->
 	</ItemGroup>
 	
 	<ItemGroup>
-	  <Reference Include="System.Threading.Tasks.Dataflow">
-	    <HintPath>..\..\..\usr\share\dotnet\packs\Microsoft.NETCore.App.Ref\3.1.0\ref\netcoreapp3.1\System.Threading.Tasks.Dataflow.dll</HintPath>
-	  </Reference>
+	  	<ProjectReference Include="Crow\Crow\Crow.csproj" />
 	</ItemGroup>
-	<ItemGroup>
-	  <ProjectReference Include="Crow\Crow\Crow.csproj" />
-	</ItemGroup>
-
-	<!--<Target Name="CustomBeforeBuild" AfterTargets="ResolveReferences">		
-        <Message Importance="high" Text="Running MyCustomTarget1...$(SolutionDir) @(ReferencePath->'%(Identity)')" />
-		<WriteLinesToFile File="$(SolutionDir)\test.txt" Lines="@(ReferenceCopyLocalPaths)" Overwrite="true" Encoding="Unicode" />
-		<Message Importance="high" Text="$(MSBuildUserExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.targets\ImportBefore\" />
-		<CreateProperty Value="@(ReferencePath)">
-			<Output TaskParameter="Value" PropertyName="ResolvedReferences" />
-		</CreateProperty>
-    </Target>-->
 </Project>

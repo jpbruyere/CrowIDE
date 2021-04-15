@@ -51,8 +51,6 @@ namespace Crow.Coding
 			Widget go = sender as Widget;
 
 			lock (go.IFace.UpdateMutex) {				
-				go.IFace.DragImageHeight = dragIconSize;
-				go.IFace.DragImageWidth = dragIconSize;
 				SvgPicture pic = new SvgPicture (IconPath);
 				//pic.Load (go.IFace, IconPath);
 				ImageSurface img = new ImageSurface (Format.Argb32, dragIconSize, dragIconSize);
@@ -65,7 +63,7 @@ namespace Crow.Coding
 					ctx.Fill ();
 
 				}
-				go.IFace.DragImage = img;
+				go.IFace.CreateDragImage (img, new Rectangle (new Size (dragIconSize)));								
 			}
 		}
 		void onEndDrag (object sender, DragDropEventArgs e)

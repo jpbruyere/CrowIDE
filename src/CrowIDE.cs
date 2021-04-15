@@ -48,9 +48,10 @@ namespace Crow.Coding
 		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, cmdCloseSolution, CMDQuit,
 		CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDHelp, CMDAbout, CMDOptions,
 		CMDViewGTExp, CMDViewProps, CMDViewProj, CMDViewProjProps, CMDViewErrors, CMDViewLog, CMDViewSolution, CMDViewEditor, CMDViewProperties,
-		CMDViewToolbox, CMDViewSchema, CMDViewStyling,CMDViewDesign, CMDViewSyntaxTree, CMDViewSyntaxThemeEditor,
+		CMDViewToolbox, CMDViewSchema, CMDViewStyling,CMDViewDesign, CMDViewSyntaxTree, CMDViewSyntaxThemeEditor, CMDViewDebugger,
 		CMDBuild, CMDClean, CMDRestore, CMDStartDebug;
 
+		public CommandGroup DebugCommands = new CommandGroup("Debug");
 		void initCommands () {
 			CMDNew = new Command(new Action(newFile)) { Caption = "New", Icon = IcoNew, CanExecute = true};
 			CMDOpen = new Command(new Action(openFileDialog)) { Caption = "Open...", Icon = IcoOpen };
@@ -92,6 +93,8 @@ namespace Crow.Coding
 			{ Caption = "Syntax Tree", CanExecute = true };
 			CMDViewSyntaxThemeEditor = new Command (new Action (() => loadWindow ("#ui.winThemeEditor.crow", this)))
 			{ Caption = "Syntax Theme Editor", CanExecute = true };
+			CMDViewDebugger = new Command (new Action (() => loadWindow ("#ui.winDebugger.crow", this)))
+			{ Caption = "Debugger", CanExecute = true };
 
 			CMDBuild = new Command(new Action(() => CurrentSolution?.Build ("Build")))
 			{ Caption = "Compile Solution", CanExecute = false};
@@ -101,6 +104,13 @@ namespace Crow.Coding
 			{ Caption = "Restore packages", CanExecute = false};
 			CMDViewProjProps = new Command (new Action (() => loadWindow ("#ui.ProjectProperties.crow")))
 			{ Caption = "Project Properties", CanExecute = false };
+
+			DebugCommands.Add (new Command ("Watches", () => loadWindow ("#ui.winWatches.crow", this)));
+			DebugCommands.Add (new Command ("Call Stack", () => loadWindow ("#ui.winStackFrames.crow", this)));
+			DebugCommands.Add (new Command ("Threads", () => loadWindow ("#ui.winThreads.crow", this)));
+			DebugCommands.Add (new Command ("BreakPoints", () => loadWindow ("#ui.winBreakPoints.crow", this)));
+			DebugCommands.Add (new Command ("Debugger Logs", () => loadWindow ("#ui.winDebuggerLog.crow", this)));
+			DebugCommands.Add (new Command ("Debugger", () => loadWindow ("#ui.winDebugger.crow", this)));
 		}
 
 		void openFileDialog () {			
@@ -134,23 +144,59 @@ namespace Crow.Coding
 		string mainLoggerSearchString;
 
 
-
-		public ProjectCollection projectCollection { get; private set; }
+		
 		public ObservableList<BuildEventArgs> BuildEvents { get; private set; } = new ObservableList<BuildEventArgs> ();
 
 		//public MSBuildWorkspace Workspace { get; private set; }
 		public ProgressLog ProgressLogger { get; private set; }
+		public IdeLogger MainIdeLogger { get; private set; }
+		public Dictionary<string, string> GlobalProperties { get; private set; }
 
 		SolutionView currentSolution;
 		ProjectView currentProject;
 		Editor currentEditor;
 
-		public CrowIDE () : base (1024, 800) { }
+		public CrowIDE () : base (Configuration.Global.Get<int>("MainWinWidth"), Configuration.Global.Get<int>("MainWinHeight")) {
+
+		}
+		public override void ProcessResize(Rectangle bounds)
+		{
+			base.ProcessResize(bounds);
+			Configuration.Global.Set ("MainWinWidth", clientRectangle.Width);
+			Configuration.Global.Set ("MainWinHeight", clientRectangle.Height);
+		}
 
 		protected override void OnInitialized () {
 			base.OnInitialized ();
-			initIde ();
+			
+			MainIdeLogger  = new IdeLogger (this, MainLoggerVerbosity);
+			ProgressLogger = new ProgressLog (this);
+
+			GlobalProperties = new Dictionary<string, string>();
+			GlobalProperties.Add ("RestoreConfigFile", Path.Combine (
+							Path.Combine (
+								Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "NuGet"),
+								"NuGet.Config"));
+			string crowIdePath = Path.GetDirectoryName (Assembly.GetEntryAssembly ().Location);
+			GlobalProperties.Add ("CrowIDEPath", crowIdePath);
+			//https://docs.microsoft.com/en-us/visualstudio/msbuild/customize-your-build?view=vs-2019
+			GlobalProperties.Add ("CustomBeforeMicrosoftCommonTargets", Path.Combine(crowIdePath, @"src\CustomCrowIDE.targets"));
+			//projectCollection.SetGlobalProperty ("CustomAfterMicrosoftCommonProps", Path.Combine (crowIdePath, @"src\CustomCrowIDE.props"));
+			
+			initCommands ();
+
+			Widget go = Load (@"#ui.CrowIDE.crow");
+			go.DataSource = this;
+
+			mainDock = go.FindByName ("mainDock") as DockStack;
+
+			instFileDlg = Instantiator.CreateFromImlFragment
+				(this, "<FileDialog Caption='Open File' CurrentDirectory='{²CurrentDirectory}' SearchPattern='*.sln' OkClicked='onFileOpen'/>");
+
+			reloadSyntaxTheme (this);
+
 			reloadWinConfigs ();
+			
 			if (ReopenLastSolution && !string.IsNullOrEmpty (LastOpenSolution)) 
 				Task.Run (() => loadSolution (LastOpenSolution));
 		}
@@ -165,37 +211,6 @@ namespace Crow.Coding
 				return base.OnKeyDown (key);
 			}
 			return true;
-		}
-
-		void initIde() {
-			//var host = MefHostServices.Create (MSBuildMefHostServices.DefaultAssemblies);			
-			ProgressLogger = new ProgressLog (this);			
-
-			projectCollection = new ProjectCollection (null,
-										new ILogger [] { new IdeLogger (this, MainLoggerVerbosity) },
-										ToolsetDefinitionLocations.Default);
-
-			projectCollection.SetGlobalProperty ("RestoreConfigFile", Path.Combine (
-							Path.Combine (
-								Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.UserProfile), ".nuget"), "NuGet"),
-								"NuGet.Config"));
-			string crowIdePath = Path.GetDirectoryName (Assembly.GetEntryAssembly ().Location);
-			projectCollection.SetGlobalProperty ("CrowIDEPath", crowIdePath);
-			//https://docs.microsoft.com/en-us/visualstudio/msbuild/customize-your-build?view=vs-2019
-			projectCollection.SetGlobalProperty ("CustomBeforeMicrosoftCommonTargets", Path.Combine(crowIdePath, @"src\CustomCrowIDE.targets"));
-			//projectCollection.SetGlobalProperty ("CustomAfterMicrosoftCommonProps", Path.Combine (crowIdePath, @"src\CustomCrowIDE.props"));
-			
-			initCommands ();
-
-			Widget go = Load (@"#ui.CrowIDE.crow");
-			go.DataSource = this;
-
-			mainDock = go.FindByName ("mainDock") as DockStack;
-
-			instFileDlg = Instantiator.CreateFromImlFragment
-				(this, "<FileDialog Caption='Open File' CurrentDirectory='{²CurrentDirectory}' SearchPattern='*.sln' OkClicked='onFileOpen'/>");
-
-			reloadSyntaxTheme ();
 		}
 
 		public void onFileOpen (object sender, EventArgs e)
@@ -221,7 +236,7 @@ namespace Crow.Coding
 			CurrentSolution = new SolutionView (this, filePath);
 			LastOpenSolution = filePath;
 			CurrentSolution.ReopenItemsSavedInUserConfig ();
-			ProgressVisible = false;
+			ProgressTerminate();
 		}
 		void closeSolution () {
 			lock (UpdateMutex) {
@@ -287,7 +302,7 @@ namespace Crow.Coding
 			}
 		}
 		public string LastOpenSolution {
-			get { return Crow.Configuration.Global.Get<string>("LastOpenSolution");}
+			get => Crow.Configuration.Global.Get<string>("LastOpenSolution");
 			set {
 				if (LastOpenSolution == value)
 					return;
@@ -295,6 +310,7 @@ namespace Crow.Coding
 				NotifyValueChanged (value);
 			}
 		}
+		
 		#region Options
 		public string SDKFolder {
 			get => Configuration.Global.Get<string> ("SDKFolder");
@@ -314,36 +330,44 @@ namespace Crow.Coding
 				NotifyValueChanged (MSBuildRoot);
 			}
 		}
-		public void onClickSelectSDKFolder (object sender, EventArgs e) {
-			this.LoadIMLFragment (@"
+		public Command CMDOptions_SelectSDKFolder = new Command ("...",
+			(sender) => {
+				CrowIDE ide = (sender as Widget).IFace as CrowIDE;
+				FileDialog dlg = ide.LoadIMLFragment<FileDialog> (@"
 				<FileDialog Caption='Select SDK Folder' CurrentDirectory='{SDKFolder}'
-							ShowFiles='false' ShowHidden='true' OkClicked='onSelectSDKFolder'/>
-			").DataSource = this;
-		}
-		public void onSelectSDKFolder (object sender, EventArgs e) {
-			FileDialog fd = sender as FileDialog;
-			SDKFolder = fd.SelectedDirectory;
-		}
-		public void onClickSelectMSBuildRoot (object sender, EventArgs e) {
-			this.LoadIMLFragment (@"
-				<FileDialog Caption='Select MSBuild Root' CurrentDirectory='{MSBuildRoot}'
-							ShowFiles='false' ShowHidden='true' OkClicked='onSelectMSBuildRoot'/>
-			").DataSource = this;
-		}
-		public void onSelectMSBuildRoot (object sender, EventArgs e) {
-			FileDialog fd = sender as FileDialog;
-			MSBuildRoot = fd.SelectedDirectory;
-		}
-		public void onClickSelectNetcoredbgPath (object sender, EventArgs e) {
-			this.LoadIMLFragment (@"
-				<FileDialog Caption='Select netcoredbg executable path' CurrentDirectory='{NetcoredbgPath}'
-							ShowFiles='true' ShowHidden='true' OkClicked='onSelectNetcoredbgPath'/>
-			").DataSource = this;
-		}
-		public void onSelectNetcoredbgPath (object sender, EventArgs e) {
-			FileDialog fd = sender as FileDialog;
-			NetcoredbgPath = fd.SelectedFileFullPath;
-		}
+							ShowFiles='false' ShowHidden='true' />");
+				dlg.OkClicked += (sender, e) => ide.SDKFolder = (sender as FileDialog).SelectedFileFullPath;
+				dlg.DataSource = ide;
+			}
+		);
+		public Command CMDOptions_SelectMSBuildRoot = new Command ("...",
+			(sender) => {
+				CrowIDE ide = (sender as Widget).IFace as CrowIDE;
+				FileDialog dlg = ide.LoadIMLFragment<FileDialog> (@"
+					<FileDialog Caption='Select MSBuild Root' CurrentDirectory='{MSBuildRoot}'
+								ShowFiles='false' ShowHidden='true'/>");
+				dlg.OkClicked += (sender, e) => ide.MSBuildRoot = (sender as FileDialog).SelectedFileFullPath;
+				dlg.DataSource = ide;
+			}
+		);
+		public Command CMDOptions_SelectNetcoredbgPath = new Command ("...",
+			(sender) => {
+				CrowIDE ide = (sender as Widget).IFace as CrowIDE;
+				FileDialog dlg = ide.LoadIMLFragment<FileDialog> (@"
+					<FileDialog Caption='Select netcoredbg executable path' CurrentDirectory='{NetcoredbgPath}'
+								ShowFiles='true' ShowHidden='true'/>
+				");
+				dlg.OkClicked += (sender, e) => ide.NetcoredbgPath = (sender as FileDialog).SelectedFileFullPath;
+				dlg.DataSource = ide;
+			}
+		);
+		public Command CMDSyntaxTheme_Reload = new Command ("Reload",
+			(sender) => reloadSyntaxTheme ((sender as Widget).IFace as CrowIDE));
+		public Command CMDSyntaxTheme_Save = new Command ("Save",
+			(sender) => saveSyntaxTheme ((sender as Widget).IFace as CrowIDE));
+		public Command CMDSyntaxTheme_SaveAs = new Command ("Save As...",
+			(sender) => saveSyntaxThemeAs ((sender as Widget).IFace as CrowIDE));
+
 		public bool ReopenLastSolution {
 			get => Crow.Configuration.Global.Get<bool>("ReopenLastSolution");
 			set {
@@ -358,8 +382,7 @@ namespace Crow.Coding
 			set {
 				if (MainLoggerVerbosity == value)
 					return;
-				if (projectCollection != null)
-					projectCollection.Loggers.First ().Verbosity = value;
+				MainIdeLogger.Verbosity = value;
 				Crow.Configuration.Global.Set ("MainLoggerVerbosity", value);
 				NotifyValueChanged ("MainLoggerVerbosity", value);
 			}
@@ -397,67 +420,73 @@ namespace Crow.Coding
 					editor.RegisterForRedraw ();				
 			}
 		}
+		
 		public Dictionary<string, TextFormatting> SyntaxTheme;
-
-		void reloadSyntaxTheme () {			
-			if (!File.Exists (syntaxThemeFile))
+		static void reloadSyntaxTheme (CrowIDE ide) {			
+			if (!File.Exists (ide.syntaxThemeFile))
 				return;
-			SyntaxTheme = new Dictionary<string, TextFormatting> ();
-			using (StreamReader sr = new StreamReader(syntaxThemeFile)) {
+			ide.SyntaxTheme = new Dictionary<string, TextFormatting> ();
+			using (StreamReader sr = new StreamReader(ide.syntaxThemeFile)) {
 				while (!sr.EndOfStream) {
 					string l = sr.ReadLine ();
 					string[] tmp = l.Split ('=');
-					SyntaxTheme.Add (tmp[0].Trim (), TextFormatting.Parse (tmp[1].Trim ()));
+					ide.SyntaxTheme.Add (tmp[0].Trim (), TextFormatting.Parse (tmp[1].Trim ()));
 				}
             }
-			NotifyValueChanged ("SyntaxTheme", SyntaxTheme);
-			refreshAllEditors ();
+			ide.NotifyValueChanged ("SyntaxTheme", ide.SyntaxTheme);
+			ide.refreshAllEditors ();
 		}
-		void saveSyntaxTheme () {
-			using (StreamWriter sw = new StreamWriter (syntaxThemeFile)) {
-				foreach (string key in SyntaxTheme.Keys) {
-					sw.WriteLine ($"{key} = {SyntaxTheme[key]}");
+		static void saveSyntaxTheme (CrowIDE ide) {
+			using (StreamWriter sw = new StreamWriter (ide.syntaxThemeFile)) {
+				foreach (string key in ide.SyntaxTheme.Keys) {
+					sw.WriteLine ($"{key} = {ide.SyntaxTheme[key]}");
 				}
 			}
 		}
-		void saveSyntaxThemeAs ()
+		static void saveSyntaxThemeAs (CrowIDE ide)
 		{
-			string dir = Path.GetDirectoryName (syntaxThemeFile);
-			if (string.IsNullOrEmpty (dir))
-				dir = Directory.GetCurrentDirectory ();
-			LoadIMLFragment (@"<FileDialog Width='60%' Height='50%' Caption='Save as ...' CurrentDirectory='" +
-				dir + "' SelectedFile='" +
-				Path.GetFileName(syntaxThemeFile) + "' OkClicked='saveSyntaxThemeAsDialog_OkClicked'/>").DataSource = this;
+			FileDialog fd = ide.LoadIMLFragment<FileDialog> (@"<FileDialog Width='60%' Height='50%' Caption='Save as ...' CurrentDirectory='" +
+				ide.SyntaxThemeDirectory + "' SelectedFile='" +
+				Path.GetFileName(ide.syntaxThemeFile) + "' OkClicked='saveSyntaxThemeAsDialog_OkClicked'/>");			
+			fd.DataSource = ide;
+			fd.OkClicked += (sender, e) => {
+				FileDialog fd = sender as FileDialog;
+
+				if (string.IsNullOrEmpty (fd.SelectedFileFullPath))
+					return;
+
+				if (File.Exists(fd.SelectedFileFullPath)) {
+					MessageBox mb = MessageBox.ShowModal (ide, MessageBox.Type.YesNo, "File exists, overwrite?");
+					mb.Yes += (sender2, e2) => {
+						ide.SyntaxThemeName = Path.GetFileNameWithoutExtension(fd.SelectedFile);
+						ide.SyntaxThemeDirectory = fd.SelectedDirectory;
+						saveSyntaxTheme (ide);
+					};
+					return;
+				}
+
+				ide.SyntaxThemeName = Path.GetFileNameWithoutExtension(fd.SelectedFile);
+				saveSyntaxTheme (ide);
+			};
 		}
-		void saveSyntaxThemeAsDialog_OkClicked (object sender, EventArgs e)
-		{
-			FileDialog fd = sender as FileDialog;
 
-			if (string.IsNullOrEmpty (fd.SelectedFileFullPath))
-				return;
-
-			if (File.Exists(fd.SelectedFileFullPath)) {
-				MessageBox mb = MessageBox.ShowModal (this, MessageBox.Type.YesNo, "File exists, overwrite?");
-				mb.Yes += (sender2, e2) => {
-					SyntaxThemeName = Path.GetFileNameWithoutExtension(fd.SelectedFile);
-					saveSyntaxTheme ();
-				};
-				return;
+		string SyntaxThemeDirectory {
+			get => Configuration.Global.Get<string> ("SyntaxThemeDirectory") ??
+					Path.Combine (Path.GetDirectoryName (Assembly.GetEntryAssembly ().Location), "SyntaxThemes");
+			set {
+				if (SyntaxThemeDirectory == value)
+					return;
+				Configuration.Global.Set ("SyntaxThemeDirectory", value);				
+				NotifyValueChanged ("SyntaxThemeDirectory", (object)SyntaxThemeDirectory);
+				NotifyValueChanged ("AvailableSyntaxThemes", (object)AvailableSyntaxThemes);
+				reloadSyntaxTheme(this);
 			}
-
-			SyntaxThemeName = Path.GetFileNameWithoutExtension(fd.SelectedFile);
-			saveSyntaxTheme ();
 		}
-		private void onClickReloadSyntaxTheme (object sender, MouseButtonEventArgs e) => reloadSyntaxTheme ();
-		private void onClickSaveSyntaxTheme (object sender, MouseButtonEventArgs e) => saveSyntaxTheme ();
-		private void onClickSaveSyntaxThemeAs (object sender, MouseButtonEventArgs e) => saveSyntaxThemeAs ();
-
-		string syntaxThemeDirectory => Path.Combine (Path.GetDirectoryName (Assembly.GetEntryAssembly ().Location), "SyntaxThemes");
-		string syntaxThemeFile => Path.Combine (syntaxThemeDirectory, $"{SyntaxThemeName}.syntax");
+		string syntaxThemeFile => Path.Combine (SyntaxThemeDirectory, $"{SyntaxThemeName}.syntax");
 
 		public string[] AvailableSyntaxThemes {
 			get {
-				string[] tmp = Directory.GetFiles (syntaxThemeDirectory);
+				string[] tmp = Directory.GetFiles (SyntaxThemeDirectory);
                 for (int i = 0; i < tmp.Length; i++)
 					tmp[i] = Path.GetFileNameWithoutExtension (tmp[i]);
 				return tmp;
@@ -470,7 +499,7 @@ namespace Crow.Coding
 					return;
 				Configuration.Global.Set ("SyntaxThemeName", value);
 				NotifyValueChanged ("SyntaxThemeName", (object)SyntaxThemeName);
-				reloadSyntaxTheme ();
+				reloadSyntaxTheme (this);
 			}
 		}
 
@@ -546,6 +575,9 @@ namespace Crow.Coding
 			ProgressValue += steps;
 			if (!string.IsNullOrEmpty (message))
 				ProgressMessage = message;
+		}
+		public void ProgressTerminate () {
+			ProgressVisible = false;
 		}
 		#endregion
 

@@ -30,21 +30,21 @@ namespace Crow.Coding
 		#region CTOR
 		public ProjectNode () { }
 		public ProjectNode (ProjectView project, ItemType _type, string _name) : this(project){			
-			type = _type;
+			Type = _type;
 			name = _name;
 		}
 		public ProjectNode (ProjectView project){
 			Project = project;
 		}
 		#endregion
-
-		ItemType type;
+		
 
 		public ProjectView Project;
+		public virtual ItemType Type { get; protected set; }
 
 		//string iconSub = "";
 
-		public virtual Picture Icon {
+		public override Picture Icon {
 			get {
 				switch (Type) {
 				case ItemType.Reference:
@@ -64,7 +64,7 @@ namespace Crow.Coding
 				}
 			}
 		}
-		public string IconSub {
+		public override string IconSub {
 			get {
 				switch (Type) {
 				//case ItemType.ReferenceGroup:
@@ -77,11 +77,7 @@ namespace Crow.Coding
 			}
 		
 		}
-
-		public virtual ItemType Type {
-			get { return type; }
-		}
-
+		
 		public override bool IsExpanded
 		{
 			get => base.IsExpanded;

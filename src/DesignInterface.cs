@@ -44,9 +44,11 @@ namespace Crow.Coding
 		}
 		public override Stream GetStreamFromPath (string path) {
 			ProjectFileNode pi;
-			if (ProjFile.Project.solution.TryGetProjectFileFromPath (path, out pi)) {
+			if (ProjFile.Project.TryGetProjectFileFromPath (path, out pi)) {
 				return new FileStream (pi.FullPath, FileMode.Open);
 			}
+			if (ProjFile.Project.TryGetStreamFromPath (path, out Stream stream))
+				return stream;
 			throw new Exception ($"In Design File not found: {path}");
 		}
 
@@ -145,7 +147,7 @@ namespace Crow.Coding
 			return false;		
 		}
 	
-		protected override void processLayouting ()
+		/*protected override void processLayouting ()
 		{
 			#if MEASURE_TIME
 			layoutingMeasure.StartCycle();
@@ -171,7 +173,7 @@ namespace Crow.Coding
 			#if MEASURE_TIME
 			layoutingMeasure.StopCycle();
 			#endif
-		}
+		}*/
 	}
 }
 

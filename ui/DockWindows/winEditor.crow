@@ -1,34 +1,49 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Name="winEditor" Caption="Edit View">
+<DockWindow Name="winEditor" Caption="Edit View" Background="${IdeBackground}">
 	<EditPane DataSource="{CurrentSolution}"  RootDataLevel="true"
 		SelectedItem="{²SelectedItem}"
-		SelectedItemElement="{²SelectedItemElement}" Data="{OpenedItems}" DataTest="Extension"		
-		ItemTemplate="#ui.EditPane.itemp">
+		SelectedItemElement="{²SelectedItemElement}" Data="{OpenedItems}" DataTest="Extension">
 		<Template>
-			<TabView Name="ItemsContainer" Orientation="Horizontal" />
-			<!--<VerticalStack Width="Stretched" Height="Stretched">
-				<Label Text="{SelectedItem}"/>
-				<Label Text="{./SelectedItem}"/>
-				<Label Text="{./SelectedItemElement}"/>									
-			</VerticalStack>-->
-		</Template>	
+			<VerticalStack Spacing="0" > 
+				<ListBox Data="{./Items}" Fit="true" HorizontalAlignment="Left" VerticalAlignment="Top" > 
+					<Template>
+						<HorizontalStack Name="ItemsContainer" />
+					</Template>
+					<ItemTemplate>
+						<ListItem RootDataLevel="true" Fit="true" Background="Transparent" IsSelected="{IsVisible}"								
+								Selected="{.DataSource.IsVisible='true'};{Background=${IdeDockWinBackground}}"
+								Unselected="{.DataSource.IsVisible='false'};{Background=Transparent}">
+							<HorizontalStack DataSource="{DataSource}" Margin="3" Spacing="5">
+								<Image Style="TreeIcon" Picture="{Icon}"/>
+								<Label Text="{Name}" Tooltip="{FullPath}" ContextCommands="{Commands}" />
+								<Border CornerRadius="5" BorderWidth="1" Foreground="Transparent"  Height="12" Width="12"
+											MouseEnter="{Foreground=White}" MouseLeave="{Foreground=Transparent}">
+									<Image Focusable="true" Name="Image" Margin="0" Width="Stretched" Height="Stretched" Path="#Crow.Icons.exit2.svg"
+										 MouseClick="OnQueryClose"/>
+								</Border>								
+							</HorizontalStack>
+						</ListItem>
+					</ItemTemplate>
+				</ListBox>
+				<Group Name="ItemsContainer" Background="${IdeDockWinBackground}"/>
+			</VerticalStack>		
+		</Template>
 		<ItemTemplate>	
-			<TabItem Caption="{DisplayName}" QueryClose="OnQueryClose" >
+			<Container Name="{DisplayName}"  >
 				<Label Text="Error" Background="Red"/>
-			</TabItem>
+			</Container>
 		</ItemTemplate>
 		<ItemTemplate Path="#ui.SvgEdit.itemp" DataType=".svg"/>
-
 		<ItemTemplate Path="#ui.RoslynEdit.itemp" DataType=".cs"/>
-		<!--<ItemTemplate Path="#ui.SrcEdit.itemp" DataType=".cs"/>-->
-		<ItemTemplate Path="#ui.SrcEdit.itemp" DataType=".style"/>
-		<ItemTemplate Path="#ui.SrcEdit.itemp" DataType=".csproj"/>
-		<ItemTemplate Path="#ui.SrcEdit.itemp" DataType=".xml"/>
-		<ItemTemplate Path="#ui.SrcEdit.itemp" DataType=".md"/>
+		<!--<ItemTemplate Path="#ui.SourceEditor.crow" DataType=".cs"/>-->
+		<ItemTemplate Path="#ui.SourceEditor.crow" DataType=".style"/>
+		<ItemTemplate Path="#ui.SourceEditor.crow" DataType=".csproj"/>
+		<ItemTemplate Path="#ui.SourceEditor.crow" DataType=".xml"/>
+		<ItemTemplate Path="#ui.SourceEditor.crow" DataType=".md"/>
 
 		<ItemTemplate Path="#ui.IMLEdit.itemp" DataType=".crow"/>
 		<ItemTemplate Path="#ui.IMLEdit.itemp" DataType=".goml"/>
 		<ItemTemplate Path="#ui.IMLEdit.itemp" DataType=".itemp"/>
-		<ItemTemplate Path="#ui.IMLEdit.itemp" DataType=".template"/>			
+		<ItemTemplate Path="#ui.IMLEdit.itemp" DataType=".template"/>
 	</EditPane>
 </DockWindow>

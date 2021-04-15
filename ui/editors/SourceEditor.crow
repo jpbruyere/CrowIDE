@@ -1,7 +1,10 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
-<VerticalStack>
-	<HorizontalStack >
-		<SourceEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="2"
+<VerticalStack Name="{DisplayName}" Spacing="0" IsVisible="{²IsSelected}" >
+	<HorizontalStack Height="Fit" Margin="2">
+		<Label Text="{}"/>
+	</HorizontalStack>
+	<HorizontalStack Spacing="0">
+		<SourceEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"
 				CurrentLine="{²CurrentLine}" CurrentColumn="{²CurrentColumn}" HasFocus="{IsSelected}"
 				Foreground="Jet" Background="White" Width="Stretched" Height="Stretched"
 				ProjectNode="{}"  KeyDown="textView_KeyDown"/>
@@ -18,15 +21,15 @@
 		<Label Text="{../../editor.HoverError}" Width="Stretched" Foreground="Red"/>
 		<Widget Background="Red" Width="5" Height="5" Visible="{IsDirty}"/>
 		<Label Text="Hover Line:" Foreground="Black"/>
-		<Label Text="{../../editor.HoverLine}" Foreground="Grey"/>
+		<Label Text="{../../editor.HoverLine}" Foreground="White"/>
 		<Widget Height="5" Width="10"/>
 		<Label Text="Line:" Foreground="Black"/>
-		<Label Text="{CurrentLine}" Foreground="Grey"/>
+		<Label Text="{CurrentLine}" Foreground="White"/>
 		<Widget Height="5" Width="10"/>
 		<Label Text="column:" Foreground="Black"/>
-		<Label Text="{CurrentColumn}" Foreground="Grey"/>
+		<Label Text="{CurrentColumn}" Foreground="White"/>
 		<Widget Height="5" Width="10"/>
 		<Label Text="ScrollX:" Foreground="Black"/>
-		<Label Text="{../../editor.ScrollX}" Foreground="Grey"/>
+		<Label Text="{../../editor.ScrollX}" Foreground="White"/>
 	</HorizontalStack>
 </VerticalStack>

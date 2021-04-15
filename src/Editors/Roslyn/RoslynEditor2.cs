@@ -514,7 +514,7 @@ namespace Crow.Coding
 				fe = this.fe,
 				lineHeight = this.lineHeight,
 				scrollX = this.ScrollX,
-				semanticModel = CSProjectItm.Project.Compilation.GetSemanticModel (SyntaxTree)					
+				semanticModel = CSProjectItm.Project.Compilation?.GetSemanticModel (SyntaxTree)					
 			};
 			gr.SetSource (Colors.DarkBlue);
 			stp.Draw (buffer, SyntaxTree, gr, ScrollY, ScrollY + visibleLines);

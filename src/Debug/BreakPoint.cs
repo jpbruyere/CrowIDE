@@ -1,27 +1,111 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
+﻿using System.Diagnostics;
 
-namespace Crow.Coding
+namespace Crow.Coding.Debugging
 {
-    public struct BreakPoint : IEquatable<BreakPoint>
-    {
-        public CSProjectItem File;
-        public int Line;
-        public bool IsEnabled;
+	[DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+	public class BreakPoint : DebuggerObject
+	{
+		int index = -1;
+		public string Func;
+		string fileName;
+		string fileFullName;
+		int line;
+		bool isEnabled;
 
-        public BreakPoint (CSProjectItem file, int line, bool isEnabled = true) {
-            File = file;
-            Line = line;
-            IsEnabled = isEnabled;
-        }
+		string type;
+		string disp;
+		string warning;
 
-        public BreakPoint WithIsEnabledToogled => new BreakPoint (File, Line, !IsEnabled);
+		public CSProjectItem File;
+		public int Index {
+			get => index;
+			set {
+				if (index == value)
+					return;
+				index = value;
+				NotifyValueChanged(index);
+			}
+		}
+		public int Line {
+			get => line;
+			set {
+				if (line == value)
+					return;
+				line = value;
+				NotifyValueChanged (line);
+			}
+		}
+		public bool IsEnabled {
+			get => isEnabled;
+			set {
+				if (isEnabled == value)
+					return;
+				isEnabled = value;
+				NotifyValueChanged (isEnabled);
+			}
+		}
+		public string Type {
+			get => type;
+			set {
+				if (type == value)
+					return;
+				type = value;
+				NotifyValueChanged (type);
+			}
+		}
+		public string Disp {
+			get => disp;
+			set {
+				if (disp == value)
+					return;
+				disp = value;
+				NotifyValueChanged (disp);
+			}
+		}
+		public string Warning {
+			get => warning;
+			set {
+				if (warning == value)
+					return;
+				warning = value;
+				NotifyValueChanged (warning);
+			}
+		}
+		public string FileName {
+			get => fileName;
+			set {
+				if (fileName == value)
+					return;
+				fileName = value;
+				NotifyValueChanged (fileName);
+			}
+		}
+		public string FileFullName {
+			get => fileFullName;
+			set {
+				if (fileFullName == value)
+					return;
+				fileFullName = value;
+				NotifyValueChanged (fileFullName);
+			}
+		}
 
-        public bool Equals (BreakPoint other) =>
-            File.FullPath == other.File.FullPath && Line == other.Line;
-        public override int GetHashCode () => HashCode.Combine (File.FullPath, Line);        
-        public override string ToString () => $"{File.FullPath}:{Line}";
-    }
+		public BreakPoint(CSProjectItem file, int line, bool isEnabled = true)
+		{
+			File = file;
+			Line = line;
+			IsEnabled = isEnabled;
+		}
+
+		public void UpdateLocation (StackFrame frame) {
+			FileName = frame.File;
+			FileFullName = frame.FileFullName;
+			Func = frame.Function;
+			Line = frame.Line - 1;
+		}
+
+		public override string ToString() => $"{Index}:{Type} {File.FullPath}:{Line} enabled:{IsEnabled}";
+
+		private string GetDebuggerDisplay() => ToString();
+	}
 }

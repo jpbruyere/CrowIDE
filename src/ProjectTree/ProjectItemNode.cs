@@ -43,9 +43,7 @@ namespace Crow.Coding
 			}
 		}
 
-		public string Extension {
-			get { return Path.GetExtension (RelativePath); }
-		}
+		public string Extension => Path.GetExtension (RelativePath);
 		public string RelativePath => Item.EvaluatedInclude?.Replace ('\\', '/');
 		public string FullPath => Path.GetFullPath(Path.Combine (Project.RootDir, RelativePath));
 		public override ItemType Type => Enum.TryParse (Item.ItemType, true, out ItemType tmp) ? tmp : ItemType.Unknown;
@@ -74,7 +72,7 @@ namespace Crow.Coding
 						pn.IsExpanded = true;
 						pn = pn.Parent;
 					}
-					Project.solution.SelectedItem = this;
+					Project.Solution.SelectedItem = this;
 				}
 			}
 		}

@@ -11,20 +11,48 @@ using Microsoft.Build.Framework;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Crow
 {
 	public class BuildEventsView : ScrollingObject
 	{
 		ObservableList<BuildEventArgs> events;
-		List<uint> eventsDic = new List<uint>();
+		List<uint> eventsDic = new List<uint>();		
 
-		bool scrollOnOutput;
+		bool scrollOnOutput, caseSensitiveSearch;
 		uint visibleLines = 1;
 		uint lineCount = 0;
+		public uint VisibleLines {
+			get => visibleLines;
+			set {
+				visibleLines = value;
+				if (lineCount > 0)
+					NotifyValueChanged("ChildHeightRatio", (double)VisibleLines / LineCount);
+				MaxScrollY = (int)(LineCount - VisibleLines);				
+			}
+		}
+		public uint LineCount {
+			get => lineCount;
+			set {
+				lineCount = value;
+				if (lineCount > 0)
+					NotifyValueChanged("ChildHeightRatio", (double)VisibleLines / LineCount);
+				MaxScrollY = (int)(LineCount - VisibleLines);
+			}
+		}
+
+
+		
 		FontExtents fe;
 		string searchString;
 		int hoverEventIndex = -1, currentEventIndex = -1;
+
+
+		public CommandGroup SearchCommands => new CommandGroup(
+			new Command("Prev", () => performSearch(searchString, true, true)),
+			new Command("Next", () => performSearch(searchString, true))
+		);
 
 		[DefaultValue (true)]
 		public virtual bool ScrollOnOutput {
@@ -34,6 +62,17 @@ namespace Crow
 					return;
 				scrollOnOutput = value;
 				NotifyValueChanged ("ScrollOnOutput", scrollOnOutput);
+
+			}		
+		}
+		[DefaultValue (true)]
+		public virtual bool CaseSensitiveSearch {
+			get { return caseSensitiveSearch; }
+			set {
+				if (caseSensitiveSearch == value)
+					return;
+				caseSensitiveSearch = value;
+				NotifyValueChanged ("CaseSensitiveSearch", caseSensitiveSearch);
 
 			}
 		}
@@ -45,20 +84,33 @@ namespace Crow
 				searchString = value;
 				NotifyValueChanged ("SearchString", searchString);
 
-				performSearch (searchString);
+				Task.Run (() => performSearch (searchString));				
 			}
 		}
-		void performSearch (string str, bool next = false) {
-			if (string.IsNullOrEmpty (str))
+		void performSearchBackward (BuildEventArgs[] evts, string str, bool next = false) {
+			int idx = CurrentEventIndex < 0 ? evts.Length - 1 : next ? CurrentEventIndex - 1 : CurrentEventIndex;
+			while (idx >= 0) {
+				if (evts[idx].Message.Contains (str, CaseSensitiveSearch ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)) {
+					CurrentEventIndex = idx;
+					return;
+                }
+				idx--;
+            }
+			if (CurrentEventIndex <= 0)//all the list has been searched
 				return;
-			BuildEventArgs[] evts = events.ToArray ();
-			if (evts.Length == 0) {
-				CurrentEventIndex = -1;
-				return;
-            }			
+			idx = evts.Length - 1;
+			while (idx > CurrentEventIndex) {
+				if (evts[idx].Message.Contains (str, CaseSensitiveSearch ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)) {
+					CurrentEventIndex = idx;
+					return;
+				}
+				idx--;
+			}			
+		}
+		void performSearchForward (BuildEventArgs[] evts, string str, bool next = false) {
 			int idx = CurrentEventIndex < 0 ? 0 : next ? CurrentEventIndex + 1 : CurrentEventIndex;
 			while (idx < evts.Length) {
-				if (evts[idx].Message.Contains (str)) {
+				if (evts[idx].Message.Contains (str, CaseSensitiveSearch ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)) {
 					CurrentEventIndex = idx;
 					return;
                 }
@@ -68,13 +120,25 @@ namespace Crow
 				return;
 			idx = 0;
 			while (idx < CurrentEventIndex) {
-				if (evts[idx].Message.Contains (str)) {
+				if (evts[idx].Message.Contains (str, CaseSensitiveSearch ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)) {
 					CurrentEventIndex = idx;
 					return;
 				}
 				idx++;
-			}
-
+			}			
+		}
+		void performSearch (string str, bool next = false, bool backward = false) {
+			if (string.IsNullOrEmpty (str))
+				return;
+			BuildEventArgs[] evts = events.ToArray ();
+			if (evts.Length == 0) {
+				CurrentEventIndex = -1;
+				return;
+            }			
+			if (backward)
+				performSearchBackward (evts, str, next);
+			else
+				performSearchForward (evts, str, next);
 		}
 
 		public int HoverEventIndex {
@@ -114,14 +178,14 @@ namespace Crow
 					ScrollY = 0;
 				else {
 					lock (eventsDic) {
-						if (eventsDic[currentEventIndex] < ScrollY || eventsDic[currentEventIndex] >= ScrollY + visibleLines) {
+						if (eventsDic[currentEventIndex] < ScrollY || eventsDic[currentEventIndex] >= ScrollY + VisibleLines) {
 							uint evtLines = currentEventIndex < eventsDic.Count - 1 ?
 								eventsDic[currentEventIndex + 1] - eventsDic[currentEventIndex] :
-								lineCount - eventsDic[currentEventIndex];
-							if (evtLines >= visibleLines)
+								LineCount - eventsDic[currentEventIndex];
+							if (evtLines >= VisibleLines)
 								ScrollY = (int)(eventsDic[currentEventIndex]);
 							else
-								ScrollY = (int)(eventsDic[currentEventIndex] - visibleLines / 2 + evtLines / 2);														
+								ScrollY = (int)(eventsDic[currentEventIndex] - VisibleLines / 2 + evtLines / 2);														
 						}
 					}
 				}
@@ -154,11 +218,11 @@ namespace Crow
 					lineCount = 0;
 					lock (eventsDic) {
 						foreach (BuildEventArgs e in events) {
-							eventsDic.Add (lineCount);
+							eventsDic.Add (LineCount);
 							if (string.IsNullOrEmpty (e.Message))
-								lineCount++;
+								LineCount++;
 							else
-								lineCount += (uint)Regex.Split (e.Message, "\r\n|\r|\n").Length;
+								LineCount += (uint)Regex.Split (e.Message, "\r\n|\r|\n").Length;
 						}
 					}
 				}
@@ -167,30 +231,31 @@ namespace Crow
 			}
 		}
 
+
 		void reset ()
 		{
-			lineCount = 0;
+			LineCount = 0;
 			lock(eventsDic)
 				eventsDic.Clear ();
 			ScrollY = ScrollX = 0;
 			MaxScrollY = MaxScrollX = 0;
 		}
 
-		void Messages_ListClear (object sender, ListChangedEventArg e)
+		void Messages_ListClear (object sender, ListClearEventArg e)
 		{
 			reset ();
 			RegisterForGraphicUpdate ();
 		}
 
+		uint getLineCount (string msg) => string.IsNullOrEmpty(msg) ? 1 : (uint)Regex.Split (msg, "\r\n|\r|\n").Length;
 
 		void Lines_ListAdd (object sender, ListChangedEventArg e)
 		{
 			BuildEventArgs bea = e.Element as BuildEventArgs;
 			lock (eventsDic)
-				eventsDic.Add (lineCount);
+				eventsDic.Add (LineCount);
 			string msg = bea.Message;
-			lineCount += string.IsNullOrEmpty(msg) ? 1 : (uint)Regex.Split (msg, "\r\n|\r|\n").Length;
-			MaxScrollY = (int)(lineCount - visibleLines);
+			LineCount += getLineCount (msg);
 			if (scrollOnOutput)
 				ScrollY = MaxScrollY;
 		}
@@ -201,8 +266,7 @@ namespace Crow
 			lock (eventsDic)
 				eventsDic.RemoveAt (e.Index);
 			string msg = (e.Element as BuildEventArgs).Message;
-			lineCount -= string.IsNullOrEmpty (msg) ? 1 : (uint)Regex.Split (msg, "\r\n|\r|\n").Length;
-			MaxScrollY = (int)(lineCount - visibleLines);
+			LineCount -= string.IsNullOrEmpty (msg) ? 1 : (uint)Regex.Split (msg, "\r\n|\r|\n").Length;			
 		}
 
 
@@ -217,8 +281,8 @@ namespace Crow
 					gr.SetFontSize (Font.Size);
 					fe = gr.FontExtents;
 				}				
-				visibleLines = (uint)(Math.Max(1, Math.Floor ((double)ClientRectangle.Height / fe.Height)));
-				MaxScrollY = (int)(lineCount - visibleLines);
+				VisibleLines = (uint)(Math.Max(1, Math.Floor ((double)ClientRectangle.Height / fe.Height)));
+				
 			}
 		}
 				
@@ -235,7 +299,7 @@ namespace Crow
 			Rectangle r = ClientRectangle;
 
 			double y = ClientRectangle.Y;
-			double x = ClientRectangle.X;
+			double x = ClientRectangle.X - ScrollX;
 
 			int spaces = 0;
 
@@ -252,7 +316,7 @@ namespace Crow
 			int diff = ScrollY - (int)evts [idx];
 
 			int i = 0;
-			while (i < visibleLines) {
+			while (i < VisibleLines) {
 
 				if (idx >= events.Count)
 					break;
@@ -270,9 +334,9 @@ namespace Crow
 					highlight.Height = Math.Min (r.Bottom - y, highlight.Height);
 					gr.Rectangle (highlight);
 					if (idx == CurrentEventIndex)
-						gr.SetSource (0, 0.1, 0.2);
+						gr.SetSource (0.0, 0.0, 0.25);
 					else
-						gr.SetSource (0, 0, 0.1);
+						gr.SetSource (0.05, 0.05, 0.05);
 					
 					gr.Fill ();
 				}
@@ -329,15 +393,18 @@ namespace Crow
 		public override void onMouseMove (object sender, MouseMoveEventArgs e) {
             base.onMouseMove (sender, e);
 
-			if (lineCount == 0) {
+			if (LineCount == 0) {
 				hoverLineIndex = -1;
 				HoverEventIndex = -1;
 				return;
             }
 
-			mouseLocalPos = e.Position - ScreenCoordinates (Slot).TopLeft - ClientRectangle.TopLeft;
+			mouseLocalPos = ScreenPointToLocal (e.Position);
 			int lastHoverLineIndex = hoverLineIndex;
-			hoverLineIndex = (int)Math.Min (lineCount, Math.Max (0, Math.Floor (mouseLocalPos.Y / (fe.Ascent + fe.Descent))) + ScrollY);
+
+			hoverLineIndex = (int)Math.Min (LineCount, Math.Max (0, (double)mouseLocalPos.Y / fe.Height) + ScrollY);
+
+
 			NotifyValueChanged ("HoverLineIndex", hoverLineIndex);
 			if (lastHoverLineIndex == hoverLineIndex)
 				return;

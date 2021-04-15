@@ -1,35 +1,36 @@
 ﻿<?xml version="1.0"?>
 <Window Caption="Crow IDE Options" Width="80%" Height="70%" Background="DimGrey" Modal="true">
-	<TabView Orientation="Horizontal" ActivateNewTab="false">
-		<TabItem Caption="IML Visual Editor" SelectedBackground="Jet" >
-			<VerticalStack Margin="10">
-				<CheckBox Caption="Print Line Numbers" IsChecked="{²PrintLineNumbers}"/>
-				<CheckBox Caption="Fold Regions by default" IsChecked="{²AutoFoldRegions}"/>
-				<CheckBox Caption="Fold Comments by default" IsChecked="{²AutoFoldComments}"/>
-				
-				<CheckBox Caption="Reopen last solution on startup" IsChecked="{²ReopenLastSolution}"/>
-				<HorizontalStack Height="Fit">
-					<Label Width="200" Text="DotNet SDK folder"/>
-					<TextBox Width="Stretched" Text="{²SDKFolder}"/>
-					<Button Caption="..." MouseClick="onClickSelectSDKFolder" MinimumSize="0,0"/>
-				</HorizontalStack>
-				<HorizontalStack Height="Fit">
-					<Label Width="200" Text="MSBuild root folder"/>
-					<TextBox Width="Stretched" Text="{²MSBuildRoot}"/>
-					<Button Caption="..." MouseClick="onClickSelectMSBuildRoot" MinimumSize="0,0"/>
-				</HorizontalStack>
-				<HorizontalStack Height="Fit">
-					<Label Width="200" Text="Netcoredbg path"/>
-					<TextBox Width="Stretched" Text="{²NetcoredbgPath}"/>
-					<Button Caption="..." MouseClick="onClickSelectNetcoredbgPath" MinimumSize="0,0"/>
-				</HorizontalStack>
-				<ComboBox Data="{AvailableSyntaxThemes}" SelectedItem="{²SyntaxThemeName}"/>
-			</VerticalStack>
-		</TabItem>
-		<TabItem Caption="Text Editor" SelectedBackground="Jet">
-			<VerticalStack Margin="10">
-				<CheckBox Caption="Print Line Numbers" IsChecked="{²PrintLineNumbers}"/>
-			</VerticalStack>
-		</TabItem>
+	<TabView Orientation="Vertical" >
+		<VerticalStack Name="IML Visual Editor" Background="Onyx">
+			<CheckBox Caption="Print Line Numbers" IsChecked="{²PrintLineNumbers}"/>
+			<CheckBox Caption="Fold Regions by default" IsChecked="{²AutoFoldRegions}"/>
+			<CheckBox Caption="Fold Comments by default" IsChecked="{²AutoFoldComments}"/>
+			
+			<CheckBox Caption="Reopen last solution on startup" IsChecked="{²ReopenLastSolution}"/>
+			<HorizontalStack Height="Fit">
+				<Label Width="200" Text="DotNet SDK folder"/>
+				<TextBox Width="Stretched" Text="{²SDKFolder}"/>
+				<Button Caption="..." MouseClick="onClickSelectSDKFolder" MinimumSize="0,0"/>
+			</HorizontalStack>
+			<HorizontalStack Height="Fit">
+				<Label Width="200" Text="MSBuild root folder"/>
+				<TextBox Width="Stretched" Text="{²MSBuildRoot}"/>
+				<Button Caption="..." MouseClick="onClickSelectMSBuildRoot" MinimumSize="0,0"/>
+			</HorizontalStack>
+			<HorizontalStack Height="Fit">
+				<Label Width="200" Text="Netcoredbg path"/>
+				<TextBox Width="Stretched" Text="{²NetcoredbgPath}"/>
+				<Button Command="{CMDOptions_SelectNetcoredbgPath}" MinimumSize="0,0"/><!--Caption="..." MouseClick="onClickSelectNetcoredbgPath" />-->
+			</HorizontalStack>
+			<HorizontalStack Height="Fit">
+				<Label Width="200" Text="Syntax themes folder"/>
+				<TextBox Width="Stretched" Text="{²SyntaxThemeDirectory}"/>
+				<Button Caption="..." MouseClick="onClickSelectSyntaxThemeDirectory" MinimumSize="0,0"/>
+			</HorizontalStack>
+			<ComboBox Data="{AvailableSyntaxThemes}" SelectedItem="{²SyntaxThemeName}"/>
+		</VerticalStack>
+		<VerticalStack Name="Text Editor" IsVisible="false" Background="Onyx">
+			<CheckBox Caption="Print Line Numbers" IsChecked="{²PrintLineNumbers}"/>
+		</VerticalStack>
 	</TabView>
 </Window>

@@ -1,4 +1,5 @@
-﻿// Copyright (c) 2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿using System.Runtime.Loader;
+// Copyright (c) 2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
@@ -9,38 +10,47 @@ using System.CodeDom.Compiler;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Execution;
-using System.Reflection;
 using Microsoft.Build.Evaluation;
 using System.IO;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Project = Microsoft.Build.Evaluation.Project;
-using Microsoft.Build.Tasks;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using System.Reflection;
+using System.Collections.Immutable;
 
 namespace Crow.Coding
 {
-	public class ProjectView : TreeNode
+	public class ProjectView : SolutionNode
 	{
-		bool isLoaded = false;
-		ProjectInSolution solutionProject;
+		bool isLoaded = false;		
 		Project project;
 
 		Crow.Command cmdSave, cmdOpen, cmdSetAsStartProj, cmdNewFile;
 
+		ITaskItem[] resolvedReferences;
+		public ITaskItem[] ResolvedReferences {
+			get => resolvedReferences;
+			set {
+				resolvedReferences = value;
+				Task.Run (() => getcompilation ());
+
+				loadInDesignCrowAssembly ();
+			}
+		}
+
+		AssemblyLoadContext inDesignLoadCtx;
+		Assembly inDesignCrowAssembly;
+
 		#region CTOR
-		public ProjectView (SolutionView sol, ProjectInSolution sp) {
-			solutionProject = sp;
-			solution = sol;
+		public ProjectView (SolutionView sol, ProjectInSolution sp) : base (sol, sp) {
 
 			ProjectRootElement projectRootElt = ProjectRootElement.Open (solutionProject.AbsolutePath);
-			project = new Project (solutionProject.AbsolutePath, null, null, sol.IDE.projectCollection);
+			project = new Project (solutionProject.AbsolutePath, null, null, sol.projectCollection);
 
 			ProjectProperty msbuildProjExtPath = project.GetProperty ("MSBuildProjectExtensionsPath");
-			ProjectProperty msbuildProjFile = project.GetProperty ("MSBuildProjectFile");
+			ProjectProperty msbuildProjFile = project.GetProperty ("MSBuildProjectFile");			
 
 			string[] props = { "EnableDefaultItems", "EnableDefaultCompileItems", "EnableDefaultNoneItems", "EnableDefaultEmbeddedResourceItems" };
 
@@ -68,10 +78,17 @@ namespace Crow.Coding
 
 			populateTreeNodes ();
 
-			Task.Run (() => getcompilation ());
+			inDesignLoadCtx = new AssemblyLoadContext("CrowIDEInDesignLoadContext");
 		}
         #endregion
 
+		void loadInDesignCrowAssembly () {
+			string crowDllPath = resolvedReferences.FirstOrDefault (i => i.GetMetadata("PackageName") == "Crow")?.ToString();
+			if (string.IsNullOrEmpty(crowDllPath)) 
+				inDesignCrowAssembly = null;
+			else
+				inDesignCrowAssembly = inDesignLoadCtx.LoadFromAssemblyPath (crowDllPath);			
+		}
 		
 
         void initCommands () {
@@ -88,26 +105,26 @@ namespace Crow.Coding
 
 			Commands = new CommandGroup (cmdOpen, cmdSave, cmdSetAsStartProj, cmdNewFile);
 
-			string[] defaultTargets = {"Restore", "Build", "Rebuild", "Pack", "Clean"  };	
+			/*string[] defaultTargets = {"Restore", "Build", "Rebuild", "Pack", "Clean"  };	
 			foreach (string target in defaultTargets)
 			{
 				Commands.Add (new Crow.Command (new Action (() => Compile (target))) {
 						Caption = target});
 
-			}
-			Commands.Add (new Command(new Action(() => solution.IDE.loadWindow ("#ui.winProjectProperties.crow",solution.IDE)))
+			}*/
+			Commands.Add (new Command(new Action(() => Solution.IDE.loadWindow ("#ui.winProjectProperties.crow",Solution.IDE)))
 				{ Caption = "Properties", CanExecute = true});
 		}				
 
-		public SolutionView solution;
+		
 		public CompilerResults CompilationResults;
 		//public List<ProjectView> dependantProjects = new List<ProjectView> ();
 		//public ProjectView ParentProject = null;
 		
-		public override string DisplayName => solutionProject.ProjectName;
-
+		
+		public override Picture Icon => new SvgPicture("#Crow.Icons.crowproj.svg");
 		public bool IsLoaded {
-			get { return isLoaded; }
+			get => isLoaded;
 			set {
 				if (isLoaded == value)
 					return;
@@ -115,27 +132,19 @@ namespace Crow.Coding
 				NotifyValueChanged ("IsLoaded", isLoaded);
 			}
 		}
-		public bool IsStartupProject {
-			get { return solution.StartupProject == this; }
-		}
+		public bool IsStartupProject => Solution.StartupProject == this;
 		public string FullPath => project.FullPath;
 		public string RootDir => project.DirectoryPath;
 	
 		#region Project properties
-		public string ToolsVersion {
-			get { return project.ToolsVersion; }
-		}
-		public string DefaultTargets {
-			get { return project.Xml.DefaultTargets; }
-		}
-		public string ProjectGuid {
-			get { return solutionProject.ProjectGuid; }
-		}
+		public string ToolsVersion => project.ToolsVersion;
+		public string DefaultTargets => project.Xml.DefaultTargets;		
 		public ICollection<ProjectProperty> Properties => project.Properties;
-		public string AssemblyName => project.GetPropertyValue ("AssemblyName");
-		public string OutputPath => project.AllEvaluatedProperties.Where (p => p.Name == "OutputPath").FirstOrDefault ().EvaluatedValue;
-		public string IntermediateOutputPath => project.AllEvaluatedProperties.Where (p => p.Name == "IntermediateOutputPath").FirstOrDefault ().EvaluatedValue;
-		public string OutputType => project.AllEvaluatedProperties.Where (p => p.Name == "OutputType").FirstOrDefault ().EvaluatedValue;
+		public ICollection<ProjectProperty> PropertiesSorted => project.Properties.OrderBy(p=>p.Name).ToList();
+		public string AssemblyName => project.GetProperty ("AssemblyName").EvaluatedValue;
+		public string OutputPath => project.GetProperty ("OutputPath").EvaluatedValue;
+		public string IntermediateOutputPath => project.GetProperty ("IntermediateOutputPath").EvaluatedValue;
+		public string OutputType => project.GetProperty ("OutputType").EvaluatedValue;
 		public string OutputAssembly => Path.Combine (project.GetPropertyValue ("OutputPath"), project.GetPropertyValue ("TargetFrameworks"), AssemblyName + AssemblyExtension);
 		public string AssemblyExtension => RuntimeInformation.IsOSPlatform (OSPlatform.Windows) ? ".exe" : "";
 		public OutputKind OutputKind {
@@ -152,29 +161,23 @@ namespace Crow.Coding
                 }
             }
         }
-		public string RootNamespace => project.AllEvaluatedProperties.Where (p => p.Name == "RootNamespace").FirstOrDefault ().EvaluatedValue;
-		public bool AllowUnsafeBlocks =>
-			bool.Parse (project.AllEvaluatedProperties.Where (p => p.Name == "AllowUnsafeBlocks").FirstOrDefault ().EvaluatedValue);
-		public bool NoStdLib =>
-			bool.Parse (project.AllEvaluatedProperties.Where (p => p.Name == "NoStdLib").FirstOrDefault ().EvaluatedValue);
-		public bool TreatWarningsAsErrors =>
-			bool.Parse (project.AllEvaluatedProperties.Where (p => p.Name == "TreatWarningsAsErrors").FirstOrDefault ().EvaluatedValue);
-		public bool SignAssembly =>
-			bool.Parse (project.AllEvaluatedProperties.Where (p => p.Name == "SignAssembly").FirstOrDefault ().EvaluatedValue);
-		public string TargetFrameworkVersion => project.AllEvaluatedProperties.Where (p => p.Name == "TargetFrameworkVersion").FirstOrDefault ().EvaluatedValue;
-		public string Description => project.AllEvaluatedProperties.Where (p => p.Name == "Description").FirstOrDefault ().EvaluatedValue;
-		public string StartupObject => project.AllEvaluatedProperties.Where (p => p.Name == "StartupObject").FirstOrDefault ().EvaluatedValue;
-		public bool DebugSymbols =>
-			bool.Parse (project.AllEvaluatedProperties.Where (p => p.Name == "DebugSymbols").FirstOrDefault ().EvaluatedValue);
-		public int WarningLevel =>
-			int.Parse (project.AllEvaluatedProperties.Where (p => p.Name == "WarningLevel").FirstOrDefault ().EvaluatedValue);
+		public string RootNamespace => project.GetProperty ("RootNamespace").EvaluatedValue;
+		public bool AllowUnsafeBlocks => bool.Parse (project.GetProperty ("AllowUnsafeBlocks").EvaluatedValue);
+		public bool NoStdLib =>	bool.Parse (project.GetProperty ("NoStdLib").EvaluatedValue);
+		public bool TreatWarningsAsErrors => bool.Parse (project.GetProperty ("TreatWarningsAsErrors").EvaluatedValue);
+		public bool SignAssembly =>	bool.Parse (project.GetProperty ("SignAssembly").EvaluatedValue);
+		public string TargetFrameworkVersion => project.GetProperty ("TargetFrameworkVersion").EvaluatedValue;
+		public string Description => project.GetProperty ("Description").EvaluatedValue;
+		public string StartupObject => project.GetProperty ("StartupObject").EvaluatedValue;
+		public bool DebugSymbols => bool.Parse (project.GetProperty ("DebugSymbols").EvaluatedValue);
+		public int WarningLevel => int.Parse (project.GetProperty ("WarningLevel").EvaluatedValue);
 		public string Name => project.GetProperty ("MSBuildProjectName").EvaluatedValue;
 		#endregion
 
 
 		public void AddNewFile ()
 		{
-			Window.Show (solution.IDE, "#ui.NewFile.crow", true).DataSource = this;
+			Window.Show (Solution.IDE, "#ui.NewFile.crow", true).DataSource = this;
 		}
 
 
@@ -246,10 +249,8 @@ namespace Crow.Coding
 					continue;
 				/*
 				Console.WriteLine ($"Depends: {pti.Children.Count} {pti.Name} ret: {pti.Returns} {pti.BeforeTargets} -> {pti.AfterTargets}");*/
-				Commands.Add (new Crow.Command (new Action (() => Compile (pti.Name)))
-				{
-					Caption = pti.Name,
-				});
+				Commands.Add (
+					new Crow.Command (pti.Name, new Action (() => Compile (pti.Name))));
 			}
 		}
 		void populateTreeNodes ()
@@ -258,8 +259,10 @@ namespace Crow.Coding
 			ProjectNode refs = new ProjectNode (this, ItemType.ReferenceGroup, "References");
 			root.AddChild (refs);
 
+			addTargetBuildCommandFromProjectItems();
+
 			foreach (ProjectItem pn in project.AllEvaluatedItems) {								
-				solution.IDE.ProgressNotify (1);
+				Solution.IDE.ProgressNotify (1);
 
 				switch (pn.ItemType) {
 				case "ProjectReferenceTargets":
@@ -342,20 +345,16 @@ namespace Crow.Coding
 
 		void setAsStartupProject ()
 		{
-			solution.StartupProject = this;
+			Solution.StartupProject = this;
 		}
 
-       
-		public void Compile (string target = "Build")
+		public void Compile () => Compile ("Build");
+		public void Compile (params string[] targets)
 		{
-			/*var nativeSharedMethod = typeof (SolutionFile).Assembly.GetType ("Crow.Build.Shared.NativeMethodsShared");
-			var isMonoField = nativeSharedMethod.GetField ("_isMono", BindingFlags.Static | BindingFlags.NonPublic);
-			isMonoField.SetValue (null, true);*/
-			solution.IDE.projectCollection.SetGlobalProperty ("CrowIDEResolveCache", resolvedCacheFile);
+			//solution.projectCollection.SetGlobalProperty ("CrowIDEResolveCache", resolvedCacheFile);
 			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);			
-			BuildRequestData request = new BuildRequestData (pi, new string[] { target }, null);			
-			BuildResult result = BuildManager.DefaultBuildManager.Build (solution.buildParams, request);			
-
+			BuildRequestData request = new BuildRequestData (pi, targets);			
+			BuildResult result = BuildManager.DefaultBuildManager.Build (Solution.buildParams, request);
 		}
 
 		public bool TryGetProjectFileFromPath (string path, out ProjectFileNode pi, bool caseSensitive = false)
@@ -363,20 +362,33 @@ namespace Crow.Coding
 			if (path.StartsWith ("#", StringComparison.Ordinal))
 				pi = Flatten.OfType<ProjectFileNode> ().FirstOrDefault
 					(f => f.Type == ItemType.EmbeddedResource && f.LogicalName == path.Substring (1));
-			else
-				pi = Flatten.OfType<ProjectFileNode> ().FirstOrDefault (pp => string.Equals (pp.FullPath, path, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
+			else {
+				pi = Flatten.OfType<ProjectFileNode> ().FirstOrDefault (pp => string.Equals (pp.RelativePath, path, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
+				if (pi == null)
+					pi = Flatten.OfType<ProjectFileNode> ().FirstOrDefault (pp => string.Equals (pp.FullPath, path, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
+			}
 
 			if (pi != null)
 				return true;
 
 			foreach (ProjectItemNode pr in Flatten.OfType<ProjectItemNode> ().Where (pn => pn.Type == ItemType.ProjectReference)) {
-				ProjectView p =  solution.Projects.FirstOrDefault (pp => string.Equals (pp.FullPath, pr.FullPath, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
+				ProjectView p =  Solution.Projects.FirstOrDefault (pp => string.Equals (pp.FullPath, pr.FullPath, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
 				if (p == null)
 					continue;
 				if (p.TryGetProjectFileFromPath (path, out pi))
 					return true;
 			}
+			
 			return false;
+		}
+		public bool TryGetStreamFromPath (string path, out Stream stream) {
+			stream = null;
+			if (path.StartsWith ("#", StringComparison.Ordinal)) {
+				if (inDesignCrowAssembly == null) 
+					return false;
+				stream = inDesignCrowAssembly.GetManifestResourceStream(path.Substring (1));
+			}
+			return stream != null;
 		}
 
 		public void GetDefaultTemplates ()
@@ -385,9 +397,9 @@ namespace Crow.Coding
 			    Flatten.OfType<ProjectFileNode> ().Where (pp => pp.Type == ItemType.EmbeddedResource && pp.Extension == ".template");
 			foreach (ProjectFileNode pi in tmpFiles) {
 				string clsName = Path.GetFileNameWithoutExtension (pi.RelativePath);
-				if (solution.DefaultTemplates.ContainsKey (clsName))
+				if (Solution.DefaultTemplates.ContainsKey (clsName))
 				        continue;
-				solution.DefaultTemplates[clsName] = pi.FullPath;
+				Solution.DefaultTemplates[clsName] = pi.FullPath;
 			}
 			//    
 			//}
@@ -438,14 +450,14 @@ namespace Crow.Coding
 				foreach (ProjectFileNode pi in Flatten.OfType<ProjectFileNode> ().Where (pp => pp.Type == ItemType.EmbeddedResource && pp.Extension == ".style")) {
 					using (Stream s = new MemoryStream (System.Text.Encoding.UTF8.GetBytes (pi.GetSourceWithoutOpening()))) {
 						using (StyleReader sr = new StyleReader (s))
-							sr.Parse (solution.StylingConstants, solution.Styling, pi.LogicalName);
+							sr.Parse (Solution.StylingConstants, Solution.Styling, pi.LogicalName);
 					}
 				}
 			} catch (Exception ex) {
                 Console.WriteLine (ex.ToString ());
             }
             foreach (ProjectItemNode pr in Flatten.OfType<ProjectItemNode> ().Where(pn=>pn.Type == ItemType.ProjectReference)) {
-                ProjectView p = solution.Projects.FirstOrDefault (pp => pp.FullPath == pr.FullPath);
+                ProjectView p = Solution.Projects.FirstOrDefault (pp => pp.FullPath == pr.FullPath);
                 if (p != null)
                     //throw new Exception ("referenced project not found");
                 	p.GetStyling ();
@@ -459,7 +471,7 @@ namespace Crow.Coding
 		CSharpCompilationOptions compileOptions;
 		public CSharpParseOptions parseOptions;
 		List<MetadataReference> metadataReferences;
-		public Compilation Compilation;
+		Compilation compilation;
 
 		void updateCompileOptions () {			
 			compileOptions = new CSharpCompilationOptions (
@@ -469,9 +481,11 @@ namespace Crow.Coding
 		}
 		//retrieve resolved metadatareference in 'projectName.resolved' file produced by crowIde custom target		
 		bool updateMetadataReferences () {
-			metadataReferences = new List<MetadataReference> (10);
+			if (ResolvedReferences == null)
+				return false;
+			metadataReferences = new List<MetadataReference> (ResolvedReferences.Length);
 
-			string refsTxt = resolvedCacheFile;
+			/*string refsTxt = resolvedCacheFile;
 			if (!File.Exists (refsTxt))
 				return false;
 			using (StreamReader sr = new StreamReader (refsTxt)) {
@@ -480,7 +494,9 @@ namespace Crow.Coding
 					if (File.Exists(dll))
 						metadataReferences.Add (MetadataReference.CreateFromFile (dll));
 				}
-			}			
+			}*/
+			foreach (ITaskItem item in ResolvedReferences) 
+				metadataReferences.Add (MetadataReference.CreateFromFile (item.ToString()));			
 			return true;
 		}
 
@@ -491,7 +507,34 @@ namespace Crow.Coding
 
 				return Path.Combine (objPath.EvaluatedValue, msbuildProjName.EvaluatedValue + ".resolved");
 			}
-        }		
+        }
+
+		System.Threading.CancellationToken cancelToken = default;
+
+		public Compilation Compilation {
+			get => compilation;
+			set {
+				compilation = value;
+
+				if (compilation == null)
+					return;
+
+				Task.Run (()=> {
+					Diagnostics = compilation.GetDiagnostics (cancelToken);
+				});				
+			}
+		}
+		ImmutableArray<Diagnostic> diagnostics;
+
+		public bool HasDiagnostics => !diagnostics.IsDefault;
+		public ImmutableArray<Diagnostic> Diagnostics {
+			get => diagnostics;
+			set {
+				diagnostics = value;
+				NotifyValueChanged ("Diagnostic", diagnostics);
+				NotifyValueChanged ("HasDiagnostics", HasDiagnostics);
+			}
+		}						
 
 		void getcompilation () {
             try {
@@ -508,5 +551,11 @@ namespace Crow.Coding
             }
         }
 
+		void test () {
+			
+			
+			/*Microsoft.Build.Tasks.ResolveAssemblyReference resolveTask = new ResolveAssemblyReference();
+			resolveTask.*/
+		}
 	}
 }

@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -12,10 +13,11 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using BreakPoint = Crow.Coding.Debugging.BreakPoint;
 
 namespace Crow.Coding
 {
-	public class SolutionView: IValueChange
+	public class SolutionView: IValueChange, ITaskHost
 	{
 		#region IValueChange implementation
 		public event EventHandler<ValueChangeEventArgs> ValueChanged;
@@ -25,35 +27,95 @@ namespace Crow.Coding
 		}
 		#endregion
 
-		public readonly CrowIDE IDE;
-
 		string path;
-		SolutionFile solutionFile;
-		Microsoft.CodeAnalysis.Solution solution;
-
-		public BuildParameters buildParams;
-		public Dictionary<String, String> projectProperties = new Dictionary<String, String> ();
-
-		public List<ProjectView> Projects = new List<ProjectView> ();
-
-		public Configuration UserConfig;
-
+		SolutionFile solutionFile;		
 		TreeNode selectedItem = null;
 		object selectedItemElement = null;
+		Microsoft.CodeAnalysis.Diagnostic currentDiagnostic;
 		ObservableList<ProjectItemNode> openedItems = new ObservableList<ProjectItemNode>();
 		ObservableList<GraphicObjectDesignContainer> toolboxItems;
 
+
+
+		public readonly CrowIDE IDE;
+		public ProjectCollection projectCollection { get; private set; }
+		public BuildParameters buildParams { get; private set; }
+		public Configuration UserConfig { get; private set; }
+
+		
+
+		//public ObservableList<ProjectView> Projects = new ObservableList<ProjectView> ();
+		public ObservableList<TreeNode> Children = new ObservableList<TreeNode> ();
+
+		public List<ProjectView> Projects => allSolutionNodes.OfType<ProjectView>().ToList();
+		IEnumerable<SolutionNode> allSolutionNodes {
+			get {
+				foreach (SolutionNode node in Children.OfType<SolutionNode>().SelectMany (child => child.Flatten).OfType<SolutionNode>())
+					yield return node;
+			}
+		}
+
+		public ImmutableArray<Microsoft.CodeAnalysis.Diagnostic> Diagnostics
+			=> Projects.Where (p => p.HasDiagnostics).SelectMany (p => p.Diagnostics).ToImmutableArray();
+		public Microsoft.CodeAnalysis.Diagnostic CurrentDiagnostic {
+			 get => currentDiagnostic;
+			 set {
+				 if (currentDiagnostic == value)
+				 	return;
+				 currentDiagnostic = value;
+				 NotifyValueChanged ("CurrentDiagnostic", currentDiagnostic);
+				 if (currentDiagnostic != null && currentDiagnostic.Location.IsInSource)
+				 	tryGoTo (currentDiagnostic.Location);
+			 }
+		}
+
+		public bool TryGetProjectFromFullPath (string projectFullPath, out ProjectView prj) {
+			prj = Projects.FirstOrDefault(p=>p.FullPath == projectFullPath);
+			return prj != null;
+		}
+		internal void RaiseDiagnosticsValueChanged () => NotifyValueChanged ("Diagnostics", Diagnostics);
+		void tryGoTo(Microsoft.CodeAnalysis.Location location)
+		{
+			Microsoft.CodeAnalysis.FileLinePositionSpan flp = location.GetLineSpan ();
+			if (TryGetProjectFileFromPath(flp.Path, out ProjectFileNode pf))
+			{
+				if (!pf.IsOpened)
+					pf.Open();
+				pf.IsSelected = true;				
+				pf.CurrentLine = flp.StartLinePosition.Line;
+			}
+			else
+			{
+				Console.WriteLine ($"[Diagnostic]File Not Found:{flp.Path}");
+			}
+		}		
+
+
+
 		public Command CMDDebugStart, CMDDebugPause, CMDDebugStop, CMDDebugStepIn, CMDDebugStepOver, CMDDebugStepOut;
+
+
+
 		NetcoredbgDebugger dbgSession;
 		public ObservableList<BreakPoint> BreakPoints = new ObservableList<BreakPoint> ();
+		public NetcoredbgDebugger DbgSession {
+			get => dbgSession;
+			set {
+				if (dbgSession == value)
+					return;
+				dbgSession = value;
+				NotifyValueChanged ("DbgSession", dbgSession);
+			}
+		}
 
-		public string Directory => Path.GetDirectoryName (path);
+
+		//public string Directory => Path.GetDirectoryName (path);
 
 		public Dictionary<string, string> StylingConstants;
 		public Dictionary<string, Style> Styling;
 		public Dictionary<string, string> DefaultTemplates;
 
-		public List<Style> Styles { get { return Styling.Values.ToList(); }}
+		public List<Style> Styles => Styling.Values.ToList();
 		public List<StyleContainer> StylingContainers;
 		//TODO: check project dependencies if no startup proj
 
@@ -70,6 +132,13 @@ namespace Crow.Coding
 			initCommands ();
 
 			this.IDE = ide;
+
+			projectCollection = new ProjectCollection (
+				ide.GlobalProperties,
+				new ILogger [] { ide.MainIdeLogger },
+				ToolsetDefinitionLocations.Default
+			);
+
 			this.path = path;
 
 			solutionFile = SolutionFile.Parse (path);
@@ -80,21 +149,19 @@ namespace Crow.Coding
 			ActiveConfiguration = solutionFile.GetDefaultConfigurationName ();
 			ActivePlatform = solutionFile.GetDefaultPlatformName ();
 
-			//IDE.projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (path) + Path.DirectorySeparatorChar);			
-			IDE.projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
-			IDE.projectCollection.SetGlobalProperty ("CrowIDEResolveCache", "obj/");			
+			projectCollection.SetGlobalProperty ("SolutionDir", Path.GetDirectoryName (path) + Path.DirectorySeparatorChar);			
+			projectCollection.SetGlobalProperty ("DefaultItemExcludes", "obj/**/*;bin/**/*");
 
 			IDE.ProgressNotify (10);
 
 			//ide.projectCollection.HostServices
-			buildParams = new BuildParameters (ide.projectCollection) {
-				Loggers = ide.projectCollection.Loggers,
-				
-				/*ResetCaches = true,*/
+			buildParams = new BuildParameters (projectCollection) {
+				Loggers = projectCollection.Loggers,
 				LogInitialPropertiesAndItems = true,
 				LogTaskInputs = true,				
 				/*UseSynchronousLogging = true*/
-			};			
+			};
+
 			//projectCollection.IsBuildEnabled = false;
 
 			BuildManager.DefaultBuildManager.ResetCaches ();
@@ -107,15 +174,22 @@ namespace Crow.Coding
 			//ide.projectCollection. ("MSBuildToolsPath", @"C:\Program Files\dotnet\sdk\5.0.100");
 			//ide.projectCollection.to
 			//------------
+
+			IList<TreeNode> targetChildren = null;
 			foreach (ProjectInSolution pis in solutionFile.ProjectsInOrder) {
+				if (!string.IsNullOrEmpty (pis.ParentProjectGuid))
+					targetChildren = allSolutionNodes.FirstOrDefault (sn => sn.ProjectGuid == pis.ParentProjectGuid).Childs;
+				else
+					targetChildren = this.Children;
+
 				switch (pis.ProjectType) {
-				case SolutionProjectType.Unknown:
+				case SolutionProjectType.KnownToBeMSBuildFormat:					
+					targetChildren.Add (new ProjectView (this, pis));
 					break;
-				case SolutionProjectType.KnownToBeMSBuildFormat:
-					//Console.WriteLine ($"[loading] {pis.AbsolutePath}");
-					Projects.Add (new ProjectView (this, pis));
+				case SolutionProjectType.SolutionFolder:					
+					targetChildren.Add (new SolutionFolder (this, pis));
 					break;
-				case SolutionProjectType.SolutionFolder:
+				/*case SolutionProjectType.Unknown:
 					break;
 				case SolutionProjectType.WebProject:
 					break;
@@ -123,8 +197,11 @@ namespace Crow.Coding
 					break;
 				case SolutionProjectType.EtpSubProject:
 					break;
-				/*case SolutionProjectType.SharedProject:
-					break;*/
+				case SolutionProjectType.SharedProject:
+					break;					*/
+				default:
+					targetChildren.Add (new SolutionNode (this, pis));
+					break;
 				}
 				IDE.ProgressNotify (10);
 			}
@@ -134,42 +211,33 @@ namespace Crow.Coding
 			ReloadDefaultTemplates ();
 		}
 		#endregion
-
-
 		void initCommands () {
-			CMDDebugStart = new Command (new Action (() => debug_start()))
-			{ Caption = "Start", Icon = "#Icons.debug-step-into.svg", CanExecute = true };
-			CMDDebugPause = new Command (new Action (() => dbgSession.Pause ()))
-			{ Caption = "Pause", Icon = "#Icons.debug-step-into.svg", CanExecute = false };
-			CMDDebugStop = new Command (new Action (() => debug_stop ()))
-			{ Caption = "Stop", Icon = "#Icons.debug-step-into.svg", CanExecute = false };
-
-			CMDDebugStepIn = new Command (new Action (() => dbgSession.StepIn ()))
-			{ Caption = "Step in", Icon = "#Icons.debug-step-into.svg", CanExecute = false };
-			CMDDebugStepOut = new Command (new Action (() => dbgSession.StepOut ()))
-			{ Caption = "Step out", Icon = "#Icons.debug-step-out.svg", CanExecute = false };
-			CMDDebugStepOver = new Command (new Action (() => dbgSession.StepOver ()))
-			{ Caption = "Step over", Icon = "#Icons.debug-step-over.svg", CanExecute = false };
+			CMDDebugStart = new Command ("Start", new Action (() => debug_start()), "#Icons.debug-play.svg");
+			CMDDebugPause = new Command ("Pause", new Action (() => DbgSession.Pause ()), "#Icons.debug-pause.svg", false);
+			CMDDebugStop = new Command ("Stop", new Action (() => debug_stop ()), "#Icons.debug-stop.svg", false);
+			CMDDebugStepIn = new Command ("Step in", new Action (() => DbgSession.StepIn ()), "#Icons.debug-step-into.svg", false);
+			CMDDebugStepOut = new Command ("Step out", new Action (() => DbgSession.StepOut ()), "#Icons.debug-step-out.svg", false);
+			CMDDebugStepOver = new Command ("Step over", new Action (() => DbgSession.StepOver ()), "#Icons.debug-step-over.svg", false);
 		}
 
 		void debug_start () {
-			if (dbgSession == null) {
-				dbgSession = new NetcoredbgDebugger (StartupProject);
-				dbgSession.Start ();
-			} else if (dbgSession.CurrentState == NetcoredbgDebugger.Status.Stopped)
-				dbgSession.Continue ();
-			else if (dbgSession.CurrentState == NetcoredbgDebugger.Status.Exited)
-				dbgSession.Start ();
+			if (DbgSession == null) {
+				DbgSession = new NetcoredbgDebugger (StartupProject);				
+				DbgSession.Start ();
+			} else if (DbgSession.CurrentState == NetcoredbgDebugger.Status.Stopped)
+				DbgSession.Continue ();
+			else if (DbgSession.CurrentState == NetcoredbgDebugger.Status.Exited)
+				DbgSession.Start ();
 			else
                 System.Diagnostics.Debugger.Break ();
 		}
 		void debug_stop () {
-			dbgSession.Stop ();			
+			DbgSession.Stop ();			
 		}
 
 		public void Build (params string [] targets)
 		{
-			BuildRequestData buildRequest = new BuildRequestData (path, projectProperties, CrowIDE.DEFAULT_TOOLS_VERSION, targets, null);
+			BuildRequestData buildRequest = new BuildRequestData (path, null, CrowIDE.DEFAULT_TOOLS_VERSION, targets, null);
 			BuildResult buildResult = BuildManager.DefaultBuildManager.Build (buildParams, buildRequest);
 		}
 
@@ -239,16 +307,10 @@ namespace Crow.Coding
 
 				Console.WriteLine ($"SolView.SelectedItem: {selectedItem} -> {value}");
 
-				if (selectedItem != null)
-					selectedItem.IsSelected = false;
-
 				selectedItem = value;
 
-				if (SelectedItem != null) {
-					SelectedItem.IsSelected = true;
-					if (selectedItem is ProjectItemNode)
-						UserConfig.Set ("SelectedProjItems", (SelectedItem as ProjectItemNode).SaveID);
-				}
+				if (selectedItem is ProjectItemNode pin)
+					UserConfig.Set ("SelectedProjItems", pin.SaveID);
 
 				NotifyValueChanged ("SelectedItem", selectedItem);
 			}
@@ -330,13 +392,15 @@ namespace Crow.Coding
 
 		public void OpenItem (ProjectItemNode pi) {
 			if (!openedItems.Contains (pi)) {
-				openedItems.Add (pi);
+				lock(IDE.UpdateMutex)
+					openedItems.Add (pi);
 				saveOpenedItemsInUserConfig ();
 			}
 		}
 		public void CloseItem (ProjectItemNode pi) {
 			//lock (IDE.UpdateMutex)			
-			openedItems.Remove (pi);
+			lock(IDE.UpdateMutex)
+				openedItems.Remove (pi);
 			pi.IsSelected = false;
 			saveOpenedItemsInUserConfig ();
 		}
@@ -350,7 +414,7 @@ namespace Crow.Coding
 			}
 			NotifyValueChanged ("Projects", null);
 
-			IDE.projectCollection.UnloadAllProjects ();
+			projectCollection.UnloadAllProjects ();
 		}
 
 		public ProjectView StartupProject {
@@ -374,30 +438,23 @@ namespace Crow.Coding
 		}
 
 		public string ActiveConfiguration {
-			get => projectProperties.TryGetValue ("Configuration", out string conf) ? conf : null;
+			get => projectCollection.GetGlobalProperty ("Configuration")?.ToString();			
 			set {
-				if (projectProperties.TryGetValue ("Configuration", out string conf) &&  conf == value)
-					return;
-				projectProperties ["Configuration"] = value;
-				IDE.projectCollection.SetGlobalProperty ("Configuration", ActiveConfiguration);
+				if (ActiveConfiguration == value)
+					return;				
+				projectCollection.SetGlobalProperty ("Configuration", value);
 				NotifyValueChanged ("ActiveConfiguration", value);
 			}
 		}
 		public string ActivePlatform {
-			get => projectProperties.TryGetValue ("Platform", out string conf) ? conf : null;
+			get => projectCollection.GetGlobalProperty ("Platform")?.ToString();			
 			set {
-				if (projectProperties.TryGetValue ("Platform", out string conf) && conf == value)
-					return;
-				projectProperties ["Platform"] = value;
+				if (ActivePlatform == value)
+					return;				
+				projectCollection.SetGlobalProperty ("Platform", value);
 				NotifyValueChanged ("ActivePlatform", value);
 			}
-
 		}
-		/*void onSelectedItemChanged (object sender, SelectionChangeEventArgs e)
-		{
-			Console.WriteLine ($"solution.onSelectedItemChanged: {e.NewValue}");
-			SelectedItem = e.NewValue as TreeNode;
-		}*/
 
 		public override string ToString () => path;
 	}

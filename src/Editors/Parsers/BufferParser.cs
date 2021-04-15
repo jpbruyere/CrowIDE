@@ -192,10 +192,6 @@ namespace Crow.Coding
 		}
 
 		#region low level parsing
-		protected void addCharToCurTok(char c, Point position){
-			currentTok.Start = position;
-			currentTok += c;
-		}
 		/// <summary>
 		/// Read one char from current position in buffer and store it into the current token
 		/// </summary>

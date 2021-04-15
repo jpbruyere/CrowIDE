@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace Crow.Coding
 {
-	public class EditPane : TemplatedGroup
+	public class EditPane : TabView
 	{
 		public EditPane () {}
 

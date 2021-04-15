@@ -1,15 +1,22 @@
 ﻿<?xml version="1.0"?>
-<DockWindow DataSource="{CurrentSolution}" Name="winErrors" Caption="Errors"  Width="20%">
-	<ListBox Width="Stretched" Data="{CompilerErrors}">
+<DockWindow Caption="Errors"  Width="80%" Height="200" >
+	<ListBox RootDataLevel="true" DataSource="{CurrentSolution}" Data="{Diagnostics}" SelectedItem="{²CurrentDiagnostic}">
+		<Template>
+			<Scroller  Name="scroller1"  >
+				<Table Margin="1" Columns="Severity,60;Id,Fit;Title,Stretched;Location,Fit" Background="DarkGrey" Spacing="1"
+					Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
+			</Scroller>			
+		</Template>	
 		<ItemTemplate>
-			<HorizontalStack Height="Fit" Margin="0" Focusable="true" Spacing="10"
-					MouseEnter="{Background=SteelBlue}"
-					MouseLeave="{Background=Transparent}">						
-				<Image Width="10" Height="10" Path="#Crow.Icons.compiler_error.svg" SvgSub="{IsWarning}"/>
-				<Label Text="{Line}" Width="25" TextAlignment="Right"/>
-				<Label Text="{ErrorText}" Width="60%"/>
-				<Label Text="{FileName}" Width="Fit"/>
-			</HorizontalStack>
+			<TableRow Height="Fit" Spacing="1" Margin="0"
+							Selected = "{Background=${ControlHighlight}}"
+							Unselected = "{Background=Transparent}">
+				<Label Text="{Severity}" />
+				<Label Text="{Id}" />
+				<Label Text="{Descriptor.Title}" />
+				<Label Text="{GetLocationString}" />
+				
+			</TableRow>
 		</ItemTemplate>
 	</ListBox>
 </DockWindow>

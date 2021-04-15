@@ -12,14 +12,25 @@
 			</Template>/>{}
 		</CheckBox>
 	</Template>
-	<TabView MinimumSize="{../../MinimumPopupSize}" Width="Fit" Height="Fit" ActivateNewTab="false">
-		<TabItem Template="#ui.TabItem.template" Caption="HSV" Width="Fit" Height="Fit">
-			<ColorPicker CurrentColor="{²../../../../CurrentColor}" />
-		</TabItem>
-		<TabItem Template="#ui.TabItem.template" Caption="Colors names" SelectedBackground="Jet" Width="Stretched" Height="Stretched">			
-			<ColorPicker Template="#ui.ColorPickerList.template" CurrentColor="{²../../../../CurrentColor}" />
-		</TabItem>
-	</TabView>
-	
+	<TabView  MinimumSize="{../../MinimumPopupSize}" Width="Fit" Height="Fit"  >
+		<ColorPicker Name="HSV" CurrentColor="{²../../../CurrentColor}" Background="Onyx"/>
+		<ColorPicker IsVisible="false" Name="Names" CurrentColor="{²../../../CurrentColor}" Height="Stretched" Background="Onyx">
+			<Template>
+				<ListBox Width="Stretched" Data="{./AvailableColors}" SelectedItemChanged="./onSelectedItemChanged">
+					<Template>
+						<Scroller Name="scroller1" Margin="5" ClipToClientRect="true" Background="Onyx">
+							<Wrapper Name="ItemsContainer" Height="Fit" VerticalAlignment="Top"/>
+						</Scroller>
+					</Template>
+					<ItemTemplate>
+						<Border Width="16" Height="16" Background="{}" Foreground="Transparent" Tooltip="{}"
+												MouseEnter="{Foreground=Black}"
+												MouseLeave="{Foreground=Transparent}"/>	
+					</ItemTemplate>
+				</ListBox>
+			</Template>
+		</ColorPicker>
+</TabView>
 </Popper>
+
 

@@ -120,7 +120,7 @@ namespace Crow.Coding
 			get {
 				return pi.PropertyType.IsEnum ?
 					Enum.GetValues (pi.PropertyType).Cast<object>().ToArray() :
-					mview.ProjectNode.Project.solution.AvailaibleStyles;
+					mview.ProjectNode.Project.Solution.AvailaibleStyles;
 			}
 		}
 		/// <summary>

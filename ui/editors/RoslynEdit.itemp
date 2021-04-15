@@ -1,54 +1,55 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
-<TabItem QueryClose="OnQueryClose" IsSelected="{²IsSelected}" Caption="{DisplayName}" Template="#ui.EditTabItem.template">
-	<VerticalStack Background="Jet">
-		<HorizontalStack >
-			<RoslynEditor2 Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"
-					ExecutingLine="{ExecutingLine}"
-					CurrentLine="{²CurrentLine}" CurrentColumn="{²CurrentColumn}" HasFocus="{IsSelected}"
-					Foreground="Jet" Background="White" Width="Stretched" Height="Stretched"
-					ProjectNode="{}"  KeyDown="textView_KeyDown"/>
-			<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}" Maximum="{../editor.MaxScrollY}"
-					   LargeIncrement="{../editor.VisibleLines}" CursorSize="{../editor.ChildHeightRatio}"/>
-		</HorizontalStack>
-		<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../editor.ScrollX}" Maximum="{../editor.MaxScrollX}"
-				   LargeIncrement="{../editor.VisibleColumns}" CursorSize="{../editor.ChildWidthRatio}"/>			
-		<HorizontalStack Height="Fit" Spacing="10">
-			<Label Text="{../../editor.HoverError}" Width="Stretched"/>
-			
-			<!--<VerticalStack RootDataLevel="true" DataSourceType="Microsoft.CodeAnalysis.ISymbol" DataSource="{../../editor.CurrentSymbol}">
-				<HorizontalStack Spacing="5" >
-					<Label Foreground="Black" Text="Name:"/>
-					<Label Foreground="Black" Text="{Name}"/>
-				</HorizontalStack>
-				<HorizontalStack RootDataLevel="true" Spacing="5" >
-					<Label Foreground="Black" Text="NameSpace:"/>
-					<Label Foreground="Black" Text="{ContainingNamespace}"/>
-				</HorizontalStack>
-			</VerticalStack>
-			<VerticalStack RootDataLevel="true" DataSource="{../../editor.CurrentSyntaxNode}">
-				<HorizontalStack Spacing="5" >
-					<Label Foreground="Black" Text="Node:"/>
-					<Label Foreground="Black" Text="{Kind}"/>
-				</HorizontalStack>			
-			</VerticalStack>-->
-			
-			<Widget Background="Red" Width="5" Height="5" Visible="{IsDirty}"/>
-			<Label Text="Abs Pos:" Foreground="Grey"/>
-			<Label Text="{../../editor.CurrentPos}" />
-			<Label Text="Hover Line:" Foreground="Grey"/>
-			<Label Text="{../../editor.HoverLine}"/>
-			<Label Text="Hover Col:" Foreground="Grey"/>
-			<Label Text="{../../editor.HoverColumn}"/>
-			<Label Text="Visual Col:" Foreground="Grey"/>
-			<Label Text="{../../editor.VisualColumn}"/>
-			<Label Text="Line:" Foreground="Grey"/>
-			<Label Text="{CurrentLine}"/>
-			<Label Text="column:" Foreground="Grey"/>
-			<Label Text="{CurrentColumn}"/>
-			<!--<Label Text="ScrollX:" Foreground="Black"/>
-			<Label Text="{../../editor.ScrollX}"/>
-			<Label Text="ScrollY:" Foreground="Black"/>
-			<Label Text="{../../editor.ScrollY}"/>-->
-		</HorizontalStack>
-	</VerticalStack>
-</TabItem>
+<VerticalStack Name="{DisplayName}" Spacing="0" IsVisible="{²IsSelected}" >
+	<HorizontalStack Height="Fit" Margin="2">
+		<Label Text="{FullPath}" Tooltip="{FullPath}"/>
+	</HorizontalStack>
+	<HorizontalStack >
+		<RoslynEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"
+				ExecutingLine="{ExecutingLine}"
+				CurrentLine="{²CurrentLine}" CurrentColumn="{²CurrentColumn}" HasFocus="{IsSelected}"
+				Foreground="Jet" Background="White" Width="Stretched" Height="Stretched"
+				ProjectNode="{}"  KeyDown="textView_KeyDown"/>
+		<ScrollBar Name="scrollbarY" Value="{²../editor.ScrollY}" Maximum="{../editor.MaxScrollY}"
+				   LargeIncrement="{../editor.VisibleLines}" CursorSize="{../editor.ChildHeightRatio}"/>
+	</HorizontalStack>
+	<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../editor.ScrollX}" Maximum="{../editor.MaxScrollX}"
+			   LargeIncrement="{../editor.VisibleColumns}" CursorSize="{../editor.ChildWidthRatio}"/>			
+	<HorizontalStack Height="Fit" Spacing="10">
+		<Label Text="{../../editor.HoverError}" Width="Stretched"/>
+		
+		<!--<VerticalStack RootDataLevel="true" DataSourceType="Microsoft.CodeAnalysis.ISymbol" DataSource="{../../editor.CurrentSymbol}">
+			<HorizontalStack Spacing="5" >
+				<Label Foreground="Black" Text="Name:"/>
+				<Label Foreground="Black" Text="{Name}"/>
+			</HorizontalStack>
+			<HorizontalStack RootDataLevel="true" Spacing="5" >
+				<Label Foreground="Black" Text="NameSpace:"/>
+				<Label Foreground="Black" Text="{ContainingNamespace}"/>
+			</HorizontalStack>
+		</VerticalStack>
+		<VerticalStack RootDataLevel="true" DataSource="{../../editor.CurrentSyntaxNode}">
+			<HorizontalStack Spacing="5" >
+				<Label Foreground="Black" Text="Node:"/>
+				<Label Foreground="Black" Text="{Kind}"/>
+			</HorizontalStack>			
+		</VerticalStack>-->
+		
+		<Widget Background="Red" Width="5" Height="5" Visible="{IsDirty}"/>
+		<Label Text="Abs Pos:" Foreground="LightGrey"/>
+		<Label Text="{../../editor.CurrentPos}" Foreground="White"/>
+		<Label Text="Hover Line:" Foreground="LightGrey"/>
+		<Label Text="{../../editor.HoverLine}" Foreground="White"/>
+		<Label Text="Hover Col:" Foreground="LightGrey"/>
+		<Label Text="{../../editor.HoverColumn}" Foreground="White"/>
+		<Label Text="Visual Col:" Foreground="LightGrey"/>
+		<Label Text="{../../editor.VisualColumn}" Foreground="White"/>
+		<Label Text="Line:" Foreground="LightGrey"/>
+		<Label Text="{CurrentLine}" Foreground="White"/>
+		<Label Text="column:" Foreground="LightGrey"/>
+		<Label Text="{CurrentColumn}" Foreground="White"/>
+		<!--<Label Text="ScrollX:" Foreground="Black"/>
+		<Label Text="{../../editor.ScrollX}"/>-->
+		<Label Text="ScrollY:" Foreground="LightGrey"/>
+		<Label Text="{../../editor.ScrollY}" Foreground="White"/>
+	</HorizontalStack>
+</VerticalStack>

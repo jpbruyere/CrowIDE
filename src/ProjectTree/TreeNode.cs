@@ -36,11 +36,13 @@ namespace Crow.Coding
 		}
 		#endregion
 
+		#region CTOR
 		public TreeNode () { }
 		public TreeNode (string _name)
 		{
 			name = _name;
 		}
+		#endregion
 
 		ObservableList<TreeNode> childs = new ObservableList<TreeNode> ();
 		CommandGroup commands = new CommandGroup ();
@@ -50,9 +52,7 @@ namespace Crow.Coding
 
 		public TreeNode Parent;
 
-		public virtual string DisplayName {
-			get { return name; }
-		}
+		public virtual string DisplayName => name;
 		public ObservableList<TreeNode> Childs {
 			get => childs;
 			set {
@@ -90,13 +90,13 @@ namespace Crow.Coding
 					return;
 				isExpanded = value;
 				NotifyValueChanged ("IsExpanded", isExpanded);
+				NotifyValueChanged ("IconSub", IconSub);
 			}
 		}
-
-		public override string ToString ()
-		{
-			return DisplayName;
-		}
+		public virtual Picture Icon => new SvgPicture ("#Icons.Question.svg");
+		public virtual string IconSub => null;
+		
+		public override string ToString () => DisplayName;
 
 		public IEnumerable<TreeNode> Flatten {
 			get {

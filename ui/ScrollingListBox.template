@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<HorizontalStack Background="{./Background}" Spacing="0">
+	<Scroller Name="scroller1" Margin="2">
+		<VerticalStack Height="Fit" MinimumSize="10,10"	Name="ItemsContainer" Margin="0" VerticalAlignment="Top"/>
+	</Scroller>
+	<ScrollBar Value="{²../scroller1.ScrollY}"
+		LargeIncrement="{../scroller1.PageHeight}" SmallIncrement="30" CursorSize="{../scroller1.ChildHeightRatio}"
+		Maximum="{../scroller1.MaxScrollY}" />
+</HorizontalStack>

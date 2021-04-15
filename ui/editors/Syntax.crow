@@ -1,33 +1,34 @@
-﻿<Border RootDataLevel="true"  DataSourceType="Crow.Coding.RoslynEditor" BorderWidth="1" Foreground="Black" Fit="true" Background="${TooltipBackground}" >
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<Border RootDataLevel="true"  DataSourceType="Crow.Coding.RoslynEditor" BorderWidth="1" Foreground="Black" Fit="true" Background="${TooltipBackground}" >
 	<VerticalStack DataSource="{CurrentSymbol}">
-		<!--<Label Foreground="Black" Text="{CurrentSymbol}"/>-->
-		<VerticalStack RootDataLevel="true" DataSourceType="Microsoft.CodeAnalysis.ISymbol">
-			<HorizontalStack Spacing="5" >
-				<Label Foreground="Black" Text="Name:"/>
-				<Label Foreground="Black" Text="{Name}"/>
-			</HorizontalStack>
-			<HorizontalStack Spacing="5" >
-				<Label Foreground="Black" Text="NameSpace:"/>
-				<Label Foreground="Black" Text="{ContainingNamespace}"/>
-			</HorizontalStack>
-			<HorizontalStack Spacing="5" >
-				<Label Foreground="Black" Text="Containing Type:"/>
-				<Label Foreground="Black" Text="{ContainingType}"/>
-			</HorizontalStack>
-			<!--<HorizontalStack Spacing="5" >
-				<Label Foreground="Black" Text="Kind:"/>
-				<Label Foreground="Black" Text="{Kind}"/>
-			</HorizontalStack>			-->
-		</VerticalStack>
-		<HorizontalStack Spacing="5" Margin="5" DataSource="{CurrentToken}">
-			<Label Foreground="Black" Text="Kind:"/>
+		<HorizontalStack Spacing="5" Margin="5" DataSource="{CurrentToken}" HorizontalAlignment="Left">
+			<Label Foreground="DimGrey" Width="80" Text="Token Kind:"/>
 			<Label Foreground="Black" Text="{CSKind}"/>			
 		</HorizontalStack>
-		<VerticalStack DataSource="{CurrentSyntaxNode}">
+		<VerticalStack DataSource="{CurrentSyntaxNode}" HorizontalAlignment="Left">
 			<HorizontalStack Spacing="5" >
-				<Label Foreground="Black" Text="Node:"/>
+				<Label Foreground="DimGrey" Width="80" Text="Node:"/>
 				<Label Foreground="Black" Text="{Kind}"/>
 			</HorizontalStack>			
+		</VerticalStack>
+		<!--<Label Foreground="Black" Text="{CurrentSymbol}"/>-->
+		<VerticalStack RootDataLevel="true" DataSourceType="Microsoft.CodeAnalysis.ISymbol">
+			<HorizontalStack Spacing="5" HorizontalAlignment="Left">
+				<Label Foreground="DimGrey" Width="80" Text="Name:"/>
+				<Label Foreground="Black" Text="{Name}"/>
+			</HorizontalStack>
+			<HorizontalStack Spacing="5" HorizontalAlignment="Left">
+				<Label Foreground="DimGrey" Width="80" Text="NameSpace:"/>
+				<Label Foreground="Black" Text="{ContainingNamespace}"/>
+			</HorizontalStack>
+			<HorizontalStack Spacing="5" HorizontalAlignment="Left">
+				<Label Foreground="DimGrey" Width="80" Text="Containing Type:"/>
+				<Label Foreground="Black" Text="{ContainingType}"/>
+			</HorizontalStack>
+			<HorizontalStack Spacing="5" HorizontalAlignment="Left" >
+				<Label Foreground="DimGrey" Width="80" Text="Kind:"/>
+				<Label Foreground="Black" Text="{GetKindString}"/>
+			</HorizontalStack>
 		</VerticalStack>
 	</VerticalStack>
 </Border>

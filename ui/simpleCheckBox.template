@@ -1,0 +1,3 @@
+﻿<?xml version="1.0"?>
+<Image Style="Icon" Width="${ToggleIconSize}" Height="${ToggleIconSize}" Path="#Crow.Icons.checkbox.svg" SvgSub="{./IsChecked}"
+	Background="{./Background}" CornerRadius="{$ControlCornerRadius}"/>

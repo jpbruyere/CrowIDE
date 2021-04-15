@@ -5,26 +5,26 @@
 		<ListBox RootDataLevel="true" Data="{SyntaxTheme}">
 			<Template>
 				<Scroller  Name="scroller1"  >
-					<Table Margin="1" Columns="name,Stretched;foreground,150;background,150;bold,Fit;Italic,Fit" Background="DarkGrey" Spacing="1"
+					<Table Margin="1" Columns="name,Stretched;foreground,150;background,150;bold,Fit;Italic,Fit"
 						Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
 				</Scroller>			
 			</Template>
 			<ItemTemplate>
-				<TableRow Height="Fit" Spacing="1" Margin="0">
-					<Label Margin="2" Text="{Key}" Background="Grey" Height="Stretched"/>					
-					<ColorPicker Margin="0" DataSource="{Value}" RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Foreground}" Background="Grey" Height="Stretched" Width="Stretched"
+				<TableRow Height="Fit" Margin="0">
+					<Label Margin="2" Text="{Key}" Height="Stretched"/>					
+					<ColorPicker Margin="0" DataSource="{Value}" RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Foreground}" Height="Stretched" Width="Stretched"
 								 Template="#ui.ColorPicker2.template"/>
-					<ColorPicker Margin="0" DataSource="{Value}" RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Background}" Background="Grey" Height="Stretched" Width="Stretched"
+					<ColorPicker Margin="0" DataSource="{Value}" RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Background}" Height="Stretched" Width="Stretched"
 								 Template="#ui.ColorPicker2.template"/>
-					<CheckBox DataSource="{Value}" Caption="Bold" IsChecked="{²Bold}" Background="Grey" Height="Stretched"/>
-					<CheckBox DataSource="{Value}" Caption="Italic" IsChecked="{²Italic}" Background="Grey" Height="Stretched"/>					
+					<CheckBox Style="simpleCheckBox" DataSource="{Value}" Caption="Bold" IsChecked="{²Bold}" Height="Stretched"/>
+					<CheckBox Style="simpleCheckBox" DataSource="{Value}" Caption="Italic" IsChecked="{²Italic}" Height="Stretched"/>					
 				</TableRow>
 			</ItemTemplate>
 		</ListBox>
 		<HorizontalStack Fit="True" HorizontalAlignment="Right">
-			<Button Caption="Reload" MouseClick="onClickReloadSyntaxTheme"/>
-			<Button Caption="Save" MouseClick="onClickSaveSyntaxTheme"/>
-			<Button Caption="Save as..." MouseClick="onClickSaveSyntaxThemeAs"/>
+			<Button Command="{CMDSyntaxTheme_Reload}"/>
+			<Button Command="{CMDSyntaxTheme_Save}"/>
+			<Button Command="{CMDSyntaxTheme_SaveAs}"/>
 		</HorizontalStack>
 	</VerticalStack>
 </DockWindow>

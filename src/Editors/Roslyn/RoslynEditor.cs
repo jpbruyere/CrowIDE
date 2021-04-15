@@ -15,6 +15,7 @@ using Glfw;
 using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
+using BreakPoint = Crow.Coding.Debugging.BreakPoint;
 
 namespace Crow.Coding
 {
@@ -65,7 +66,7 @@ namespace Crow.Coding
 			get => (ProjectNode as CSProjectItem).SyntaxTree;
 			set => (ProjectNode as CSProjectItem).SyntaxTree = value;
 		}
-		public ObservableList<BreakPoint> breakPoints => projFile.Project.solution.BreakPoints;
+		public ObservableList<BreakPoint> BreakPoints => projFile.Project.Solution.BreakPoints;
 		void updateFolds () {
 			//Console.WriteLine ("update folds");
 			foldingManager.CreateFolds (SyntaxTree.GetRoot ());
@@ -137,9 +138,12 @@ namespace Crow.Coding
 			if (buffer == null) 
 				MaxScrollY = 0;
 			else {
+				int lastMaxScroll = MaxScrollY;
 				int unfoldedLines = buffer.Lines.Count - foldingManager.FoldedLines;
 				MaxScrollY = Math.Max (0, unfoldedLines - visibleLines);
 				NotifyValueChanged ("ChildHeightRatio", Slot.Height * visibleLines / unfoldedLines);
+				if (lastMaxScroll == 0)
+					CurrentLine = currentLine;//force on 1st update
 			}
 		}
 		
@@ -181,17 +185,17 @@ namespace Crow.Coding
 		int currentLine, currentColumn, executingLine = -1;
 		#region Public Crow Properties
 		public int CurrentLine {
-			get { return currentLine; }
+			get => currentLine;
 			set {
+				if (value < ScrollY)
+					ScrollY = value;
+				else if (value >= ScrollY + visibleLines)
+					ScrollY = value - visibleLines + 1;
 				if (currentLine == value)
 					return;
 				currentLine = value;
-				if (currentLine < ScrollY)
-					ScrollY = currentLine;
-				else if (currentLine >= ScrollY + visibleLines)
-					ScrollY = currentLine - visibleLines + 1;
 				NotifyValueChanged ("CurrentLine", currentLine);
-				RegisterForRedraw ();
+				RegisterForGraphicUpdate ();
 			}
 		}
 		public int CurrentColumn {
@@ -219,7 +223,7 @@ namespace Crow.Coding
 
 		internal bool printLineNumbers => (this.IFace as CrowIDE).PrintLineNumbers;
 
-		[DefaultValue("RoyalBlue")]
+		/*[DefaultValue("AliceBlue")]
 		public virtual Color SelectionBackground {
 			get { return selBackground; }
 			set {
@@ -240,7 +244,7 @@ namespace Crow.Coding
 				NotifyValueChanged ("SelectionForeground", selForeground);
 				RegisterForRedraw ();
 			}
-		}
+		}*/
 		public ParserException CurrentLineError {
 			get { return null; }// buffer?.CurrentCodeLine?.exception; }
 		}
@@ -377,6 +381,8 @@ namespace Crow.Coding
 			if (!IsReady || buffer == null || visibleLines == 0)
 				return;
 
+			Dictionary<string, TextFormatting> formatting = (IFace as CrowIDE).SyntaxTheme;
+
 			gr.SelectFontFace (Font.Name, Font.Slant, Font.Wheight);
 			gr.SetFontSize (Font.Size);
 			gr.FontOptions = Interface.FontRenderingOptions;
@@ -387,10 +393,10 @@ namespace Crow.Coding
 			editorMutex.EnterReadLock ();
 
 			Rectangle cb = ClientRectangle;
-			Stopwatch sw = Stopwatch.StartNew();			
+			//Stopwatch sw = Stopwatch.StartNew();			
 			printer.Draw (gr, SyntaxTree.GetRoot ());
-			sw.Stop();
-			Console.WriteLine ($"SyntaxPrinter: {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
+			/*sw.Stop();
+			Console.WriteLine ($"SyntaxPrinter: {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");*/
 			printedLines = printer.printedLinesNumbers;
 
 			
@@ -398,9 +404,7 @@ namespace Crow.Coding
 			LinePositionSpan lps = buffer.Lines.GetLinePositionSpan(t.LeadingTrivia.FullSpan);*/
 
 			#region draw text cursor	
-			if (!selection.IsEmpty) {
-				Color selbg = this.SelectionBackground;
-
+			if (!selection.IsEmpty) {				
 				TextLine startTl = buffer.Lines.GetLineFromPosition (selection.Start);
 				TextLine endTl = buffer.Lines.GetLineFromPosition (selection.End);
 
@@ -418,7 +422,7 @@ namespace Crow.Coding
 					yStart, (visualColEnd - visualColStart) * fe.MaxXAdvance, lineHeight);
 
 				gr.Operator = Operator.DestOver;
-				gr.SetSource (selbg);
+				gr.SetSource (formatting["Selection"].Background);
 
 				if (startTl == endTl) {
 					gr.Rectangle (r);
@@ -449,6 +453,9 @@ namespace Crow.Coding
 			} else if (HasFocus && printedLines != null && CurrentPos >= 0) {
 				//Draw cursor
 				gr.LineWidth = 1.0;
+				
+
+				gr.SetSource (formatting["default"].Foreground);				
 
 				TextLine tl = buffer.Lines.GetLineFromPosition (CurrentPos);
 				int visualCol = buffer.TabulatedCol (tabSize, tl.Start, CurrentPos) - ScrollX;
@@ -467,7 +474,7 @@ namespace Crow.Coding
                 foreach (Location al in diag.AdditionalLocations) {
 					printUnderline (gr, cb, al);
 				}
-			} 
+			}			
 			editorMutex.ExitReadLock ();
 
 		}
@@ -606,6 +613,8 @@ namespace Crow.Coding
 		}
 		SyntaxToken currentToken;
 		ISymbol currentSymbol;
+		public SyntaxNode CurrentSyntaxNode => CurrentToken.Parent;		
+		CSProjectItem CSProjectItm => this.projFile as CSProjectItem;
 		public SyntaxToken CurrentToken {
 			get => currentToken;
 			set {
@@ -616,7 +625,6 @@ namespace Crow.Coding
 				NotifyValueChanged ("CurrentSyntaxNode", CurrentSyntaxNode);
 			}
         }
-		public SyntaxNode CurrentSyntaxNode => CurrentToken.Parent;		
 		public ISymbol CurrentSymbol {
 			get => currentSymbol;
 			set {
@@ -626,7 +634,12 @@ namespace Crow.Coding
 				NotifyValueChanged ("CurrentSymbol", currentSymbol);
 			}
 		}
-
+		public Compilation Compilation {
+			get => CSProjectItm.Project.Compilation;
+			set {
+				CSProjectItm.Project.Compilation = value;
+			}
+		}
 		public override void onMouseMove (object sender, MouseMoveEventArgs e)
 		{
 			//base.onMouseMove (sender, e);
@@ -670,7 +683,7 @@ namespace Crow.Coding
 			}				
 
 			
-			try {
+			/*try {
 				SyntaxNode root = SyntaxTree.GetRoot ();				
 				SyntaxToken tok = root.FindToken (hoverPos, true);					
 					
@@ -690,7 +703,7 @@ namespace Crow.Coding
 
 			} catch (Exception ex) {					
 				Console.WriteLine (ex);
-			}
+			}*/
 
             
 
@@ -702,13 +715,6 @@ namespace Crow.Coding
 			//mouse is down
 			updateCurrentPosFromMouseLocalPos();
 			buffer.SetSelEndPos ();*/
-		}
-		CSProjectItem CSProjectItm => this.projFile as CSProjectItem;
-		public Compilation Compilation {
-			get => CSProjectItm.Project.Compilation;
-			set {
-				CSProjectItm.Project.Compilation = value;
-			}
 		}
         public override void onMouseEnter (object sender, MouseMoveEventArgs e)
 		{
@@ -801,15 +807,13 @@ namespace Crow.Coding
 
 			switch (key) {
 			case Key.F9:
-				BreakPoint bp = new BreakPoint (CSProjectItm, CurrentLine);
-
-				if (breakPoints.Contains (bp)) {
-					if (IFace.Ctrl)
-						breakPoints.Replace (bp, bp.WithIsEnabledToogled);
-					else
-						breakPoints.Remove (bp);
-				} else
-					breakPoints.Add (bp);
+				BreakPoint bp = BreakPoints.FirstOrDefault (bk=>bk.File == CSProjectItm && bk.Line == CurrentLine);
+				if (bp == null)
+					BreakPoints.Add (new BreakPoint (CSProjectItm, CurrentLine));
+				else if (IFace.Ctrl)
+					bp.IsEnabled = !bp.IsEnabled;
+				else
+					BreakPoints.Remove (bp);			
 
 				break;
 			case Key.Backspace:

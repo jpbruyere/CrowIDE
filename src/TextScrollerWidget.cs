@@ -49,9 +49,17 @@ namespace Crow
 
 		void Lines_ListAdd (object sender, ListChangedEventArg e)
 		{
-			MaxScrollY = lines.Count - visibleLines;
-			if (scrollOnOutput)
-				ScrollY = MaxScrollY;
+			try
+			{
+				MaxScrollY = lines.Count - visibleLines;
+				if (scrollOnOutput)
+					ScrollY = MaxScrollY;
+				
+			}
+			catch (System.Exception ex)
+			{
+				Console.WriteLine ($"list add valueChange handler bug:{ex}");
+			}
 		}
 
 		void Lines_ListRemove (object sender, ListChangedEventArg e)
@@ -76,7 +84,7 @@ namespace Crow
 					}
 				}
 				visibleLines = (int)Math.Floor ((double)ClientRectangle.Height / fe.Height);
-				MaxScrollY = lines.Count - visibleLines;
+				MaxScrollY = lines == null ? 0 : lines.Count - visibleLines;
 			}
 		}
 		protected override void onDraw (Cairo.Context gr)
@@ -94,7 +102,7 @@ namespace Crow
 			Foreground.SetAsSource (IFace, gr);
 
 			double y = ClientRectangle.Y;
-			double x = ClientRectangle.X;
+			double x = ClientRectangle.X - ScrollX;
 
 			for (int i = 0; i < visibleLines; i++) {
 				if (i + ScrollY >= Lines.Count)

@@ -36,7 +36,7 @@ namespace Crow.Coding
 		public override void UpdateSource (object sender, string newSrc)
 		{
 			base.UpdateSource (sender, newSrc);
-			Project.solution.ReloadStyling ();
+			Project.Solution.ReloadStyling ();
 		}
 	}
 }

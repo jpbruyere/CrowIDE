@@ -2,8 +2,8 @@
 <DockWindow Name="winLog" Caption="Main Logs"  Width="60%">
 	<VerticalStack Spacing="0">
 		<HorizontalStack Height="Fit">
-			<CheckBox Fit="true" Caption="Scroll on output" IsChecked="{²../../log.ScrollOnOutput}"/>
-			<EnumSelector Caption="Verbosity" EnumValue="{²MainLoggerVerbosity}" Fit="true">
+			<CheckBox Fit="true" Caption="Scroll on output" IsChecked="{²../../log.ScrollOnOutput}"/>			
+			<EnumSelector RadioButtonStyle="CheckBoxAlt" Caption="Verbosity" EnumValue="{²MainLoggerVerbosity}" Fit="true" Background="DarkGrey">
 				<Template>
 					<Popper Caption="{./Caption}" CornerRadius="{./CornerRadius}" Foreground="{./Foreground}" Background="{./Background}">
 						<Template>
@@ -22,18 +22,26 @@
 								</Template>
 							</CheckBox>
 						</Template>
-						<VerticalStack Name="Content" Fit="true" Background="DarkGrey"/>
+						<VerticalStack Name="Content" Width="200" Height="Fit" Background="DarkGrey"/>
 					</Popper>
 				</Template>
 			</EnumSelector>
 			<TextBox Text="{²MainLoggerSearchString}" Width="Stretched" KeyDown="../../log.onSearch"/>
+			<CheckBox Style="CheckBoxAlt" Fit="true" Caption="Match Case" IsChecked="{²../../log.CaseSensitiveSearch}"/>			
+			<Menu Data="{../../log.SearchCommands}" Height="Stretched" Width="Fit">
+				<ItemTemplate>
+					<Button Command="{}" Height="Stretched" Width="Fit"/>
+				</ItemTemplate>
+			</Menu>				
 		</HorizontalStack>
 		<HorizontalStack Spacing="0" >
-			<BuildEventsView Name="log" Font="$SmallFont" MouseWheelSpeed="1" Events="{BuildEvents}" SearchString="{MainLoggerSearchString}" Focusable="true" Background="Black"/>		
-			<ScrollBar Name="scrollbarY" Value="{²../log.ScrollY}"				   
-				CursorSize="{../log.ChildHeightRatio}"
-				Maximum="{../log.MaxScrollY}" Orientation="Vertical"/>
+			<BuildEventsView Name="log" Font="${SmallFont}" MouseWheelSpeed="3" Events="{BuildEvents}"
+				MaxScrollX="10000"
+				SearchString="{MainLoggerSearchString}" Focusable="true" Background="Black"/>		
+			<ScrollBar Name="scrollbarY" Value="{²../log.ScrollY}" CursorRatio="{../log.ChildHeightRatio}" Maximum="{../log.MaxScrollY}" />
 		</HorizontalStack>
+		<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../log.ScrollX}" Maximum="{../log.MaxScrollX}" SmallIncrement="30"/>
+
 		<HorizontalStack Height="Fit" Margin="1" Background="Jet">
 			<Label Text="MaxScrollY:"/>
 			<Label Text="{../../log.MaxScrollY}"/>

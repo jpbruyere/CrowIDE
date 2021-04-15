@@ -1,0 +1,12 @@
+﻿<?xml version="1.0"?>
+<DockWindow DataSource="{CurrentSolution}" Name="winDebugger" Caption="NetCoreDBG"  Width="60%">
+	<TabView RootDataLevel="true" DataSource="{DbgSession}" Background="Onyx">		
+
+
+
+
+
+		<TextScrollerWidget Name="Output" Lines="{OutputLog}" Background="${IdeLogBackground}" IsVisible="false"/>
+		<TextScrollerWidget Name="Error" Lines="{ErrorLog}" Background="${IdeLogBackground}" IsVisible="false"/>
+	</TabView>
+</DockWindow>

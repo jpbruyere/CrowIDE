@@ -3,331 +3,468 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using Crow.Coding.Debugging;
+using Debugger = Crow.Coding.Debugging.Debugger;
+using StackFrame = Crow.Coding.Debugging.StackFrame;
 
 namespace Crow.Coding
 {
-    public class NetcoredbgDebugger : Debugger { 
+	public class NetcoredbgDebugger : Debugger
+	{
+		Process procdbg;
+		public class Request {
+			public readonly string Command;
+			public Request (string command) {
+				Command = command;
+			}
+			public override string ToString() => Command;
+		}
+		public class Request<T> : Request {
+			public T RequestObject;
+			public Request (T obj, string command) : base (command){
+				RequestObject = obj;
+			}
+		}
+		Queue<Request> pendingRequest = new Queue<Request>();
+		CSProjectItem executingFile;
+		int executingLine = -1;
 
-        enum MIAttributeType
-        {
-            Value,
-            Tuple,
-            List
-        }
-        ref struct MIAttribute
-        {
-            public MIAttributeType Type;
-            public ReadOnlySpan<char> Name;
-            public ReadOnlySpan<char> Value;
-        }
-        
-        Process procdbg;
-        Queue<string> pendingRequest = new Queue<string> ();
-        CSProjectItem executingFile;
-        int executingLine = -1;
+		public ObservableList<string> OutputLog = new ObservableList<string>();
+		public ObservableList<string> ErrorLog = new ObservableList<string>();
+		public ObservableList<string> DebuggerLog = new ObservableList<string>();
 
+		public ObservableList<StackFrame> Frames = new ObservableList<StackFrame>();
+		public ObservableList<ThreadInfo> Threads = new ObservableList<ThreadInfo>();
+		public ObservableList<Watch> Watches = new ObservableList<Watch>();
 
-        public override ProjectView Project {
-            get => base.Project;
-            set {
-                if (base.Project == value)
-                    return;
-                base.Project = value;
-                CreateNewRequest ($"-file-exec-and-symbols {project.OutputAssembly}");
-                CreateNewRequest ($"-environment-cd {Path.GetDirectoryName (project.OutputAssembly)}");
-            }
-        }
+		ThreadInfo currentThread;
+		StackFrame currentFrame;
 
-        #region CTOR
-        public NetcoredbgDebugger (ProjectView project) {
-            
-            procdbg = new Process ();
-            procdbg.StartInfo.FileName = project.solution.IDE.NetcoredbgPath;
-            procdbg.StartInfo.Arguments = "--interpreter=mi";
-            procdbg.StartInfo.CreateNoWindow = true;
-            procdbg.StartInfo.RedirectStandardInput = true;
-            procdbg.StartInfo.RedirectStandardOutput = true;
-            procdbg.StartInfo.RedirectStandardError = true;
+		public ThreadInfo CurrentThread
+		{
+			get => currentThread;
+			set
+			{
+				if (currentThread == value)
+					return;
+				currentThread = value;
+				NotifyValueChanged(currentThread);
+				if (currentThread == null)
+					return;
+				getStackFrames(currentThread);
+				updateWatches ();
+			}
+		}
+		public StackFrame CurrentFrame
+		{
+			get => currentFrame;
+			set
+			{
+				if (currentFrame == value)
+					return;
+				currentFrame = value;
+				NotifyValueChanged(currentFrame);
+				if (currentFrame == null)
+					return;
+				tryGoTo(currentFrame);
+				updateWatches ();
+			}
+		}
 
-            procdbg.EnableRaisingEvents = true;
-            procdbg.OutputDataReceived += Procdbg_OutputDataReceived;
-            procdbg.ErrorDataReceived += Procdbg_ErrorDataReceived;
-            procdbg.Exited += Procdbg_Exited;
+		public override ProjectView Project
+		{
+			get => base.Project;
+			set
+			{
+				if (base.Project == value)
+					return;
+				base.Project = value;
+				CreateNewRequest($"-file-exec-and-symbols {project.OutputAssembly}");
+				CreateNewRequest($"-environment-cd {Path.GetDirectoryName(project.OutputAssembly)}");
+			}
+		}
 
-            bool result = procdbg.Start ();
+		#region CTOR
+		public NetcoredbgDebugger(ProjectView project)
+		{
+			procdbg = new Process();
+			procdbg.StartInfo.FileName = project.Solution.IDE.NetcoredbgPath;
+			procdbg.StartInfo.Arguments = "--interpreter=mi";
+			procdbg.StartInfo.CreateNoWindow = true;
+			procdbg.StartInfo.RedirectStandardInput = true;
+			procdbg.StartInfo.RedirectStandardOutput = true;
+			procdbg.StartInfo.RedirectStandardError = true;
+			procdbg.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8;
+			//procdbg.StartInfo.StandardInputEncoding = System.Text.Encoding.UTF8;
+			procdbg.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8;
 
-            procdbg.BeginOutputReadLine ();
-
-            Project = project;
-
-            foreach (BreakPoint bp in breakPoints.Where (b => b.IsEnabled))
-                InsertBreakPoint (bp);
-
-            breakPoints.ListAdd += BreakPoints_ListAdd;
-            breakPoints.ListRemove += BreakPoints_ListRemove;
-
-        }
-        #endregion
-
-        protected override void ResetCurrentExecutingLocation () {
-            if (executingFile == null)
-                return;
-            executingFile.ExecutingLine = -1;
-            executingFile = null;
-        }
-        /// <summary>
-        /// send request on netcoredbg process stdin
-        /// </summary>
-        void sendRequest (string request) {
-            Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine ($"<- {request}");
-            Console.ResetColor ();
-            procdbg.StandardInput.WriteLine (request);
-        }
-
-        /// <summary>
-        /// enqueue new request, send it if no other request is pending
-        /// </summary>
-        void CreateNewRequest (string request) {
-            lock (pendingRequest) {
-                pendingRequest.Enqueue (request);
-                if (pendingRequest.Count == 1)
-                    sendRequest (request);
-            }
-        }
-
-        #region Debugger abstract class implementation
-        public override void Start () {
-            CurrentState = Status.Starting;
-            CreateNewRequest ($"-exec-run");
-        }
-        public override void Pause () {
-            CreateNewRequest ($"-exec-interrupt");
-        }
-        public override void Continue () {
-            CreateNewRequest ($"-exec-continue");
-        }
-        public override void Stop () {
-            CreateNewRequest ($"-exec-abort");
-        }
-
-        public override void StepIn () {
-            CreateNewRequest ($"-exec-step");
-        }
-        public override void StepOver () {
-            CreateNewRequest ($"-exec-next");
-        }
-        public override void StepOut () {
-            CreateNewRequest ($"-exec-finish");
-        }
-
-        public override void InsertBreakPoint (BreakPoint bp) {
-            CreateNewRequest ($"-break-insert {bp.File.FullPath}:{bp.Line + 1}");
-        }
-        public override void DeleteBreakPoint (int breakPointIndex) {
-            CreateNewRequest ($"-break-delete {breakPointIndex}");
-        }
-        #endregion
-
-        private void BreakPoints_ListRemove (object sender, ListChangedEventArg e) {
-            DeleteBreakPoint (e.Index);            
-        }
-        private void BreakPoints_ListAdd (object sender, ListChangedEventArg e) {
-            InsertBreakPoint ((BreakPoint)e.Element);
-        }
-        private void Procdbg_Exited (object sender, EventArgs e) {
-            Console.WriteLine ("GDB process exited");
-            CurrentState = Status.Init;
-
-            breakPoints.ListAdd -= BreakPoints_ListAdd;
-            breakPoints.ListRemove -= BreakPoints_ListRemove;
-            procdbg.Dispose ();
-            procdbg = null;
+			procdbg.EnableRaisingEvents = true;
+			procdbg.OutputDataReceived += Procdbg_OutputDataReceived;
+			procdbg.ErrorDataReceived += Procdbg_ErrorDataReceived;
+			procdbg.Exited += Procdbg_Exited;
 
 
-            CreateNewRequest ($"-gdb-exit");
-        }
-        private void Procdbg_ErrorDataReceived (object sender, DataReceivedEventArgs e) {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine ($"-> Error: {e.Data}");
-            Console.ResetColor ();
-        }
-        bool TryGetNextMIAttributes (ref ReadOnlySpan<char> remaining_datas, out MIAttribute attribute) {
-            attribute = new MIAttribute ();
-            int idx = remaining_datas.IndexOf ('=');
-            if (idx < 0)
-                return false;
-            attribute.Name = remaining_datas.Slice (0, idx);
-            remaining_datas = remaining_datas.Slice (idx + 1);
-            if (remaining_datas[0] == '{') {
-                attribute.Type = MIAttributeType.Tuple;
-                int parenths = 1;
-                ReadOnlySpan<char> value = remaining_datas.Slice (1);
+			bool result = procdbg.Start();
 
-                do {
-                    idx = value.IndexOfAny ('{', '}');
-                    if (idx < 0)
-                        throw new Exception ("mi parsing error");
-                    if (value[idx] == '{')
-                        parenths++;
-                    else
-                        parenths--;
-                    value = value.Slice (idx + 1);
-                } while (parenths > 0);
-                if (value.Length == 0)
-                    idx = -1;
-                else if (value[0] != ',')
-                    throw new Exception ("mi parsing error, expecting ','");
-                else
-                    idx = remaining_datas.Length - value.Length + 1;
-            } else if (remaining_datas[0] == '"') {
-                attribute.Type = MIAttributeType.Value;
+			procdbg.BeginOutputReadLine();
 
-                ReadOnlySpan<char> value = remaining_datas.Slice (1);
-                int quotes = 0;
-                while (true) {
-                    idx = value.IndexOf ('"');
-                    if (idx < 0)
-                        throw new Exception ("mi parsing error: expecting quote");
-                    if (value[idx-1] == '\\') {
-                        quotes++;
-                    }else if (quotes % 2 > 0)
-                        throw new Exception ("mi parsing error: wrong number of escaped quotes in c-string");
-                    else {
-                        value = value.Slice (idx + 1);
-                        break;
-                    }                    
-                    value = value.Slice (idx + 1);
-                }
-                if (value.Length == 0)
-                    idx = -1;
-                else if (value[0] != ',')
-                    throw new Exception ("mi parsing error, expecting ','");
-                else
-                    idx = remaining_datas.Length - value.Length;
-            }
+			Project = project;
 
-            if (idx < 0) {
-                attribute.Value = remaining_datas;
-                remaining_datas = default;
-            }else {
-                attribute.Value = remaining_datas.Slice (1, idx-2);
-                remaining_datas = remaining_datas.Slice (idx + 1);
-            }                           
-            return true;
-        }
-        bool TryGetNextMIAttributeValue (ReadOnlySpan<char> attributeName, ref ReadOnlySpan<char> remaining_datas, out ReadOnlySpan<char> value) {
-            while(TryGetNextMIAttributes (ref remaining_datas, out MIAttribute attribute)) {
-                if (attribute.Name.SequenceEqual (attributeName)) {
-                    value = attribute.Value;
-                    return true;
-                }
-            }
-            value = default;
-            return false;
-        }
+			foreach (BreakPoint bp in BreakPoints)
+				InsertBreakPoint(bp);
 
-        private void Procdbg_OutputDataReceived (object sender, DataReceivedEventArgs e) {
-            if (string.IsNullOrEmpty (e.Data))
-                return;
+			BreakPoints.ListAdd += BreakPoints_ListAdd;
+			BreakPoints.ListRemove += BreakPoints_ListRemove;
+		}
+		#endregion
 
-            Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine ($"-> {e.Data}");
-            Console.ResetColor ();
+		protected override void ResetCurrentExecutingLocation()
+		{
+			if (executingFile == null)
+				return;
+			executingFile.ExecutingLine = -1;
+			executingFile = null;
+		}
+		/// <summary>
+		/// send request on netcoredbg process stdin
+		/// </summary>
+		void sendRequest(Request request)
+		{
+			DebuggerLog.Add($"<- {request}");
+			procdbg.StandardInput.WriteLine(request);
+		}
 
-            char firstChar = e.Data[0];
-            ReadOnlySpan<char> data = e.Data.AsSpan (1);
+		/// <summary>
+		/// enqueue new request, send it if no other request is pending
+		/// </summary>
+		public void CreateNewRequest(string request)
+		{
+			lock (pendingRequest)
+			{
+				pendingRequest.Enqueue(new Request (request));
+				if (pendingRequest.Count == 1)
+					sendRequest(pendingRequest.Peek());
+			}
+		}
+		public void CreateNewRequest(Request request)
+		{
+			lock (pendingRequest)
+			{
+				pendingRequest.Enqueue(request);
+				if (pendingRequest.Count == 1)
+					sendRequest(pendingRequest.Peek());
+			}
+		}
 
-            if (firstChar == '(') {
-                return;
-            }
-            
+		#region Debugger abstract class implementation
+		public override void Start()
+		{
+			CurrentState = Status.Starting;
+			CreateNewRequest($"-exec-run");
+		}
+		public override void Pause()
+		{
+			CreateNewRequest($"-exec-interrupt");
+		}
+		public override void Continue()
+		{
+			CreateNewRequest($"-exec-continue");
+		}
+		public override void Stop()
+		{
+			CreateNewRequest($"-exec-abort");			
+		}
 
-            int tokEnd = data.IndexOf (',');
+		public override void StepIn()
+		{
+			CreateNewRequest($"-exec-step");
+		}
+		public override void StepOver()
+		{
+			CreateNewRequest($"-exec-next");
+		}
+		public override void StepOut()
+		{
+			CreateNewRequest($"-exec-finish");
+		}
 
-            ReadOnlySpan<char> data_id = tokEnd < 0 ? data : data.Slice (0, tokEnd);
-            if (tokEnd >= 0)
-                data = data.Slice (tokEnd + 1);
+		public override void InsertBreakPoint(BreakPoint bp)
+		{
+			CreateNewRequest (new Request<BreakPoint> (bp, $"-break-insert {bp.File.FullPath}:{bp.Line + 1}"));
+		}
+		public override void DeleteBreakPoint(BreakPoint bp)
+		{
+			if (bp.Index < 0)
+				return;
+			CreateNewRequest($"-break-delete {bp.Index}");
+		}
+		#endregion
 
-            if (firstChar == '^') {
-                string request = null;
-                lock (pendingRequest) {
-                    if (pendingRequest.Count > 0) {
-                        request = pendingRequest.Dequeue ();
-                        if (pendingRequest.Count > 0)
-                            sendRequest (pendingRequest.Peek ());
-                    }
-                }
-                
-                if (data_id.SequenceEqual ("running")) {
-                    CurrentState = Status.Running;
-                } else if (data_id.SequenceEqual ("done")) {
-                    Console.WriteLine ($"=> request done: {request}");
+		public void GetStackFrames(MIList list)
+		{
 
-                } else if (data_id.SequenceEqual ("exit")) {
-                    Console.WriteLine ($"=> request done: {request}");
-                } else
-                    print_unknown_datas ($"requested: {request} data:{e.Data}");
-                Console.ResetColor ();
+		}
 
-            } else if (firstChar == '*') {
-                if (data_id.SequenceEqual ("stopped")) {
-                    CurrentState = Status.Stopped;
-                    TryGetNextMIAttributeValue ("reason", ref data, out ReadOnlySpan<char> reason);
-                    if (reason.SequenceEqual ("exited")) {
-                        CurrentState = Status.Exited;
-                        TryGetNextMIAttributeValue ("exit-code", ref data, out ReadOnlySpan<char> exit_code);                        
-                    } else if (reason.SequenceEqual ("entry-point-hit") && !BreakOnStartup) {
-                        Continue ();
-                    } else {
-                        Console.WriteLine ($"Stopped reason:{reason.ToString ()}");
-                        TryGetNextMIAttributeValue ("frame", ref data, out ReadOnlySpan<char> frame);
-                        TryGetNextMIAttributeValue ("fullname", ref frame, out ReadOnlySpan<char> fullname);
-                        TryGetNextMIAttributeValue ("line", ref frame, out ReadOnlySpan<char> lineno);
+		private void BreakPoints_ListRemove(object sender, ListChangedEventArg e)
+		{
+			DeleteBreakPoint((BreakPoint)e.Element);
+		}
+		private void BreakPoints_ListAdd(object sender, ListChangedEventArg e)
+		{
+			InsertBreakPoint((BreakPoint)e.Element);
+		}
+		private void Procdbg_Exited(object sender, EventArgs e)
+		{
+			DebuggerLog.Add("GDB process Terminated.");
+			
+			CurrentState = Status.Init;
+			BreakPoints.ListAdd -= BreakPoints_ListAdd;
+			BreakPoints.ListRemove -= BreakPoints_ListRemove;
+			procdbg?.Dispose();
+			procdbg = null;
 
-                        executingLine = int.Parse (lineno) - 1;
-                        string strPath = fullname.ToString ().Replace ("\\\\", "\\");
+			solution.DbgSession = null;
+			solution.CMDDebugStart.CanExecute = true;			
+		}
+		private void Procdbg_ErrorDataReceived(object sender, DataReceivedEventArgs e)
+		{
+			DebuggerLog.Add($"-> Error: {e.Data}");
+		}		
+		
+		void getStackFrames(ThreadInfo thread = null)
+		{
+			if (thread == null)
+				CreateNewRequest($"-stack-list-frames");
+			else
+				CreateNewRequest($"-stack-list-frames --thread {thread.Id}");
+		}
+		void getVariables(ThreadInfo thread = null, int stackLevel = 0)
+		{
+			CreateNewRequest($"-stack-list-variables");
+		}
+		void updateWatches () {
+			foreach (Watch w in Watches)
+				w.UpdateValue ();			
+		}
 
-                        if (project.TryGetProjectFileFromPath (strPath, out ProjectFileNode pf)) {
-                            if (!pf.IsOpened)
-                                pf.Open ();
-                            pf.IsSelected = true;
+		void tryGoTo(StackFrame frame)
+		{
+			if (string.IsNullOrEmpty(frame.FileFullName))
+				return;
+			executingLine = frame.Line - 1;
+			string strPath = frame.FileFullName;
 
-                            executingFile = pf as CSProjectItem;
-                            executingFile.ExecutingLine = executingLine;
-                            executingFile.CurrentLine = executingLine;
-                        } else {
-                            ResetCurrentExecutingLocation ();
-                            print_unknown_datas ($"current executing file ({strPath}) not found.");
-                        }
-                    }
+			if (project.TryGetProjectFileFromPath(strPath, out ProjectFileNode pf))
+			{
+				if (!pf.IsOpened)
+					pf.Open();
+				pf.IsSelected = true;
+
+				executingFile = pf as CSProjectItem;
+				executingFile.ExecutingLine = executingLine;
+				executingFile.CurrentLine = executingLine;
+			}
+			else
+			{
+				ResetCurrentExecutingLocation();
+				DebuggerLog.Add($"[ERROR]:current executing file ({strPath}) not found.");
+			}
+		}
 
 
-                } else
-                    print_unknown_datas (e.Data);
-            } else if (firstChar == '=') {
+		private void Procdbg_OutputDataReceived(object sender, DataReceivedEventArgs e)
+		{
+			if (string.IsNullOrEmpty(e.Data))
+				return;
 
-                if (data_id.SequenceEqual("message")) {
-                    TryGetNextMIAttributeValue ("text", ref data, out ReadOnlySpan<char> text);
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.WriteLine (text.ToString());
-                    Console.ResetColor ();
+			DebuggerLog.Add($"-> {e.Data}");
 
-                } else {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine (e.Data);
-                    Console.ResetColor ();
-                }
-            } else { 
-                print_unknown_datas (e.Data);
-            }
-            
-        }
+			char firstChar = e.Data[0];
+			ReadOnlySpan<char> data = e.Data.AsSpan(1);
 
-        void print_unknown_datas (string data) {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine (data);
-            Console.ResetColor ();
-        }
-    }
+			if (firstChar == '(')
+			{
+				return;
+			}
+
+
+			int tokEnd = data.IndexOf(',');
+
+			ReadOnlySpan<char> data_id = tokEnd < 0 ? data : data.Slice(0, tokEnd);
+			if (tokEnd >= 0)
+				data = data.Slice(tokEnd + 1);
+
+			MITupple obj = MITupple.Parse (data);
+
+			if (firstChar == '^')
+			{
+				Request request = null;
+				lock (pendingRequest)
+				{
+					if (pendingRequest.Count > 0)
+					{
+						request = pendingRequest.Dequeue();
+						if (pendingRequest.Count > 0)
+							sendRequest(pendingRequest.Peek());
+					}
+				}
+
+				if (data_id.SequenceEqual("running"))
+				{
+					CurrentState = Status.Running;
+					CurrentFrame = null;
+					CurrentThread = null;
+					Threads.Clear();
+					Frames.Clear();
+				}
+				else if (data_id.SequenceEqual("done"))
+				{
+					if (obj.Attributes.Count > 0)
+					{
+						if (obj[0].Name == "threads") {
+							MIList threads = obj[0] as MIList;
+							Threads.Clear();
+							foreach (MITupple t in threads.Items)
+								Threads.Add(new ThreadInfo(t));
+						} else if (obj[0].Name == "stack") {
+							MIList stack = obj[0] as MIList;
+							Frames.Clear();
+							foreach (MITupple f in stack.Items)
+								Frames.Add(new StackFrame(f));
+						} else if (request is Request<Watch> w) {
+							/*if (w.Command.StartsWith ("-var-delete")) {
+								Watches.Remove (w.RequestObject);
+							} else*/
+							if (w.Command.StartsWith("-var-list-children")) {
+								if (int.Parse (obj.GetAttributeValue ("numchild")) > 0) {
+									foreach (MITupple child in (obj["children"] as MIList).Items)
+										w.RequestObject.Children.Add(new Watch(this, child));
+								}
+							} else if (w.Command.StartsWith ("-var-evaluate"))
+								w.RequestObject.Value = obj.GetAttributeValue("value");
+							else
+								w.RequestObject.Update (obj);
+						} else if (request is Request<BreakPoint> bpReq) {
+							BreakPoint bp = bpReq.RequestObject;
+							MITupple bkpt = obj["bkpt"] as MITupple;
+							bp.Index = int.Parse (bkpt.GetAttributeValue("number"));
+							bp.Type = bkpt.GetAttributeValue("type");
+							bp.Disp = bkpt.GetAttributeValue("disp");
+							bp.IsEnabled = bkpt.GetAttributeValue("enabled") == "y";
+							if (bkpt.TryGetAttributeValue("warning", out string warning))
+								bp.Warning = warning;
+							else {
+								bp.Warning = null;
+								bp.Func = bkpt.GetAttributeValue("func");
+								bp.FileName = bkpt.GetAttributeValue("file");
+								bp.FileFullName = bkpt.GetAttributeValue("fullname")?.Replace("\\\\", "\\");
+								if (project.TryGetProjectFileFromPath(bp.FileFullName, out ProjectFileNode pf))
+									bp.File = pf as CSProjectItem;
+								bp.Line = int.Parse (bkpt.GetAttributeValue("line")) - 1;
+							}
+						} else
+							DebuggerLog.Add($"=> request result not handled: {request}");
+					}
+
+
+				}
+				else if (data_id.SequenceEqual("exit"))
+				{
+					DebuggerLog.Add($"=> exit request done: {request}");
+					CreateNewRequest($"-gdb-exit");
+				}
+				else
+					print_unknown_datas($"requested: {request} data:{e.Data}");
+
+			}
+			else if (firstChar == '*')
+			{
+				if (data_id.SequenceEqual("stopped"))
+				{
+					CurrentState = Status.Stopped;
+					string reason = obj.GetAttributeValue("reason");
+					if (reason == "exited")
+					{
+						CurrentState = Status.Exited;
+						DebuggerLog.Add($"Exited({obj.GetAttributeValue("exit-code")})");
+						CreateNewRequest($"-gdb-exit");
+					}
+					else if (reason == "entry-point-hit" && !BreakOnStartup) {
+						Continue();
+					} else {
+						DebuggerLog.Add($"Stopped reason:{reason}");
+
+						StackFrame frame = new StackFrame(obj["frame"] as MITupple);
+						if (reason == "breakpoint-hit") {							
+							BreakPoint bp = BreakPoints.FirstOrDefault (bk=>bk.Index == int.Parse (obj.GetAttributeValue ("bkptno")));
+							bp.UpdateLocation (frame);
+						}
+
+						tryGoTo(frame);
+
+						CreateNewRequest($"-thread-info");
+						getStackFrames();
+						getVariables();
+						updateWatches ();
+					}
+
+				}
+				else
+					print_unknown_datas(e.Data);
+			}
+			else if (firstChar == '=')
+			{
+				if (data_id.SequenceEqual("message"))
+				{
+					OutputLog.Add(obj.GetAttributeValue("text").ToString().Replace(@"\0", ""));
+				}
+				else
+				{
+					OutputLog.Add($"{e.Data}");
+				}
+			}
+			else
+			{
+				print_unknown_datas(e.Data);
+			}
+
+		}
+
+		void print_unknown_datas(string data)
+		{
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.WriteLine(data);
+			Console.ResetColor();
+		}
+
+		public void WatchRequest(Watch w)
+		{
+			string strThread = CurrentThread == null ? "" : $"--thread {CurrentThread.Id}";
+			string strLevel = CurrentFrame == null ? "" : $"--frame {CurrentFrame.Level}";
+			CreateNewRequest (new Request<Watch> (w, $"-var-create {w.Name} {w.Expression} {strThread} {strLevel}"));
+		}
+		public void WatchChildrenRequest(Watch w)
+		{			
+			string strThread = CurrentThread == null ? "" : $"--thread {CurrentThread.Id}";
+			string strLevel = CurrentFrame == null ? "" : $"--frame {CurrentFrame.Level}";			
+			CreateNewRequest (new Request<Watch> (w, $"-var-list-children 1 {w.Name} {strThread} {strLevel}"));
+		}
+
+		public void OnValidateCommand(Object sender, ValidateEventArgs e)
+		{
+			CreateNewRequest(e.ValidatedText);
+			(sender as TextBox).Text = "";
+		}
+
+		public void OnValidateNewWatch(Object sender, ValidateEventArgs e)
+		{
+			Watch w = new Watch(this, e.ValidatedText);
+			Watches.Add(w);
+			WatchRequest(w);
+			(sender as TextBox).Text = "";
+		}
+
+	}
 }

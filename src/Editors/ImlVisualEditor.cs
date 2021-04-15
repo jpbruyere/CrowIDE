@@ -116,7 +116,8 @@ namespace Crow.Coding
 					return;
 				designWidth = value;
 				NotifyValueChanged ("DesignWidth", designWidth);
-				Width = (int)(designWidth * zoom / 100.0);
+				RegisterForLayouting(LayoutingType.Width);
+				//Width = (int)(designWidth * zoom / 100.0);
 			}
 		}
 		[DefaultValue("400")]
@@ -127,7 +128,8 @@ namespace Crow.Coding
 					return;
 				designHeight = value;
 				NotifyValueChanged ("DesignHeight", designHeight);
-				Height = (int)(designHeight * zoom / 100.0);
+				RegisterForLayouting(LayoutingType.Height);
+				//Height = (int)(designHeight * zoom / 100.0);
 			}
 		}
 
@@ -231,7 +233,7 @@ namespace Crow.Coding
 					selItemDesignID = SelectedItem.design_id;
 				imlVE.ClearInterface();
 				Instantiator.NextInstantiatorID = 0;
-				imlVE.Styling = projFile.Project.solution.Styling;
+				imlVE.Styling = projFile.Project.Solution.Styling;
 				imlVE.DefaultValuesLoader.Clear();
 				//imlVE.DefaultTemplates = projFile.Project.solution.DefaultTemplates;
 				imlVE.Instantiators = new Dictionary<string, Instantiator>();
@@ -272,7 +274,20 @@ namespace Crow.Coding
 				RegisterForRedraw ();
 				return;
 			}
-			imlVE.Update ();
+			try {
+				imlVE.Update ();
+			} catch (Exception ex) {
+				Console.WriteLine ("imlve update error: " + ex);
+				while (Monitor.IsEntered (imlVE.UpdateMutex))
+					Monitor.Exit (imlVE.UpdateMutex);
+				while (Monitor.IsEntered (imlVE.LayoutMutex))
+					Monitor.Exit (imlVE.LayoutMutex);
+				while (Monitor.IsEntered (imlVE.ClippingMutex))
+					Monitor.Exit (imlVE.ClippingMutex);
+				while (Monitor.IsEntered (imlVE.RenderMutex))
+					Monitor.Exit (imlVE.RenderMutex);
+
+			}
 			bool isDirty = false;
 
 			lock (imlVE.RenderMutex)
@@ -291,12 +306,12 @@ namespace Crow.Coding
 			base.OnLayoutChanges (layoutType);
 			switch (layoutType) {
 			case LayoutingType.Width:
-				DesignWidth = Slot.Width * 100 / zoom;
-				imlVE.ProcessResize (new Size(designWidth,designHeight));
+				//DesignWidth = Slot.Width * 100 / zoom;
+				imlVE.ProcessResize (Slot.Size);
 				break;
 			case LayoutingType.Height:
-				DesignHeight = Slot.Height * 100 / zoom;
-				imlVE.ProcessResize (new Size(designWidth,designHeight));
+				//DesignHeight = Slot.Height * 100 / zoom;
+				imlVE.ProcessResize (Slot.Size);
 				break;
 			}
 		}
@@ -377,13 +392,13 @@ namespace Crow.Coding
 		{
 			base.onDraw (gr);
 
-			Rectangle cb = new Rectangle (0, 0, designWidth, designHeight);
+			Rectangle cb = ClientRectangle;
 
 			gr.Save ();
 
 			double z = zoom / 100.0;
 
-			gr.Scale (z, z);
+			//gr.Scale (z, z);
 
 			if (drawGrid) {
 				double gridLineWidth = 0.2 / z;
@@ -606,11 +621,7 @@ namespace Crow.Coding
 			IFace.DragAndDropOperation.DragSource = dumy;
 			draggedObj = SelectedItem;
 			int dragIconSize = 48;
-			lock (IFace.UpdateMutex) {
-				IFace.DragImageHeight = dragIconSize;
-				IFace.DragImageWidth = dragIconSize;
-				IFace.DragImage = draggedObj.CreateIcon(dragIconSize);
-			}					
+			IFace.CreateDragImage (draggedObj.CreateIcon(dragIconSize), new Rectangle (new Size (dragIconSize)));								
 			removeObject (draggedObj);
 			SelectedItem = null;
 			HoverWidget = null;
