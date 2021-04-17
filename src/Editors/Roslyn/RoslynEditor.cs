@@ -394,8 +394,18 @@ namespace Crow.Coding
 			//int skippedLines = foldingManager.GetLineIndexAtScroll (ScrollY);
 			//NotifyValueChanged("SkippedLines", skippedLines);
 			
-			int firstPrintedLine = Math.Min (buffer.Lines.Count - 1, foldingManager.GetLineIndexAtScroll (ScrollY));
-			int lastPrintedLine = Math.Min (buffer.Lines.Count - 1, foldingManager.GetLineIndexAtScroll (ScrollY + visibleLines));
+			int hiddenLinesStart = foldingManager.GetHiddenLinesAtScroll (ScrollY);
+			int hiddenLinesEnd = foldingManager.GetHiddenLinesAtScroll (ScrollY + visibleLines);
+
+			/*int lIdxAtScrollStart = foldingManager.GetLineIndexAtScroll (ScrollY);
+			int lIdxAtScrollEnd = foldingManager.GetLineIndexAtScroll (ScrollY + visibleLines);
+
+			Console.WriteLine ($"hidden Lines:{hiddenLinesStart}->{hiddenLinesEnd} idx:{lIdxAtScrollStart-ScrollY}->{lIdxAtScrollEnd-(ScrollY+visibleLines)}");
+*/
+
+			int firstPrintedLine = Math.Min (buffer.Lines.Count - 1, hiddenLinesStart + ScrollY);
+			int lastPrintedLine = Math.Min (buffer.Lines.Count - 1, hiddenLinesEnd + ScrollY + visibleLines);
+
 			NotifyValueChanged("EffectiveScrollY", firstPrintedLine);
 			if (lastPrintedLine - firstPrintedLine < 0) {
 				editorMutex.ExitReadLock ();
@@ -839,7 +849,10 @@ namespace Crow.Coding
 
 			switch (key) {
 			case Key.F3:
-				foldingManager.ToggleAllFolds();
+				if (IFace.Shift)
+					foldingManager.ToggleAllFolds (false);
+				else
+					foldingManager.ToggleAllFolds (true);
 				break;
 			case Key.F9:
 				toggleBreakPoint (CurrentLine);

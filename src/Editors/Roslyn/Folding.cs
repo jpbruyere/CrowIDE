@@ -93,6 +93,18 @@ namespace Crow.Coding
 				}
 			}
 			return targetCount + hiddenLines;
+		}	
+		public int GetHiddenLines (int targetCount, int hiddenLines) {
+			if (IsFolded)
+				return hiddenLines + Length - 1;
+			
+			foreach (Fold child in Children) {
+				if (targetCount + hiddenLines <= child.LineStart)
+					return hiddenLines;
+				hiddenLines = child.GetHiddenLines (targetCount, hiddenLines);
+			}
+		
+			return hiddenLines;
 		}
     }
 	public class FoldingManager : CSharpSyntaxWalker
@@ -106,9 +118,8 @@ namespace Crow.Coding
 		}
 		#endregion
 
-		Fold rootFold;
+		Fold rootFold, curFold;
 		object mutex = new object ();		
-		Stack<Fold> foldStack;
 
 		bool autoFoldRegions, AutoFoldComments;		
 
@@ -157,7 +168,11 @@ namespace Crow.Coding
 				return rootFold == null ? 0 : rootFold.GetTarget (targetLine, ref hiddenLines);
 			}
 		}
-		
+		public int GetHiddenLinesAtScroll (int targetLine){
+			lock (mutex) {				
+				return rootFold == null ? 0 : rootFold.GetHiddenLines (targetLine, 0);
+			}
+		}
 
 
 		public void updatefolds (TextChange change) {
@@ -186,27 +201,34 @@ namespace Crow.Coding
 
 				LinePositionSpan lps = node.GetText().Lines.GetLinePositionSpan(node.FullSpan);				
 				rootFold = new Fold(lps.Start.Line , lps.End.Line, node.Kind());
-				foldStack = new Stack<Fold> (10);
-				foldStack.Push (rootFold);				
+				curFold = rootFold;
 				Visit (node);
 			}
         }
 		
 		void addRef(RegionDirectiveTriviaSyntax node) {
 			int start = node.GetLocation ().GetLineSpan ().Span.Start.Line;
-			Fold f = new Fold (
+			Fold reg = new Fold (
 				start,
 				start, node.Kind(), node.ToFullString());
-			foldStack.Peek().AddChild (f);
-			foldStack.Push (f);
+			if (start < curFold.LineStart) {
+				curFold.Parent.Children.Remove (curFold);
+				curFold.Parent.AddChild (reg);
+				reg.AddChild (curFold);				
+			} else {
+				curFold.AddChild (reg);				
+				curFold = reg;
+			}
+			if (autoFoldRegions)
+				reg.IsFolded = true;
 		}
 		bool addRef(CSharpSyntaxNode node, bool mayHaveChildNode = true) {
 			LinePositionSpan lps = node.GetLocation ().GetLineSpan ().Span;			
 			if (lps.Start.Line < lps.End.Line) {
 				Fold f = new Fold (lps.Start.Line, lps.End.Line, node.Kind());
-				foldStack.Peek().AddChild (f);
+				curFold.AddChild (f);
 				if (mayHaveChildNode) {
-					foldStack.Push (f);
+					curFold = f;
 					return true;
 				}
 			}
@@ -218,9 +240,9 @@ namespace Crow.Coding
 				int endL = node.GetLocation ().GetLineSpan ().EndLinePosition.Line;
 				if (startL < endL) {
 					Fold f = new Fold (startL, endL, node.Kind (), identifier.ToString ());
-					foldStack.Peek().AddChild (f);
+					curFold.AddChild (f);
 					if (mayHaveChildNode) {
-						foldStack.Push (f);
+						curFold = f;
 						return true;
 					}
 				}
@@ -273,94 +295,118 @@ namespace Crow.Coding
 				}
 			}			
 		}*/
+		public override void VisitRegionDirectiveTrivia(RegionDirectiveTriviaSyntax node)
+		{
+			addRef (node);
+			base.VisitRegionDirectiveTrivia(node);
+		}
+		public override void VisitEndRegionDirectiveTrivia(EndRegionDirectiveTriviaSyntax node)
+		{
+			int endL = node.GetLocation ().GetLineSpan ().Span.End.Line;
+			if (endL < curFold.LineStart) {
+				curFold.Parent.Children.Remove (curFold);
+				curFold.Parent.SetLineEnd (endL);
+				curFold.Parent.Parent.AddChild (curFold);				
+			} else {
+				curFold.SetLineEnd (endL);
+				curFold = curFold.Parent;
+			}
+			base.VisitEndRegionDirectiveTrivia(node);
+		}
 
-		/*public override void VisitDocumentationCommentTrivia (DocumentationCommentTriviaSyntax node) {			
+		public override void VisitDocumentationCommentTrivia (DocumentationCommentTriviaSyntax node) {			
 			LinePositionSpan lps = node.GetLocation ().GetLineSpan ().Span;
 			int endL = lps.End.Character == 0 ? lps.End.Line - 1 : lps.End.Line;
 			if (lps.Start.Line < endL) {
-				foldStack.Peek().AddChild (new Fold (node.GetLocation ().SourceSpan, lps.Start.Line, endL, node.Kind ()));
+				Fold doc = new Fold (lps.Start.Line, endL, node.Kind ());
+				if (endL < curFold.LineStart) {
+					curFold.Parent.Children.Remove (curFold);
+					curFold.Parent.AddChild (doc);
+					curFold.Parent.AddChild (curFold);
+				} else
+					curFold.AddChild (doc);				
 				if (AutoFoldComments)
-					TryToogleFold (lps.Start.Line);					
+					doc.IsFolded = true;
 			}			
 			base.VisitDocumentationCommentTrivia (node);			
-        }*/
+        }
         public override void VisitNamespaceDeclaration (NamespaceDeclarationSyntax node) {
 			bool pop = addRef (node);
 			base.VisitNamespaceDeclaration (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
         public override void VisitClassDeclaration (ClassDeclarationSyntax node) {
 			bool pop = addRef (node, node.Identifier);
 			base.VisitClassDeclaration (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
         public override void VisitStructDeclaration (StructDeclarationSyntax node) {
 			bool pop = addRef (node, node.Identifier);
 			base.VisitStructDeclaration (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
         public override void VisitMethodDeclaration (MethodDeclarationSyntax node) {
 			bool pop = addRef (node, node.Identifier);
 			base.VisitMethodDeclaration (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
         public override void VisitEnumDeclaration (EnumDeclarationSyntax node) {
 			bool pop = addRef (node, node.Identifier);
 			base.VisitEnumDeclaration (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
         public override void VisitPropertyDeclaration (PropertyDeclarationSyntax node) {
 			bool pop = addRef (node, node.Identifier);
 			base.VisitPropertyDeclaration (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
         public override void VisitDelegateDeclaration (DelegateDeclarationSyntax node) {
 			bool pop = addRef (node, node.Identifier);
 			base.VisitDelegateDeclaration (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
         public override void VisitConstructorDeclaration (ConstructorDeclarationSyntax node) {
 			bool pop = addRef (node);
 			base.VisitConstructorDeclaration (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
         public override void VisitDestructorDeclaration (DestructorDeclarationSyntax node) {
 			bool pop = addRef (node);
 			base.VisitDestructorDeclaration (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
         public override void VisitIfStatement (IfStatementSyntax node) {
 			bool pop = addRef (node);
 			base.VisitIfStatement (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
         public override void VisitWhileStatement (WhileStatementSyntax node) {
 			bool pop = addRef (node);
 			base.VisitWhileStatement (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
         public override void VisitForStatement (ForStatementSyntax node) {
 			bool pop = addRef (node);
 			base.VisitForStatement (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
         }
 		public override void VisitOperatorDeclaration(OperatorDeclarationSyntax node) {
 			bool pop = addRef (node);
 			base.VisitOperatorDeclaration (node);
 			if (pop)
-				foldStack.Pop ();
+				curFold = curFold.Parent;
 		} 
     }
 }
