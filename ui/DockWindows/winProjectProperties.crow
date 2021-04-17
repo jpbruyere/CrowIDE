@@ -31,8 +31,7 @@
 		<ListBox Name="lbProj" DataSource="{SelectedItem}" Data="{PropertiesSorted}" RootDataLevel="true" >
 			<Template>
 				<Scroller  Name="scroller1"  >
-					<Table Margin="1" Columns="name,Fit;value,Stretched" Background="Black"
-						Spacing="1"
+					<Table Columns="name,Fit;value,Stretched" 
 						Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
 				</Scroller>			
 			</Template>

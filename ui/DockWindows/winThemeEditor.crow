@@ -5,12 +5,12 @@
 		<ListBox RootDataLevel="true" Data="{SyntaxTheme}">
 			<Template>
 				<Scroller  Name="scroller1"  >
-					<Table Margin="1" Columns="name,Stretched;foreground,150;background,150;bold,Fit;Italic,Fit"
+					<Table Columns="Name,Stretched;Foreground,150;Background,150;Bold,Fit;Italic,Fit"
 						Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
 				</Scroller>			
 			</Template>
 			<ItemTemplate>
-				<TableRow Height="Fit" Margin="0">
+				<TableRow>
 					<Label Margin="2" Text="{Key}" Height="Stretched"/>					
 					<ColorPicker Margin="0" DataSource="{Value}" RootDataLevel="true" MinimumSize="0,0" CurrentColor="{²Foreground}" Height="Stretched" Width="Stretched"
 								 Template="#ui.ColorPicker2.template"/>

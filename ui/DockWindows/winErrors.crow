@@ -3,14 +3,13 @@
 	<ListBox RootDataLevel="true" DataSource="{CurrentSolution}" Data="{Diagnostics}" SelectedItem="{²CurrentDiagnostic}">
 		<Template>
 			<Scroller  Name="scroller1"  >
-				<Table Margin="1" Columns="Severity,60;Id,Fit;Title,Stretched;Location,Fit" Background="DarkGrey" Spacing="1"
+				<Table Columns="Severity,Fit;Id,Fit;Title,Stretched;Location,Fit"
 					Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
 			</Scroller>			
 		</Template>	
 		<ItemTemplate>
-			<TableRow Height="Fit" Spacing="1" Margin="0"
-							Selected = "{Background=${ControlHighlight}}"
-							Unselected = "{Background=Transparent}">
+			<TableRow 	Selected = "{Background=${ControlHighlight}}"
+						Unselected = "{Background=Transparent}">
 				<Label Text="{Severity}" />
 				<Label Text="{Id}" />
 				<Label Text="{Descriptor.Title}" />

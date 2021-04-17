@@ -237,7 +237,7 @@ namespace Crow.Coding
 
 		public void Build (params string [] targets)
 		{
-			BuildRequestData buildRequest = new BuildRequestData (path, null, CrowIDE.DEFAULT_TOOLS_VERSION, targets, null);
+			BuildRequestData buildRequest = new BuildRequestData (path, IDE.GlobalProperties, CrowIDE.DEFAULT_TOOLS_VERSION, targets, null);
 			BuildResult buildResult = BuildManager.DefaultBuildManager.Build (buildParams, buildRequest);
 		}
 

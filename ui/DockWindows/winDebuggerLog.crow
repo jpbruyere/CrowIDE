@@ -8,6 +8,5 @@
 		</HorizontalStack>
 		<TextBox Validate="OnValidateCommand"/>
 		<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../log.ScrollX}" Maximum="{../log.MaxScrollX}" SmallIncrement="30"/>
-	</VerticalStack>		
-
+	</VerticalStack>
 </DockWindow>

@@ -4,7 +4,7 @@
 		<ListBox Data="{Frames}" SelectedItem="{²CurrentFrame}">		
 			<Template>
 				<Scroller  Name="scroller1"  >
-					<Table Margin="1" Columns="Level,Fit;Address,Fit;Function,Stretched;File,Fit;Line,Fit" Background="DarkGrey" Spacing="1"
+					<Table Columns="Level,Fit;Address,Fit;Function,Stretched;File,Fit;Line,Fit" 
 						Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
 				</Scroller>			
 			</Template>

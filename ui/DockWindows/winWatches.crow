@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0"?>
-<DockWindow DataSource="{CurrentSolution}" Name="winWatches" Caption="Watches"  Width="60%">
-	<VerticalStack RootDataLevel="true" DataSource="{DbgSession}" Background="DimGrey">
+<DockWindow DataSource="{CurrentSolution}" Caption="Watches"  Width="60%">
+	<VerticalStack RootDataLevel="true" DataSource="{DbgSession}" >
 		<TreeView IsRoot="true" Data="{Watches}" >
 			<ItemTemplate Data="Children" >
 				<Expandable IsExpanded="{²IsExpanded}" >

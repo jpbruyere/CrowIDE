@@ -207,6 +207,21 @@ namespace Crow.Coding
 			case Key.F2:
 				loadWindow ("#ui.winDebugLog.crow", this);
 				break;
+			case Key.F7:
+				CMDBuild.Execute ();
+				break;
+			case Key.F5:
+				CurrentSolution?.CMDDebugStart.Execute ();
+				break;
+			case Key.F10:
+				CurrentSolution?.CMDDebugStepOver.Execute ();
+				break;
+			case Key.F11:
+				if (Shift)
+					CurrentSolution?.CMDDebugStepOut.Execute ();
+				else
+					CurrentSolution?.CMDDebugStepIn.Execute ();
+				break;
 			default:
 				return base.OnKeyDown (key);
 			}

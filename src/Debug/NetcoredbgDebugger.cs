@@ -1,10 +1,11 @@
-﻿using System;
+﻿// Copyright (c) 2013-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+//
+// This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using Crow.Coding.Debugging;
 using Debugger = Crow.Coding.Debugging.Debugger;
 using StackFrame = Crow.Coding.Debugging.StackFrame;

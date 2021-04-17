@@ -3,6 +3,7 @@
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -10,66 +11,93 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Crow.Coding
 {
-    public class Fold : IEquatable<Fold>
+	[DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+    public class Fold : IEquatable<Fold>, IComparable<Fold>
 	{
+		public Fold Parent { get; private set; }
+		public List<Fold> Children { get; private set; } = new List<Fold>();
 		public bool IsFolded;
 		public readonly SyntaxKind Kind;
-		public string Identifier;
-		public readonly TextSpan Span;
-		public readonly int LineStart;
-		public readonly int LineEnd;
-		public int LineCount => LineEnd - LineStart;
-		public Fold (TextSpan span, int start, int end, SyntaxKind kind, string identifier = "") {
-			Span = span;
+		public string Identifier;		
+		public int LineStart;
+		public int LineEnd => LineStart + Length - 1;
+		public void SetLineEnd (int lineEnd) {
+			Length = lineEnd - LineStart + 1;
+		}
+		public int Length;
+		public Fold (int lineStart, int lineEnd, SyntaxKind kind, string identifier = "") {			
 			Kind = kind;
 			Identifier = identifier;
-			LineStart = start;
-			LineEnd = end;
+			LineStart = lineStart;
+			Length = lineEnd - lineStart + 1;
 			IsFolded = false;
+		}
+		public void AddChild (Fold fold) {
+			fold.Parent = this;
+			Children.Add (fold);
 		}
 		public bool SimilarNode (Fold other)
 			=> other == null ? false : Kind == other.Kind && Identifier == other.Identifier;
-		public override string ToString () => $"{LineStart} -> {LineEnd} (folded:{IsFolded})";
+		
 
         public bool Equals (Fold other)
-			=> other == null ? false : Kind == other.Kind && Identifier == other.Identifier && LineStart == other.LineStart && LineEnd == other.LineEnd;        
+			=> other == null ? false : Kind == other.Kind && Identifier == other.Identifier && LineStart == other.LineStart && LineEnd == other.LineEnd;
+		public int CompareTo (Fold other) => LineStart - other.LineStart;
+
+		public override string ToString () => $"{Kind} {Identifier}:{LineStart} -> {LineEnd} (folded:{IsFolded})";
+		string GetDebuggerDisplay() => ToString();
+
+
+		public bool TryGetFold (int line, ref Fold fold) {
+			if (LineStart == line) {
+				fold = this;
+				return true;
+			} else if (LineStart > line || LineEnd <= line)
+				return false;
+			foreach (Fold child in Children) {
+				if (child.TryGetFold(line, ref fold))
+					return true;				
+			}
+			return false;
+		}
+		public bool ContainsLine (int line) => LineStart <= line && line <= LineEnd;
+		public Fold GetFoldContainingLine (int line) {			
+			foreach (Fold f in Children) {
+				if (f.ContainsLine (line))
+					return f.GetFoldContainingLine (line);
+
+			}
+			return this;
+		}
+		public void ToggleAllFolds (bool state) { 
+			IsFolded = state;
+			foreach (Fold f in Children)
+				f.ToggleAllFolds (state);
+		}
+		public int GetFoldedLinesCount () {
+			if (IsFolded)
+				return Length - 1;
+			int count = 0;
+			foreach (Fold child in Children)
+				count += child.GetFoldedLinesCount ();
+			return count;			
+		}		
+		public int GetTarget (int targetCount, ref int hiddenLines) {
+			if (IsFolded)
+				hiddenLines += Length - 1;				
+			else {
+				foreach (Fold child in Children) {
+					if (targetCount + hiddenLines <= child.LineStart)
+						return targetCount + hiddenLines;
+					child.GetTarget (targetCount, ref hiddenLines);
+				}
+			}
+			return targetCount + hiddenLines;
+		}
     }
 	public class FoldingManager : CSharpSyntaxWalker
 	{
 		RoslynEditor editor;
-		Dictionary<int, Fold> refs;
-		object mutex = new object ();
-
-		Stack<Location> regions;
-
-		bool autoFoldRegions, AutoFoldComments;
-
-		public int FoldedLines;
-
-		public bool TryGetFold (int line, out Fold fold) {
-			lock (mutex) {
-				if (refs != null && refs.ContainsKey (line)) {
-					fold = refs[line];
-					return true;
-				}
-				fold = null;
-				return false;
-			}
-		}
-		public bool TryToogleFold (int line) {
-			lock (mutex) {
-				if (refs == null || !refs.ContainsKey (line)) 
-					return false;
-				Fold f = refs[line];
-				f.IsFolded = !f.IsFolded;
-				if (f.IsFolded)
-					FoldedLines += f.LineCount - 1;
-				else
-					FoldedLines -= f.LineCount - 1;
-				return true;
-			}
-		}
-
         #region CTOR
         public FoldingManager (RoslynEditor editor) : base (SyntaxWalkerDepth.StructuredTrivia)
 		{
@@ -78,150 +106,261 @@ namespace Crow.Coding
 		}
 		#endregion
 
+		Fold rootFold;
+		object mutex = new object ();		
+		Stack<Fold> foldStack;
+
+		bool autoFoldRegions, AutoFoldComments;		
+
+		public List<Fold> AllFolds => rootFold == null ? null : rootFold.Children;
+
+		public bool TryGetFold (int line, out Fold fold) {
+			lock (mutex) {
+				fold = null;
+				if (rootFold != null) {					
+					return rootFold.TryGetFold (line, ref fold);
+				}
+				return false;
+			}
+		}
+		public Fold GetFoldContainingLine (int line) {	
+			lock (mutex) {
+				return rootFold == null ? null : rootFold.GetFoldContainingLine (line);
+			}
+		}
+		public bool TryToogleFold (int line) {
+			if (TryGetFold (line, out Fold fold))
+				fold.IsFolded = !fold.IsFolded;
+			else
+				return false;
+			return true;
+		}
+		public void ToggleAllFolds (bool state = true) {
+			lock (mutex) {
+				if (rootFold == null)
+					return;
+				foreach (Fold child in rootFold.Children)
+					child.ToggleAllFolds (state);
+			}
+		}
+
+		public int TotalFoldedLinesCount {
+			get {
+				lock (mutex) {
+					return rootFold == null ? 0 : rootFold.GetFoldedLinesCount ();
+				}
+			}
+		}			
+		public int GetLineIndexAtScroll (int targetLine){
+			lock (mutex) {
+				int hiddenLines = 0;
+				return rootFold == null ? 0 : rootFold.GetTarget (targetLine, ref hiddenLines);
+			}
+		}
+		
+
+
 		public void updatefolds (TextChange change) {
-			if (refs == null)
+			/*if (refs == null)
 				return;
 			var Enumerator = refs.Values.GetEnumerator();
 			int i = 0;
+
 
             while (Enumerator.MoveNext()) {
 				Fold f = Enumerator.Current;
 				if (f.Span.End < change.Span.Start)
 					continue;
 				//f.sp
-            }
+            }*/
 			
         }
 
-		public void CreateFolds (SyntaxNode node) {
-			/*Console.WriteLine ("***************************");
-			Console.WriteLine ("* Upadte folds            *");
-			Console.WriteLine ("***************************");*/
+
+
+		public void CreateFolds (SyntaxNode node) {			
 			CrowIDE ide = editor.IFace as CrowIDE;
 			autoFoldRegions = ide.AutoFoldRegions;
-			AutoFoldComments = ide.AutoFoldComments;
-			FoldedLines = 0;
+			AutoFoldComments = ide.AutoFoldComments;			
 			lock (mutex) {
 
-
-				refs = new Dictionary<int, Fold> ();
-				regions = new Stack<Location> ();
+				LinePositionSpan lps = node.GetText().Lines.GetLinePositionSpan(node.FullSpan);				
+				rootFold = new Fold(lps.Start.Line , lps.End.Line, node.Kind());
+				foldStack = new Stack<Fold> (10);
+				foldStack.Push (rootFold);				
 				Visit (node);
-				regions = null;
-
-				/*Dictionary<int,Fold>.ValueCollection.Enumerator olds = oldFolds.Values.GetEnumerator ();
-				if (!olds.MoveNext ())
-					return;
-				foreach (Fold fold in refs.Values) {
-					if (olds.Current.SimilarNode(fold)) {
-						fold.IsFolded = olds.Current.IsFolded;
-						if (!olds.MoveNext ())
-							return;
-                    }
-						
-
-
-                }*/
 			}
         }
-		/*int tabs = 0;
-        public override void DefaultVisit (SyntaxNode node) {
-			LinePositionSpan lps = node.GetLocation ().GetLineSpan ().Span;
-			Console.WriteLine ($"{new string (' ', tabs)} {node.Kind()} {lps.Start.Line} -> {lps.End} {node.GetFirstToken()}");
-			tabs++;
-            base.DefaultVisit (node);
-			tabs--;
-        }*/
-        public override void VisitRegionDirectiveTrivia (RegionDirectiveTriviaSyntax node) {
-			regions.Push (node.GetLocation ());				
-			base.VisitRegionDirectiveTrivia (node);
-        }
-        public override void VisitEndRegionDirectiveTrivia (EndRegionDirectiveTriviaSyntax node) {
-			if (regions.TryPop (out Location start)) {
-				int startL = start.GetLineSpan ().StartLinePosition.Line;
-				refs[startL] = (new Fold (
-					TextSpan.FromBounds (start.SourceSpan.Start, node.GetLocation ().SourceSpan.End),
-					startL, node.GetLocation ().GetLineSpan ().StartLinePosition.Line, SyntaxKind.RegionDirectiveTrivia));
-				if (autoFoldRegions)
-					TryToogleFold (startL);
-			}
-
-            base.VisitEndRegionDirectiveTrivia (node);
-        }
-		void addRef(CSharpSyntaxNode node) {
-			LinePositionSpan lps = node.GetLocation ().GetLineSpan ().Span;
-			if (lps.Start.Line < lps.End.Line)
-				refs[lps.Start.Line] = (new Fold (node.GetLocation ().SourceSpan, lps.Start.Line, lps.End.Line, node.Kind()));
+		
+		void addRef(RegionDirectiveTriviaSyntax node) {
+			int start = node.GetLocation ().GetLineSpan ().Span.Start.Line;
+			Fold f = new Fold (
+				start,
+				start, node.Kind(), node.ToFullString());
+			foldStack.Peek().AddChild (f);
+			foldStack.Push (f);
 		}
-		void addRef (CSharpSyntaxNode node, SyntaxToken identifier) {			
+		bool addRef(CSharpSyntaxNode node, bool mayHaveChildNode = true) {
+			LinePositionSpan lps = node.GetLocation ().GetLineSpan ().Span;			
+			if (lps.Start.Line < lps.End.Line) {
+				Fold f = new Fold (lps.Start.Line, lps.End.Line, node.Kind());
+				foldStack.Peek().AddChild (f);
+				if (mayHaveChildNode) {
+					foldStack.Push (f);
+					return true;
+				}
+			}
+			return false;
+		}
+		bool addRef (CSharpSyntaxNode node, SyntaxToken identifier, bool mayHaveChildNode = true) {
 			if (!identifier.IsMissing) {
 				int startL = identifier.GetLocation ().GetLineSpan ().StartLinePosition.Line;
 				int endL = node.GetLocation ().GetLineSpan ().EndLinePosition.Line;
-				if (startL < endL)
-					refs[startL] = (new Fold (node.GetLocation().SourceSpan, startL, endL, node.Kind (), identifier.ToString ()));
+				if (startL < endL) {
+					Fold f = new Fold (startL, endL, node.Kind (), identifier.ToString ());
+					foldStack.Peek().AddChild (f);
+					if (mayHaveChildNode) {
+						foldStack.Push (f);
+						return true;
+					}
+				}
 			}
+			return false;
 		}
-		public override void VisitDocumentationCommentTrivia (DocumentationCommentTriviaSyntax node) {			
+		/*public override void VisitToken (SyntaxToken token)
+		{
+			if (token.HasLeadingTrivia) {
+				foreach (SyntaxTrivia triviaNode in token.LeadingTrivia) {
+					if (triviaNode.IsDirective) {						
+						if (triviaNode.GetStructure() is RegionDirectiveTriviaSyntax rdts) {
+							if (foldStack.Peek().Kind == token.Parent.Kind()) {
+								Fold save = foldStack.Pop();
+								foldStack.Peek().Children.Remove (save);
+								addRef (rdts);
+								foldStack.Peek().AddChild (save);
+								foldStack.Push (save);								
+							} else {
+								addRef (rdts);
+							}
+								
+						}else if (triviaNode.GetStructure() is EndRegionDirectiveTriviaSyntax erdts) {
+							if (foldStack.Peek().Kind == token.Parent.Kind()) {
+								Fold save = foldStack.Pop();
+								Fold regionFold = foldStack.Pop();
+								regionFold.SetLineEnd (erdts.GetLocation ().GetLineSpan ().Span.End.Line);
+								if (regionFold.Length == 0)
+									Debugger.Break();								
+								//foldStack.Peek().AddChild (save);
+								foldStack.Push (save);
+							} else {
+								Fold regionFold = foldStack.Pop();
+								regionFold.SetLineEnd (erdts.GetLocation ().GetLineSpan ().Span.End.Line);
+								if (regionFold.Length == 0)
+									Debugger.Break();
+							}							
+						}
+					}					
+				}
+			}
+			if (token.HasTrailingTrivia) {
+				foreach (SyntaxTrivia triviaNode in token.TrailingTrivia) {
+					if (triviaNode.IsDirective) {						
+						if (triviaNode.GetStructure() is RegionDirectiveTriviaSyntax rdts)
+							addRef (rdts);
+						else if (triviaNode.GetStructure() is EndRegionDirectiveTriviaSyntax erdts)
+							foldStack.Pop().SetLineEnd (erdts.GetLocation ().GetLineSpan ().Span.End.Line);
+					}					
+				}
+			}			
+		}*/
+
+		/*public override void VisitDocumentationCommentTrivia (DocumentationCommentTriviaSyntax node) {			
 			LinePositionSpan lps = node.GetLocation ().GetLineSpan ().Span;
 			int endL = lps.End.Character == 0 ? lps.End.Line - 1 : lps.End.Line;
 			if (lps.Start.Line < endL) {
-				refs[lps.Start.Line] = (new Fold (node.GetLocation ().SourceSpan, lps.Start.Line, endL, node.Kind ()));
+				foldStack.Peek().AddChild (new Fold (node.GetLocation ().SourceSpan, lps.Start.Line, endL, node.Kind ()));
 				if (AutoFoldComments)
 					TryToogleFold (lps.Start.Line);					
-			}
+			}			
 			base.VisitDocumentationCommentTrivia (node);			
-        }
+        }*/
         public override void VisitNamespaceDeclaration (NamespaceDeclarationSyntax node) {
-			addRef (node);
+			bool pop = addRef (node);
 			base.VisitNamespaceDeclaration (node);
+			if (pop)
+				foldStack.Pop ();
         }
         public override void VisitClassDeclaration (ClassDeclarationSyntax node) {
-			addRef (node, node.Identifier);
+			bool pop = addRef (node, node.Identifier);
 			base.VisitClassDeclaration (node);
+			if (pop)
+				foldStack.Pop ();
         }
         public override void VisitStructDeclaration (StructDeclarationSyntax node) {
-			addRef (node, node.Identifier);
+			bool pop = addRef (node, node.Identifier);
 			base.VisitStructDeclaration (node);
+			if (pop)
+				foldStack.Pop ();
         }
         public override void VisitMethodDeclaration (MethodDeclarationSyntax node) {
-			addRef (node, node.Identifier);
+			bool pop = addRef (node, node.Identifier);
 			base.VisitMethodDeclaration (node);
+			if (pop)
+				foldStack.Pop ();
         }
         public override void VisitEnumDeclaration (EnumDeclarationSyntax node) {
-			addRef (node, node.Identifier);
+			bool pop = addRef (node, node.Identifier);
 			base.VisitEnumDeclaration (node);
+			if (pop)
+				foldStack.Pop ();
         }
         public override void VisitPropertyDeclaration (PropertyDeclarationSyntax node) {
-			addRef (node, node.Identifier);
+			bool pop = addRef (node, node.Identifier);
 			base.VisitPropertyDeclaration (node);
+			if (pop)
+				foldStack.Pop ();
         }
         public override void VisitDelegateDeclaration (DelegateDeclarationSyntax node) {
-			addRef (node, node.Identifier);
+			bool pop = addRef (node, node.Identifier);
 			base.VisitDelegateDeclaration (node);
+			if (pop)
+				foldStack.Pop ();
         }
         public override void VisitConstructorDeclaration (ConstructorDeclarationSyntax node) {
-			addRef (node);
+			bool pop = addRef (node);
 			base.VisitConstructorDeclaration (node);
+			if (pop)
+				foldStack.Pop ();
         }
         public override void VisitDestructorDeclaration (DestructorDeclarationSyntax node) {
-			addRef (node);
+			bool pop = addRef (node);
 			base.VisitDestructorDeclaration (node);
+			if (pop)
+				foldStack.Pop ();
         }
         public override void VisitIfStatement (IfStatementSyntax node) {
-			addRef (node);
+			bool pop = addRef (node);
 			base.VisitIfStatement (node);
+			if (pop)
+				foldStack.Pop ();
         }
         public override void VisitWhileStatement (WhileStatementSyntax node) {
-			addRef (node);
+			bool pop = addRef (node);
 			base.VisitWhileStatement (node);
+			if (pop)
+				foldStack.Pop ();
         }
         public override void VisitForStatement (ForStatementSyntax node) {
-			addRef (node);
+			bool pop = addRef (node);
 			base.VisitForStatement (node);
+			if (pop)
+				foldStack.Pop ();
         }
-        /*public override void VisitBlock (BlockSyntax node) {
-			addRef (node);
-			base.VisitBlock (node);
-        }*/
+		public override void VisitOperatorDeclaration(OperatorDeclarationSyntax node) {
+			bool pop = addRef (node);
+			base.VisitOperatorDeclaration (node);
+			if (pop)
+				foldStack.Pop ();
+		} 
     }
 }

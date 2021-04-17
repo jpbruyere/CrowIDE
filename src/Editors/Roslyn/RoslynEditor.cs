@@ -44,8 +44,6 @@ namespace Crow.Coding
 		internal int foldMargin = 9;            // folding margin size
 
 		internal bool foldingEnabled = true;
-
-
 		[XmlIgnore] public int leftMargin { get; private set; } = 0;    //margin used to display line numbers, folding errors,etc...
 		internal int visibleLines = 1;
 		int visibleColumns = 1;		
@@ -61,6 +59,8 @@ namespace Crow.Coding
 		internal int totalLines => buffer.Lines.Count;
 		internal TextSpan visibleSpan => TextSpan.FromBounds (buffer.Lines[ScrollY].Start, buffer.Lines[ScrollY + visibleLines].End);
 
+		public List<Fold> Folds => foldingManager.AllFolds;
+
 		//SourceText buffer => syntaxTree == null ?  : syntaxTree.TryGetText (out SourceText src) ? src : SourceText.From ("");
 		public SyntaxTree SyntaxTree {
 			get => (ProjectNode as CSProjectItem).SyntaxTree;
@@ -70,14 +70,9 @@ namespace Crow.Coding
 		void updateFolds () {
 			//Console.WriteLine ("update folds");
 			foldingManager.CreateFolds (SyntaxTree.GetRoot ());
+			NotifyValueChanged ("Folds", Folds);
 			RegisterForRedraw ();
-		}
-		//absolute char pos in text of start of folds		
-
-
-		//Dictionary<int, TextFormatting> formatting = new Dictionary<int, TextFormatting>();
-
-		Color selBackground, selForeground;
+		}						
 
 		protected Rectangle rText;
 		protected FontExtents fe;
@@ -139,7 +134,7 @@ namespace Crow.Coding
 				MaxScrollY = 0;
 			else {
 				int lastMaxScroll = MaxScrollY;
-				int unfoldedLines = buffer.Lines.Count - foldingManager.FoldedLines;
+				int unfoldedLines = buffer.Lines.Count - foldingManager.TotalFoldedLinesCount;
 				MaxScrollY = Math.Max (0, unfoldedLines - visibleLines);
 				NotifyValueChanged ("ChildHeightRatio", Slot.Height * visibleLines / unfoldedLines);
 				if (lastMaxScroll == 0)
@@ -319,9 +314,9 @@ namespace Crow.Coding
 					CurrentPos = buffer.Lines[nextL].AbsoluteCharPosFromTabulatedColumn (lastVisualColumn, tabSize);
 				}
 			}
-			LinePosition lPos = buffer.Lines.GetLinePosition (CurrentPos);
+			/*LinePosition lPos = buffer.Lines.GetLinePosition (CurrentPos);
 			CurrentLine = lPos.Line;
-			CurrentColumn = lPos.Character;
+			CurrentColumn = lPos.Character;*/
 
 			if (IFace.Shift)
 				selection = (selStartPos < CurrentPos) ?
@@ -390,13 +385,32 @@ namespace Crow.Coding
 
 			Foreground.SetAsSource (IFace, gr);
 
-			editorMutex.EnterReadLock ();
+			if (!editorMutex.TryEnterReadLock (10))
+				return;
 
 			Rectangle cb = ClientRectangle;
-			//Stopwatch sw = Stopwatch.StartNew();			
-			printer.Draw (gr, SyntaxTree.GetRoot ());
-			/*sw.Stop();
-			Console.WriteLine ($"SyntaxPrinter: {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");*/
+			Stopwatch sw = Stopwatch.StartNew();
+			SyntaxNode root = SyntaxTree.GetRoot();
+			//int skippedLines = foldingManager.GetLineIndexAtScroll (ScrollY);
+			//NotifyValueChanged("SkippedLines", skippedLines);
+			
+			int firstPrintedLine = Math.Min (buffer.Lines.Count - 1, foldingManager.GetLineIndexAtScroll (ScrollY));
+			int lastPrintedLine = Math.Min (buffer.Lines.Count - 1, foldingManager.GetLineIndexAtScroll (ScrollY + visibleLines));
+			NotifyValueChanged("EffectiveScrollY", firstPrintedLine);
+			if (lastPrintedLine - firstPrintedLine < 0) {
+				editorMutex.ExitReadLock ();
+				Console.WriteLine ($"RoslynEditor print canceled: Lines:{firstPrintedLine}->{lastPrintedLine}");
+				return;
+			}
+
+			int startPos = buffer.Lines[firstPrintedLine].Start;
+			int endPos = buffer.Lines[lastPrintedLine].EndIncludingLineBreak;
+			TextSpan visibleSpan = TextSpan.FromBounds (startPos, endPos);
+			root = root.FindNode (visibleSpan, false, true);
+			int firstLine = buffer.Lines.GetLineFromPosition (root.GetFirstToken ().FullSpan.Start).LineNumber;
+			printer.Draw (gr, root, firstLine, firstPrintedLine);
+			sw.Stop();
+			Console.WriteLine ($"SyntaxPrinter: ScrollY:{ScrollY} firstLine:{firstLine} {sw.ElapsedMilliseconds}(ms) {sw.ElapsedTicks}(ticks)");
 			printedLines = printer.printedLinesNumbers;
 
 			
@@ -574,6 +588,11 @@ namespace Crow.Coding
 					return;
 				currentPos = value;
 				NotifyValueChangedAuto (currentPos);
+				if (buffer == null)
+					return;
+				LinePosition lPos = buffer.Lines.GetLinePosition (CurrentPos);
+				CurrentLine = lPos.Line;
+				CurrentColumn = lPos.Character;				
 			}
 		}
 
@@ -745,10 +764,14 @@ namespace Crow.Coding
 				return;
 			}*/
 
-			if (mouseLocalPos.X < leftMargin) {
+			if (mouseLocalPos.X < breakPointsGap) {
+				toggleBreakPoint (hoverLine);
+				RegisterForRedraw ();
+				return;
+			} else if (mouseLocalPos.X < leftMargin) {				
 				if (foldingManager.TryToogleFold (hoverLine)) {				
 					updateMaxScrollY ();
-					RegisterForRedraw ();			
+					RegisterForRedraw ();
 				}
 				//toogleFolding (buffer.IndexOf (PrintedLines [(int)Math.Max (0, Math.Floor (mouseLocalPos.Y / (fe.Ascent+fe.Descent)))]));
 				return;
@@ -759,6 +782,15 @@ namespace Crow.Coding
 
 			RegisterForRedraw ();
 			selection = default;
+		}
+		void toggleBreakPoint (int line) {
+			BreakPoint bp = BreakPoints.FirstOrDefault (bk=>bk.File == CSProjectItm && bk.Line == line);
+			if (bp == null)
+				BreakPoints.Add (new BreakPoint (CSProjectItm, line));
+			else if (IFace.Ctrl)
+				bp.IsEnabled = !bp.IsEnabled;
+			else
+				BreakPoints.Remove (bp);
 		}
 		public override void onMouseUp (object sender, MouseButtonEventArgs e)
 		{
@@ -806,16 +838,12 @@ namespace Crow.Coding
 			}
 
 			switch (key) {
-			case Key.F9:
-				BreakPoint bp = BreakPoints.FirstOrDefault (bk=>bk.File == CSProjectItm && bk.Line == CurrentLine);
-				if (bp == null)
-					BreakPoints.Add (new BreakPoint (CSProjectItm, CurrentLine));
-				else if (IFace.Ctrl)
-					bp.IsEnabled = !bp.IsEnabled;
-				else
-					BreakPoints.Remove (bp);			
-
+			case Key.F3:
+				foldingManager.ToggleAllFolds();
 				break;
+			case Key.F9:
+				toggleBreakPoint (CurrentLine);
+				break;			
 			case Key.Backspace:
 				if (selection.IsEmpty) {
 					if (CurrentPos < 1)

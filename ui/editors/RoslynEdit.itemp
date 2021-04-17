@@ -1,9 +1,17 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
 <VerticalStack Name="{DisplayName}" Spacing="0" IsVisible="{²IsSelected}" >
-	<HorizontalStack Height="Fit" Margin="2">
-		<Label Text="{FullPath}" Tooltip="{FullPath}"/>
-	</HorizontalStack>
-	<HorizontalStack >
+	<HorizontalStack Spacing="0">
+		<TreeView IsRoot="true"  RootDataLevel="true" Data="{../editor.Folds}" Width="20%">
+			<ItemTemplate DataType="Crow.Coding.Fold" Data="Children" >
+				<Expandable Caption="{}" Template="#ui.TreeExpandable.template" >
+					<HorizontalStack Height="Fit">
+						<Widget Width="8" Height="10"/>
+						<VerticalStack Height="Fit" Name="ItemsContainer"/>
+					</HorizontalStack>
+				</Expandable>
+			</ItemTemplate>					
+		</TreeView>
+		<Splitter/>
 		<RoslynEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"
 				ExecutingLine="{ExecutingLine}"
 				CurrentLine="{²CurrentLine}" CurrentColumn="{²CurrentColumn}" HasFocus="{IsSelected}"
@@ -51,5 +59,13 @@
 		<Label Text="{../../editor.ScrollX}"/>-->
 		<Label Text="ScrollY:" Foreground="LightGrey"/>
 		<Label Text="{../../editor.ScrollY}" Foreground="White"/>
+		<Label Text="SkippedLines:" Foreground="LightGrey"/>
+		<Label Text="{../../editor.SkippedLines}" Foreground="White"/>
+		<Label Text="EffectiveScrollY:" Foreground="LightGrey"/>
+		<Label Text="{../../editor.EffectiveScrollY}" Foreground="White"/>
+		<Label Text="MaxScrollY:" Foreground="LightGrey"/>
+		<Label Text="{../../editor.MaxScrollY}" Foreground="White"/>
+		<Label Text="Visible lines:" Foreground="LightGrey"/>
+		<Label Text="{../../editor.VisibleLines}" Foreground="White"/>
 	</HorizontalStack>
 </VerticalStack>

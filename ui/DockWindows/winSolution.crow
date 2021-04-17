@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Name="winSolution" Caption="Solution"  Width="20%">
+<DockWindow Caption="Solution"  Width="20%">
 	<TreeView Name="treeview" IsRoot="true" DataSource="{CurrentSolution}"  RootDataLevel="true"
 		Data="{Children}" SelectedItem="{²SelectedItem}"
 		ItemTemplate="#ui.ProjectTree.itemp"/>
