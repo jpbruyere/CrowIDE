@@ -1,9 +1,12 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
-<VerticalStack Name="{DisplayName}" Spacing="0" IsVisible="{²IsSelected}" >
-	<HorizontalStack Height="Fit" Margin="2">
-		<Label Text="{}"/>
+<VerticalStack Name="{DisplayName}" Margin="0" Spacing="0" IsVisible="{²IsSelected}" >
+	<HorizontalStack Height="Fit" Margin="0">		
 		<Widget Width="Stretched"/>
-		<Popper Caption="Options">
+		<Popper Caption="Options" Fit="true" PopDirection="BottomLeft"
+				ToggleOn="{Background=RoyalBlue}" ToggleOff="{Background=Transparent}">
+			<Template>
+				<Image Path="#Icons.cogwheel.svg" Width="12" Height="12" Background="{./Background}"/>
+			</Template>
 			<VerticalStack Fit="true" Margin="10" Spacing="5" Background="${IdePopBackground}">
 				<HorizontalStack Width="Stretched" Spacing="5">
 					<Label Text="Design Size:" Width="100"/>
@@ -18,10 +21,10 @@
 			</VerticalStack>		
 		</Popper>
 	</HorizontalStack>
-	<VerticalStack Height="60%">
-		<Label DataSource="{../editor.HoverWidget}" Width="Stretched" Margin="2" Text="{Name}" Foreground="Black"/>
-		<VerticalStack Width="Stretched" Margin="0" MinimumSize="10,10">
-			<HorizontalStack>
+	<VerticalStack Height="60%" Margin="0" Spacing="0">
+		<!--<Label DataSource="{../editor.HoverWidget}" Width="Stretched" Margin="2" Text="{Name}" Foreground="Black"/>-->
+		<VerticalStack Width="Stretched" Margin="0" Spacing="0" MinimumSize="10,10">
+			<HorizontalStack Margin="0" Spacing="0">
 				<Scroller Name="scroller1" >
 					<ImlVisualEditor  Foreground="SkyBlue" Name="editor"					
 						VerticalAlignment="Top" HorizontalAlignment="Left" Margin="0"
@@ -39,13 +42,21 @@
 					Value="{²../scroller1.ScrollX}" Maximum="{../scroller1.MaxScrollX}" 
 					CursorSize="{../scroller1.ChildWidthRatio}" 
 					LargeIncrement="{../scroller1.PageWidth}" SmallIncrement="30"/>
-		</VerticalStack>        
-    </VerticalStack>    		
+		</VerticalStack>
+		<Popper Caption="{../editor.Error}" IsVisible="{../editor.HasError}" Background="Red">
+			<Template>
+				<Label Text="{./Caption}" Background="DarkRed" Foreground="White" Width="Stretched" Margin="2"
+					Multiline="false"/>
+			</Template>
+			<Label Text="{../../editor.Error}" Background="DarkRed" Foreground="White" Width="Stretched" Margin="2" Multiline="true"/>
+		</Popper>			
+
+    </VerticalStack>
     <Splitter/>
 	<IMLContainer Path="#ui.SourceEditor.crow"/>
-	<Splitter Visible="{../editor.HasError}"/>
+	<!--<Splitter Visible="{../editor.HasError}"/>
 	<Label DataSource="{../editor.Error}" Text="{}"
 		Visible="{../editor.HasError}"
-		Height="12" Width="Stretched" Background="DarkRed" Foreground="White" Multiline="true"/>
+		Height="12" Width="Stretched" Background="DarkRed" Foreground="White" Multiline="true"/>-->
 </VerticalStack>
 

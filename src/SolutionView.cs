@@ -36,6 +36,62 @@ namespace Crow.Coding
 		ObservableList<GraphicObjectDesignContainer> toolboxItems;
 
 
+		#region Project file navigation back/forth
+		Stack<ProjectFileLocation> navigationStack_Backward = new Stack<ProjectFileLocation>();
+		Stack<ProjectFileLocation> navigationStack_Forward = new Stack<ProjectFileLocation>();
+
+		bool disableFileLocationRecording;
+		public void RecordCurrentLocation () {
+			if (disableFileLocationRecording)
+				return;
+			if (SelectedItem is ProjectFileNode pfn)
+				navigationStack_Backward.Push (new ProjectFileLocation (pfn, pfn.CurrentPosition));
+			navigationStack_Forward.Clear ();
+		}
+		public void NavigateBackward () {
+			if (navigationStack_Backward.TryPop (out ProjectFileLocation pfl)) {
+				if (SelectedItem is ProjectFileNode pfn)
+					navigationStack_Forward.Push (new ProjectFileLocation (pfn, pfn.CurrentPosition));
+				disableFileLocationRecording = true;
+				tryGoTo (pfl);
+				disableFileLocationRecording = false;
+			}
+		}
+		public void NavigateForward () {
+			if (navigationStack_Forward.TryPop (out ProjectFileLocation pfl)) {
+				if (SelectedItem is ProjectFileNode pfn)
+					navigationStack_Backward.Push (new ProjectFileLocation (pfn, pfn.CurrentPosition));
+				disableFileLocationRecording = true;
+				tryGoTo (pfl);
+				disableFileLocationRecording = false;
+			}
+		}
+
+		void tryGoTo(Microsoft.CodeAnalysis.Location location)
+		{
+			Microsoft.CodeAnalysis.FileLinePositionSpan flp = location.GetLineSpan ();
+			if (TryGetProjectFileFromPath(flp.Path, out ProjectFileNode pf))
+			{
+				if (!pf.IsOpened)
+					pf.Open();
+				pf.IsSelected = true;				
+				pf.CurrentLine = flp.StartLinePosition.Line;
+			}
+			else
+			{
+				Console.WriteLine ($"[Diagnostic]File Not Found:{flp.Path}");
+			}
+		}		
+		void tryGoTo(ProjectFileLocation location)
+		{
+			if (!location.ProjectFile.IsOpened)
+				location.ProjectFile.Open();
+			location.ProjectFile.IsSelected = true;				
+			location.ProjectFile.CurrentPosition = location.AbsolutePosition;
+		}
+
+		#endregion
+
 
 		public readonly CrowIDE IDE;
 		public ProjectCollection projectCollection { get; private set; }
@@ -69,44 +125,20 @@ namespace Crow.Coding
 			 }
 		}
 
-		public bool TryGetProjectFromFullPath (string projectFullPath, out ProjectView prj) {
-			prj = Projects.FirstOrDefault(p=>p.FullPath == projectFullPath);
-			return prj != null;
-		}
 		internal void RaiseDiagnosticsValueChanged () => NotifyValueChanged ("Diagnostics", Diagnostics);
-		void tryGoTo(Microsoft.CodeAnalysis.Location location)
-		{
-			Microsoft.CodeAnalysis.FileLinePositionSpan flp = location.GetLineSpan ();
-			if (TryGetProjectFileFromPath(flp.Path, out ProjectFileNode pf))
-			{
-				if (!pf.IsOpened)
-					pf.Open();
-				pf.IsSelected = true;				
-				pf.CurrentLine = flp.StartLinePosition.Line;
-			}
-			else
-			{
-				Console.WriteLine ($"[Diagnostic]File Not Found:{flp.Path}");
-			}
-		}		
-
 
 
 		public Command CMDDebugStart, CMDDebugPause, CMDDebugStop, CMDDebugStepIn, CMDDebugStepOver, CMDDebugStepOut;
-
-
-
-		NetcoredbgDebugger dbgSession;
-		public ObservableList<BreakPoint> BreakPoints = new ObservableList<BreakPoint> ();
-		public NetcoredbgDebugger DbgSession {
-			get => dbgSession;
-			set {
-				if (dbgSession == value)
-					return;
-				dbgSession = value;
-				NotifyValueChanged ("DbgSession", dbgSession);
-			}
+		void initCommands () {
+			CMDDebugStart = new Command ("Start", debug_start, "#Icons.debug-play.svg");
+			CMDDebugPause = new Command ("Pause", () => DbgSession.Pause (), "#Icons.debug-pause.svg", false);
+			CMDDebugStop = new Command ("Stop", () => debug_stop (), "#Icons.debug-stop.svg", false);
+			CMDDebugStepIn = new Command ("Step in", () => DbgSession.StepIn (), "#Icons.debug-step-into.svg", false);
+			CMDDebugStepOut = new Command ("Step out", () => DbgSession.StepOut (), "#Icons.debug-step-out.svg", false);
+			CMDDebugStepOver = new Command ("Step over", () => DbgSession.StepOver (), "#Icons.debug-step-over.svg", false);
 		}
+
+
 
 
 		//public string Directory => Path.GetDirectoryName (path);
@@ -211,15 +243,19 @@ namespace Crow.Coding
 			ReloadDefaultTemplates ();
 		}
 		#endregion
-		void initCommands () {
-			CMDDebugStart = new Command ("Start", new Action (() => debug_start()), "#Icons.debug-play.svg");
-			CMDDebugPause = new Command ("Pause", new Action (() => DbgSession.Pause ()), "#Icons.debug-pause.svg", false);
-			CMDDebugStop = new Command ("Stop", new Action (() => debug_stop ()), "#Icons.debug-stop.svg", false);
-			CMDDebugStepIn = new Command ("Step in", new Action (() => DbgSession.StepIn ()), "#Icons.debug-step-into.svg", false);
-			CMDDebugStepOut = new Command ("Step out", new Action (() => DbgSession.StepOut ()), "#Icons.debug-step-out.svg", false);
-			CMDDebugStepOver = new Command ("Step over", new Action (() => DbgSession.StepOver ()), "#Icons.debug-step-over.svg", false);
-		}
 
+		#region Debugging session
+		NetcoredbgDebugger dbgSession;
+		public ObservableList<BreakPoint> BreakPoints = new ObservableList<BreakPoint> ();
+		public NetcoredbgDebugger DbgSession {
+			get => dbgSession;
+			set {
+				if (dbgSession == value)
+					return;
+				dbgSession = value;
+				NotifyValueChanged ("DbgSession", dbgSession);
+			}
+		}
 		void debug_start () {
 			if (DbgSession == null) {
 				DbgSession = new NetcoredbgDebugger (StartupProject);				
@@ -234,6 +270,7 @@ namespace Crow.Coding
 		void debug_stop () {
 			DbgSession.Stop ();			
 		}
+		#endregion
 
 		public void Build (params string [] targets)
 		{
@@ -278,6 +315,11 @@ namespace Crow.Coding
 			return StartupProject == null ? false :
 				StartupProject.TryGetProjectFileFromPath (path, out pi);
 		}
+		public bool TryGetProjectFromFullPath (string projectFullPath, out ProjectView prj) {
+			prj = Projects.FirstOrDefault(p=>p.FullPath == projectFullPath);
+			return prj != null;
+		}
+
 
 		public ObservableList<ProjectItemNode> OpenedItems {
 			get { return openedItems; }
@@ -298,7 +340,6 @@ namespace Crow.Coding
 				NotifyValueChanged ("ToolboxItems", toolboxItems);
 			}			
 		}
-
 		public TreeNode SelectedItem {
 			get { return selectedItem; }
 			set {
@@ -327,14 +368,7 @@ namespace Crow.Coding
 		}
 		public string DisplayName => Path.GetFileNameWithoutExtension (path);
 
-//		public System.CodeDom.Compiler.CompilerErrorCollection CompilationErrors {
-//			get {
-//				System.CodeDom.Compiler.CompilerErrorCollection tmp = Projects.SelectMany<Project>
-//					(p => p.CompilationResults.Errors);
-//				return tmp;
-//			}
-//		}
-		public List<System.CodeDom.Compiler.CompilerError> CompilerErrors {
+		/*public List<System.CodeDom.Compiler.CompilerError> CompilerErrors {
 			get {
 				int errCount = 0;
 				for (int i = 0; i < Projects.Count; i++) {
@@ -356,7 +390,7 @@ namespace Crow.Coding
 
 		public void UpdateErrorList () {
 			NotifyValueChanged ("CompilerErrors", CompilerErrors);
-		}
+		}*/
 
 		void saveOpenedItemsInUserConfig (){
 			if (openedItems.Count == 0)
@@ -389,7 +423,6 @@ namespace Crow.Coding
 			SelectedItem = e.NewValue as ProjectItem;
 			UserConfig.Set ("SelectedProjItems", SelectedItem?.AbsolutePath);
 		}*/
-
 		public void OpenItem (ProjectItemNode pi) {
 			if (!openedItems.Contains (pi)) {
 				lock(IDE.UpdateMutex)

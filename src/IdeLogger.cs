@@ -107,17 +107,39 @@ namespace Crow.Coding
 				eventSource.TaskFinished -= EventSource_TaskFinished;
 				break;
 			case LoggerVerbosity.Diagnostic:
-				eventSource.AnyEventRaised += EventSource_AnyEventRaised;
+				eventSource.AnyEventRaised -= EventSource_AnyEventRaised;
 				break;
 			}
 
 		}
-		private void EventSource_CustomEvent (object sender, CustomBuildEventArgs e) {
-			if (!ide.CurrentSolution.TryGetProjectFromFullPath(e.Message, out ProjectView prj))
-				return;
+		private void EventSource_CustomEvent (object sender, CustomBuildEventArgs e) {			
 			Type cbeaType = e.GetType();
-			FieldInfo fi = cbeaType.GetField("ResolvedReferences");
-			prj.ResolvedReferences = fi.GetValue(e) as ITaskItem[];
+			if (cbeaType.Name != "CrowIdeHookBuildEvent")
+				return;
+			FieldInfo fiHookedItemsName = cbeaType.GetField("HookedItemsName");
+			FieldInfo fiHookedItems = cbeaType.GetField("HookedItems");
+			FieldInfo fiProjectFullPath = cbeaType.GetField("ProjectFullPath");
+
+			string hookedItemsName = fiHookedItemsName.GetValue (e) as string;
+			string projPath = fiProjectFullPath.GetValue (e) as string;
+
+			if (!ide.CurrentSolution.TryGetProjectFromFullPath(projPath, out ProjectView prj))
+				return;
+
+			Console.WriteLine($"CUSTOM BUILD HOOK EVENT: {e.Message}");
+			
+			switch (hookedItemsName)
+			{
+				case "ReferencePath":
+					prj.ResolvedReferences = fiHookedItems.GetValue(e) as ITaskItem[];
+					break;
+				case "AllItemsFullPathWithTargetPath":
+					prj.ResolvedTargetPathes = fiHookedItems.GetValue(e) as ITaskItem[];
+					break;
+				default:
+					Console.WriteLine($"[Error]Unhandled custom build hook: {e.Message}");
+					break;				
+			}
 		}
         private void EventSource_TaskFinished (object sender, TaskFinishedEventArgs e) {
 			ide.BuildEvents.Add (e);

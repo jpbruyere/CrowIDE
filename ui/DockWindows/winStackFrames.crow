@@ -9,7 +9,8 @@
 				</Scroller>			
 			</Template>
 			<ItemTemplate>
-				<TableRow Height="Fit" >
+				<TableRow 	Selected = "{Background=${ControlHighlight}}"
+							Unselected = "{Background=Transparent}">
 					<Label Text="{Level}" TextAlignment="Right" />
 					<Label Text="{Address}" />
 					<Label Text="{Function}" />	

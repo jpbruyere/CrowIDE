@@ -107,6 +107,23 @@ namespace Crow.Coding.Debugging
 			Func = frame.Function;
 			Line = frame.Line - 1;
 		}
+		public void Update (ProjectView project, MITupple bkpt) {
+			Index = int.Parse (bkpt.GetAttributeValue("number"));
+			Type = bkpt.GetAttributeValue("type");
+			Disp = bkpt.GetAttributeValue("disp");
+			IsEnabled = bkpt.GetAttributeValue("enabled") == "y";
+			if (bkpt.TryGetAttributeValue("warning", out string warning))
+				Warning = warning;
+			else {
+				Warning = null;
+				Func = bkpt.GetAttributeValue("func");
+				FileName = bkpt.GetAttributeValue("file");
+				FileFullName = bkpt.GetAttributeValue("fullname")?.Replace("\\\\", "\\");
+				if (project.TryGetProjectFileFromPath(FileFullName, out ProjectFileNode pf))
+					File = pf as CSProjectItem;
+				Line = int.Parse (bkpt.GetAttributeValue("line")) - 1;
+			}			
+		}
 
 		public override string ToString() => $"{Index}:{Type} {File.FullPath}:{Line} enabled:{IsEnabled}";
 

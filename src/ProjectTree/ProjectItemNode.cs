@@ -29,13 +29,13 @@ namespace Crow.Coding
 				case ".xml":
 					return CrowIDE.IcoFileXML;
 				case ".style":
-					return new SvgPicture ("#Icons.palette.svg");
+					return CrowIDE.IcoStyle;
 				case ".jpg":
 				case ".jpeg":
 				case ".png":
 				case ".gif":
 				case ".bmp":
-					return new SvgPicture ("#Icons.picture-file.svg");
+					return CrowIDE.IcoImage;
 
 				default:
 					return base.Icon;
@@ -44,7 +44,7 @@ namespace Crow.Coding
 		}
 
 		public string Extension => Path.GetExtension (RelativePath);
-		public string RelativePath => Item.EvaluatedInclude?.Replace ('\\', '/');
+		public string RelativePath => Item.EvaluatedInclude?.NormalizePath ();
 		public string FullPath => Path.GetFullPath(Path.Combine (Project.RootDir, RelativePath));
 		public override ItemType Type => Enum.TryParse (Item.ItemType, true, out ItemType tmp) ? tmp : ItemType.Unknown;
 
@@ -76,28 +76,6 @@ namespace Crow.Coding
 				}
 			}
 		}
-		//public override bool IsSelected {
-		//	get {
-		//		return isSelected;
-		//	}
-		//	set {
-		//		if (value == isSelected)
-		//			return;
-
-		//		isSelected = value;
-
-		//		NotifyValueChanged ("IsSelected", isSelected);
-
-		//		if (isSelected) {
-		//			Project.solution.SelectedItem = this;
-		//			TreeNode pn = Parent;
-		//			while (pn != null) {
-		//				pn.IsExpanded = true;
-		//				pn = pn.Parent;
-		//			}
-		//		}
-		//	}
-		//}
 	}
 }
 

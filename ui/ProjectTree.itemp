@@ -12,7 +12,8 @@
 	</Border>
 </ItemTemplate>
 <ItemTemplate DataType="Crow.Coding.ProjectView" Data="Childs" DataTest="Type">
-	<Expandable DataSourceType="ProjectView" Caption="{DisplayName}" ContextCommands="{Commands}" IsExpanded="{²IsExpanded}" MouseDoubleClick="/onClickForExpand">
+	<Expandable DataSourceType="ProjectView" Caption="{DisplayName}" ContextCommands="{Commands}" IsExpanded="{²IsExpanded}" MouseDoubleClick="/onClickForExpand"
+				BubbleMouseEvent="true">
 		<Template>
 			<VerticalStack>
 				<Border Style="TreeItemBorder" >
@@ -41,7 +42,8 @@
 	</Expandable>
 </ItemTemplate>
 <ItemTemplate DataType="Crow.Coding.SolutionNode" Data="Childs" >
-	<Expandable DataSourceType="TreeNode" Caption="{DisplayName}" Template="#ui.TreeExpandable.template" IsExpanded="{²IsExpanded}">
+	<Expandable DataSourceType="TreeNode" Caption="{DisplayName}" Template="#ui.TreeExpandable.template" IsExpanded="{²IsExpanded}"
+				BubbleMouseEvent="true">
 		<HorizontalStack Height="Fit">
 			<Widget Width="8" Height="10"/>
 			<VerticalStack Height="Fit" Name="ItemsContainer"/>
@@ -49,7 +51,8 @@
 	</Expandable>
 </ItemTemplate>
 <ItemTemplate DataSourceType="ProjectNode" DataType="ReferenceGroup" Data="Childs" DataTest="Type" >
-	<Expandable Caption="{DisplayName}" Template="#ui.TreeExpandable.template" IsExpanded="{²IsExpanded}">
+	<Expandable Caption="{DisplayName}" Template="#ui.TreeExpandable.template" IsExpanded="{²IsExpanded}"
+				BubbleMouseEvent="true">
 		<HorizontalStack Height="Fit">
 			<Widget Width="8" Height="10"/>
 			<VerticalStack Height="Fit" Name="ItemsContainer"/>
@@ -57,7 +60,8 @@
 	</Expandable>
 </ItemTemplate>
 <ItemTemplate DataType="VirtualGroup" Data="Childs" DataTest="Type">
-	<Expandable DataSourceType="ProjectNode" Caption="{DisplayName}" Template="#ui.TreeExpandable.template" IsExpanded="{²IsExpanded}">
+	<Expandable DataSourceType="ProjectNode" Caption="{DisplayName}" Template="#ui.TreeExpandable.template" IsExpanded="{²IsExpanded}"
+				BubbleMouseEvent="true">
 		<HorizontalStack Height="Fit">
 			<Widget Width="8" Height="10"/>
 			<VerticalStack Height="Fit" Name="ItemsContainer"/>

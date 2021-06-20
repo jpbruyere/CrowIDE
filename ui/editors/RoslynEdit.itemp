@@ -1,18 +1,31 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
 <VerticalStack Name="{DisplayName}" Spacing="0" IsVisible="{²IsSelected}" >
 	<HorizontalStack Spacing="0">
-		<TreeView IsRoot="true"  RootDataLevel="true" Data="{../editor.Folds}" Width="20%">
-			<ItemTemplate DataType="Crow.Coding.Fold" Data="Children" >
-				<Expandable Caption="{}" Template="#ui.TreeExpandable.template" >
-					<HorizontalStack Height="Fit">
-						<Widget Width="8" Height="10"/>
-						<VerticalStack Height="Fit" Name="ItemsContainer"/>
-					</HorizontalStack>
-				</Expandable>
-			</ItemTemplate>					
-		</TreeView>
-		<Splitter/>
-		<RoslynEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"
+		<!--<VerticalStack Width="20%">
+			<TreeView IsRoot="true"  RootDataLevel="true" Data="{../../editor.Folds}" Height="50%">
+				<ItemTemplate DataType="Crow.Coding.Fold" Data="Children" >
+					<Expandable Caption="{}" Template="#ui.TreeExpandable.template" >
+						<HorizontalStack Height="Fit">
+							<Widget Width="8" Height="10"/>
+							<VerticalStack Height="Fit" Name="ItemsContainer"/>
+						</HorizontalStack>
+					</Expandable>
+				</ItemTemplate>					
+			</TreeView>
+			<Splitter/>
+			<TreeView IsRoot="true"  RootDataLevel="true" Data="{../../editor.TestFolds}" >
+				<ItemTemplate DataType="Crow.Coding.Fold" Data="Children" >
+					<Expandable Caption="{}" Template="#ui.TreeExpandable.template" >
+						<HorizontalStack Height="Fit">
+							<Widget Width="8" Height="10"/>
+							<VerticalStack Height="Fit" Name="ItemsContainer"/>
+						</HorizontalStack>
+					</Expandable>
+				</ItemTemplate>					
+			</TreeView>
+		</VerticalStack>
+		<Splitter/>-->
+		<RoslynEditor Focusable="true" Name="editor" Font="consolas, 12" VerticalAlignment="Top" Margin="0"				
 				ExecutingLine="{ExecutingLine}"
 				CurrentLine="{²CurrentLine}" CurrentColumn="{²CurrentColumn}" HasFocus="{IsSelected}"
 				Foreground="Jet" Background="White" Width="Stretched" Height="Stretched"
@@ -41,7 +54,8 @@
 				<Label Foreground="Black" Text="{Kind}"/>
 			</HorizontalStack>			
 		</VerticalStack>-->
-		
+		<Widget Background="DarkRed" Width="10" Height="10" Visible="{../../editor.FoldingKO}"/>
+		<Widget Background="Green" Width="10" Height="10" Visible="{../../editor.FoldingOK}"/>
 		<Widget Background="Red" Width="5" Height="5" Visible="{IsDirty}"/>
 		<Label Text="Abs Pos:" Foreground="LightGrey"/>
 		<Label Text="{../../editor.CurrentPos}" Foreground="White"/>

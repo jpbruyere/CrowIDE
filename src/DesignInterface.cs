@@ -43,11 +43,12 @@ namespace Crow.Coding
             }
 		}
 		public override Stream GetStreamFromPath (string path) {
+			if (ProjFile.Project.Solution.StartupProject == null)
+				throw new Exception ($"Startup project must be set to edit IML: {path}");
 			ProjectFileNode pi;
-			if (ProjFile.Project.TryGetProjectFileFromPath (path, out pi)) {
+			if (ProjFile.Project.Solution.StartupProject.TryGetProjectFileFromTargetPath (path, out pi)) 
 				return new FileStream (pi.FullPath, FileMode.Open);
-			}
-			if (ProjFile.Project.TryGetStreamFromPath (path, out Stream stream))
+			if (ProjFile.Project.Solution.StartupProject.TryGetStreamFromReferencedAssemblies (path, out Stream stream))
 				return stream;
 			throw new Exception ($"In Design File not found: {path}");
 		}

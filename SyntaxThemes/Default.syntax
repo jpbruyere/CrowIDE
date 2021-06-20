@@ -1,8 +1,10 @@
-default = Jet;Transparent;False;False
+default = Jet;#DADADA;False;False
 leftMargin = Grey;Onyx;False;False
 Selection = White;#B6CEE1;False;False
 keyword = Blue;Transparent;False;False
 DocumentationComment = MediumSeaGreen;Transparent;False;True
+Region = DeepPink;Transparent;False;False
+FoldedRegion = #FFFFF8;#35B23C;True;False
 Documentation = GreenYellow;Transparent;False;False
 trivia = Grey;Transparent;False;True
 PreprocessorDirective = DeepPink;Transparent;True;False

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2020-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 using System;
@@ -80,7 +80,7 @@ namespace Crow.Coding
 			fe.MaxXAdvance = ctx.TextExtents ("A").XAdvance;
 			y = bounds.Top;
 			currentCol = -1;// < 0 => margin no printed
-			printedLinesNumbers = new int[visibleLines];
+			printedLinesNumbers = new int[Math.Min (visibleLines, editor.totalLines)];
 			printedLinesIndex = (firstPrintedLine == rootNodeFirstLine) ? 0 : -1;//<0 until firstLine is reached
 			currentLine = rootNodeFirstLine;
 			currentFold = editor.foldingManager.GetFoldContainingLine (currentLine);
@@ -168,7 +168,7 @@ namespace Crow.Coding
 					Console.WriteLine ($"Symbol: Kind:{symbol.Kind} {symbol.Name} {symbol.ContainingNamespace}.{symbol.ContainingType}.");
 				}*/
 			}
-
+			//testPrintNodesBounds (node);
 			base.Visit (node);
 			symbol = null;
 		}
@@ -189,7 +189,9 @@ namespace Crow.Coding
 			if (cancel)
 				return;
 
-			if (token.IsKind (SyntaxKind.XmlTextLiteralNewLineToken) || token.IsKind (SyntaxKind.EndOfFileToken))
+			if (token.IsKind (SyntaxKind.EndOfFileToken))
+				return;
+			if (token.IsKind (SyntaxKind.XmlTextLiteralNewLineToken))
 				lineBreak ();
 			else if (SyntaxFacts.IsLiteralExpression (token.Kind ())) {
 				curTextFormat = formatting["LiteralExpression"];
@@ -364,20 +366,65 @@ namespace Crow.Coding
 		bool skippedLine => currentFold.IsFolded && currentLine > currentFold.LineStart;
 		bool dontPrintLine => printedLinesIndex < 0 || skippedLine;
 
+		//public override void VisitDocumentationCommentTrivia (DocumentationCommentTriviaSyntax node) {}
+		
+		void printFoldedLine (string str) {
+			int diffX = currentCol - editor.ScrollX;
+			if (diffX < 0) {
+				if (diffX + str.Length <= 0) {
+					currentCol += str.Length;					
+					return;
+				}
+				str = str.Substring (-diffX);
+				diffX = 0;
+			}
+
+			TextExtents te = ctx.TextExtents (str);
+			double x = bounds.X + editor.leftMargin + diffX * fe.MaxXAdvance;
+			RectangleD r = new RectangleD (
+				x, y,
+				te.Width, lineHeight);
+			const double margin = 4;
+			r.Inflate(0.5,0.5);
+			r.Width += margin * 2.0;
+			ctx.LineWidth = 1;
+			ctx.SetSource (curTextFormat.Background);
+			ctx.Rectangle (r);
+			ctx.FillPreserve ();
+			ctx.SetSource (curTextFormat.Foreground);
+			ctx.Stroke();
+			ctx.MoveTo (x + margin, y + fe.Ascent);
+			ctx.ShowText (str);
+		}
+		
+		public override void VisitRegionDirectiveTrivia(RegionDirectiveTriviaSyntax node)
+		{
+			
+			if (!dontPrintLine && foldedLine) {
+				curTextFormat = formatting["FoldedRegion"];
+				string str = $"{node.EndOfDirectiveToken.LeadingTrivia.ToString()}";
+				printFoldedLine (str);
+				lineBreak();
+			} else{
+				curTextFormat = formatting["Region"];
+				base.VisitRegionDirectiveTrivia(node);
+			}
+
+		}
+
+
 		void print (SyntaxTrivia trivia) {
             SyntaxKind kind = trivia.Kind ();
 
             if (trivia.IsPartOfStructuredTrivia ()) {
-                if (kind == SyntaxKind.PreprocessingMessageTrivia)
-                    curTextFormat = formatting["PreprocessorMessage"];
-            } else {
-                if (kind == SyntaxKind.DisabledTextTrivia)
-                    curTextFormat = formatting["DisabledText"];
-                else
-                    curTextFormat = formatting["trivia"];
-            }
+                /*if (kind == SyntaxKind.PreprocessingMessageTrivia)
+                    curTextFormat = formatting["PreprocessorMessage"];*/
+            } else if (kind == SyntaxKind.DisabledTextTrivia)
+				curTextFormat = formatting["DisabledText"];
+			else
+				curTextFormat = formatting["trivia"];
 
-            if (trivia.IsKind (SyntaxKind.DisabledTextTrivia) || trivia.IsKind (SyntaxKind.MultiLineCommentTrivia)) {				
+            if (trivia.IsKind (SyntaxKind.DisabledTextTrivia) || trivia.IsKind (SyntaxKind.MultiLineCommentTrivia)) {
                 print (Regex.Split (trivia.ToString (), @"\r\n|\r|\n|\\\n"), kind);
                 //foldable = lines.Length > 2;
             } else if (!dontPrintLine)
@@ -417,7 +464,7 @@ namespace Crow.Coding
 			} else
 				diffX = 0;
 
-			ctx.MoveTo (bounds.X + editor.leftMargin + (currentCol - editor.ScrollX - diffX) * fe.MaxXAdvance, y + fe.Ascent);
+			ctx.MoveTo (bounds.X + editor.leftMargin + (currentCol - editor.ScrollX - diffX) * fe.MaxXAdvance, y + fe.Ascent);			
 			ctx.ShowText (str);
 			currentCol += lstr.Length;
 			firstToken = false;

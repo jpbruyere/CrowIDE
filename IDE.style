@@ -3,6 +3,7 @@ IdeBackground = "DarkGrey";
 IdeDockWinBackground = "DimGrey";
 IdePopBackground = "Jet";
 IdeLogBackground = "DarkGrey";
+IdeHighlight = "RoyalBlue";
 
 SmallFont = "consolas, 10";
 SmallUIFont = "sans, 10";
@@ -76,7 +77,7 @@ TreeLabel {
 Splitter {
 	Thickness="1";	
 	Background="Transparent";
-	MouseEnter="{Background=Grey}";
+	MouseEnter="{Background=${IdeHighlight}}";
 	MouseLeave="{Background=Transparent}";
 }
 DockWindow {
@@ -89,11 +90,10 @@ DockStack {
 	Margin="0";
 	Spacing="0";
 }
-ColorPicker {
-	Width="200";
-	//Background="DimGrey";
-	Foreground="Grey";
-	Margin="5";
+ColorPicker2 {
+	Template="#ui.ColorPicker2.template";
+	Height="Fit";
+	MinimumSize="1,1";
 }
 labColor {
 	Foreground="White";
@@ -104,3 +104,18 @@ labColorV {
 simpleCheckBox {
 	Template="#ui.simpleCheckBox.template";
 }
+Table {
+	ColumnSpacing="20";
+}
+topLevelMenu {
+	Template = "#ui.topLevelMenu.template";
+	ItemTemplate = "#ui.topLevelMenu.itemp";
+}
+menuEntryButton {
+	Template = "#ui.menuEntryButton.template";
+	Width = "Stretched";
+}
+//menuItemEntry {
+//	Template = "#ui.menuItemEntry.template";
+//	ItemTemplate = "#ui.menuItemEntry.itemp";
+//}

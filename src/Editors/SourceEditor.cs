@@ -148,34 +148,37 @@ namespace Crow.Coding
 			}
 		}			
 		void updatePrintedLines () {
+
 			buffer.editMutex.EnterReadLock ();
 			editorMutex.EnterWriteLock ();
 
-			PrintedLines = new List<CodeLine> ();
-			int curL = 0;
-			int i = 0;
+			try {
+				PrintedLines = new List<CodeLine> ();
+				int curL = 0;
+				int i = 0;
 
-			while (curL < buffer.LineCount && i < ScrollY) {
-				if (buffer [curL].IsFolded)
-					curL = buffer.GetEndNodeIndex (curL);
-				curL++;
-				i++;
+				while (curL < buffer.LineCount && i < ScrollY) {
+					if (buffer [curL].IsFolded)
+						curL = buffer.GetEndNodeIndex (curL);
+					curL++;
+					i++;
+				}
+
+				firstPrintedLine = curL;
+				i = 0;
+				while (i < visibleLines && curL < buffer.LineCount) {
+					PrintedLines.Add (buffer [curL]);
+
+					if (buffer [curL].IsFolded)
+						curL = buffer.GetEndNodeIndex (curL);
+
+					curL++;
+					i++;
+				}
+			} finally {
+				buffer.editMutex.ExitReadLock ();
+				editorMutex.ExitWriteLock ();
 			}
-
-			firstPrintedLine = curL;
-			i = 0;
-			while (i < visibleLines && curL < buffer.LineCount) {
-				PrintedLines.Add (buffer [curL]);
-
-				if (buffer [curL].IsFolded)
-					curL = buffer.GetEndNodeIndex (curL);
-
-				curL++;
-				i++;
-			}
-
-			buffer.editMutex.ExitReadLock ();
-			editorMutex.ExitWriteLock ();
 		}
 		void updateOnScreenCurLineFromBuffCurLine(){
 			printedCurrentLine = PrintedLines.IndexOf (buffer.CurrentCodeLine);
@@ -222,16 +225,18 @@ namespace Crow.Coding
 		{
 			editorMutex.EnterWriteLock ();
 
-			buffer.longestLineCharCount = 0;
-			buffer.longestLineIdx = 0;
-			measureLeftMargin ();
-			MaxScrollX = MaxScrollY = 0;
-			PrintedLines = null;
-			RegisterForGraphicUpdate ();
-			notifyPositionChanged ();
-			isDirty = true;
-
-			editorMutex.ExitWriteLock ();
+			try {
+				buffer.longestLineCharCount = 0;
+				buffer.longestLineIdx = 0;
+				measureLeftMargin ();
+				MaxScrollX = MaxScrollY = 0;
+				PrintedLines = null;
+				RegisterForGraphicUpdate ();
+				notifyPositionChanged ();
+				isDirty = true;
+			} finally {
+				editorMutex.ExitWriteLock ();
+			}
 		}
 		void Buffer_LineAdditionEvent (object sender, CodeBufferEventArgs e)
 		{
@@ -817,45 +822,47 @@ namespace Crow.Coding
 			buffer.editMutex.EnterReadLock ();
 			editorMutex.EnterReadLock ();
 
-			#region draw text cursor
-			if (buffer.SelectionInProgress){
-				selStartCol = getTabulatedColumn (buffer.SelectionStart);
-				selEndCol = getTabulatedColumn (buffer.SelectionEnd);
-			}else if (HasFocus && printedCurrentLine >= 0){
-				gr.LineWidth = 1.0;
-				double cursorX = cb.X + (getTabulatedColumn(buffer.CurrentPosition) - ScrollX) * fe.MaxXAdvance + leftMargin;
-				gr.MoveTo (0.5 + cursorX, cb.Y + (printedCurrentLine) * (fe.Ascent+fe.Descent));
-				gr.LineTo (0.5 + cursorX, cb.Y + (printedCurrentLine + 1) * (fe.Ascent+fe.Descent));
-				gr.Stroke();
-			}
-			#endregion
+			try {
 
-			if (PrintedLines?.Count > 0) {				
-				int unfoldedLines = buffer.UnfoldedLines;
-				currentNode = null;
-				CodeLine cl = PrintedLines[0];
-				int idx0 = buffer.IndexOf(cl);
-				int li = idx0-1;
-				while (li >= 0) {
-					if (buffer [li].IsFoldable && !buffer [li].IsFolded) {
-						if (buffer.IndexOf(buffer [li].SyntacticNode.EndLine) > idx0){
-							currentNode = buffer [li].SyntacticNode;
-							break;
+				#region draw text cursor
+				if (buffer.SelectionInProgress){
+					selStartCol = getTabulatedColumn (buffer.SelectionStart);
+					selEndCol = getTabulatedColumn (buffer.SelectionEnd);
+				}else if (HasFocus && printedCurrentLine >= 0){
+					gr.LineWidth = 1.0;
+					double cursorX = cb.X + (getTabulatedColumn(buffer.CurrentPosition) - ScrollX) * fe.MaxXAdvance + leftMargin;
+					gr.MoveTo (0.5 + cursorX, cb.Y + (printedCurrentLine) * (fe.Ascent+fe.Descent));
+					gr.LineTo (0.5 + cursorX, cb.Y + (printedCurrentLine + 1) * (fe.Ascent+fe.Descent));
+					gr.Stroke();
+				}
+				#endregion
+
+				if (PrintedLines?.Count > 0) {				
+					int unfoldedLines = buffer.UnfoldedLines;
+					currentNode = null;
+					CodeLine cl = PrintedLines[0];
+					int idx0 = buffer.IndexOf(cl);
+					int li = idx0-1;
+					while (li >= 0) {
+						if (buffer [li].IsFoldable && !buffer [li].IsFolded) {
+							if (buffer.IndexOf(buffer [li].SyntacticNode.EndLine) > idx0){
+								currentNode = buffer [li].SyntacticNode;
+								break;
+							}
 						}
+						li--;
 					}
-					li--;
-				}
 
-				for (int i = 0; i < visibleLines; i++) {
-					if (i + ScrollY >= unfoldedLines)//TODO:need optimize
-						break;
-					drawLine (gr, cb, i);
+					for (int i = 0; i < visibleLines; i++) {
+						if (i + ScrollY >= unfoldedLines)//TODO:need optimize
+							break;
+						drawLine (gr, cb, i);
+					}
 				}
+			} finally {
+				editorMutex.ExitReadLock ();
+				buffer.editMutex.ExitReadLock ();
 			}
-
-			editorMutex.ExitReadLock ();
-
-			buffer.editMutex.ExitReadLock ();
 
 		}
 		#endregion

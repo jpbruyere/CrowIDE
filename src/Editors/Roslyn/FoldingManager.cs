@@ -1,112 +1,18 @@
-﻿// Copyright (c) 2020  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
+﻿// Copyright (c) 2020-2021  Jean-Philippe Bruyère <jp_bruyere@hotmail.com>
 //
 // This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-using System;
+
 using System.Collections.Generic;
-using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using System.Text.RegularExpressions;
+using System.Linq;
+using System;
 
 namespace Crow.Coding
-{
-	[DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class Fold : IEquatable<Fold>, IComparable<Fold>
-	{
-		public Fold Parent { get; private set; }
-		public List<Fold> Children { get; private set; } = new List<Fold>();
-		public bool IsFolded;
-		public readonly SyntaxKind Kind;
-		public string Identifier;		
-		public int LineStart;
-		public int LineEnd => LineStart + Length - 1;
-		public void SetLineEnd (int lineEnd) {
-			Length = lineEnd - LineStart + 1;
-		}
-		public int Length;
-		public Fold (int lineStart, int lineEnd, SyntaxKind kind, string identifier = "") {			
-			Kind = kind;
-			Identifier = identifier;
-			LineStart = lineStart;
-			Length = lineEnd - lineStart + 1;
-			IsFolded = false;
-		}
-		public void AddChild (Fold fold) {
-			fold.Parent = this;
-			Children.Add (fold);
-		}
-		public bool SimilarNode (Fold other)
-			=> other == null ? false : Kind == other.Kind && Identifier == other.Identifier;
-		
-
-        public bool Equals (Fold other)
-			=> other == null ? false : Kind == other.Kind && Identifier == other.Identifier && LineStart == other.LineStart && LineEnd == other.LineEnd;
-		public int CompareTo (Fold other) => LineStart - other.LineStart;
-
-		public override string ToString () => $"{Kind} {Identifier}:{LineStart} -> {LineEnd} (folded:{IsFolded})";
-		string GetDebuggerDisplay() => ToString();
-
-
-		public bool TryGetFold (int line, ref Fold fold) {
-			if (LineStart == line) {
-				fold = this;
-				return true;
-			} else if (LineStart > line || LineEnd <= line)
-				return false;
-			foreach (Fold child in Children) {
-				if (child.TryGetFold(line, ref fold))
-					return true;				
-			}
-			return false;
-		}
-		public bool ContainsLine (int line) => LineStart <= line && line <= LineEnd;
-		public Fold GetFoldContainingLine (int line) {			
-			foreach (Fold f in Children) {
-				if (f.ContainsLine (line))
-					return f.GetFoldContainingLine (line);
-
-			}
-			return this;
-		}
-		public void ToggleAllFolds (bool state) { 
-			IsFolded = state;
-			foreach (Fold f in Children)
-				f.ToggleAllFolds (state);
-		}
-		public int GetFoldedLinesCount () {
-			if (IsFolded)
-				return Length - 1;
-			int count = 0;
-			foreach (Fold child in Children)
-				count += child.GetFoldedLinesCount ();
-			return count;			
-		}		
-		public int GetTarget (int targetCount, ref int hiddenLines) {
-			if (IsFolded)
-				hiddenLines += Length - 1;				
-			else {
-				foreach (Fold child in Children) {
-					if (targetCount + hiddenLines <= child.LineStart)
-						return targetCount + hiddenLines;
-					child.GetTarget (targetCount, ref hiddenLines);
-				}
-			}
-			return targetCount + hiddenLines;
-		}	
-		public int GetHiddenLines (int targetCount, int hiddenLines) {
-			if (IsFolded)
-				return hiddenLines + Length - 1;
-			
-			foreach (Fold child in Children) {
-				if (targetCount + hiddenLines <= child.LineStart)
-					return hiddenLines;
-				hiddenLines = child.GetHiddenLines (targetCount, hiddenLines);
-			}
-		
-			return hiddenLines;
-		}
-    }
+{	
 	public class FoldingManager : CSharpSyntaxWalker
 	{
 		RoslynEditor editor;
@@ -121,9 +27,15 @@ namespace Crow.Coding
 		Fold rootFold, curFold;
 		object mutex = new object ();		
 
-		bool autoFoldRegions, AutoFoldComments;		
-
+		bool autoFoldRegions, AutoFoldComments;
+		public Fold Root {
+			get => rootFold; 
+			internal set {
+				rootFold = value;
+			}
+		}
 		public List<Fold> AllFolds => rootFold == null ? null : rootFold.Children;
+		public bool Initialized => rootFold != null;
 
 		public bool TryGetFold (int line, out Fold fold) {
 			lock (mutex) {
@@ -134,9 +46,26 @@ namespace Crow.Coding
 				return false;
 			}
 		}
+		/// <summary>
+		/// Try get fold with the given ending line
+		/// </summary>
+		public bool TryGetFoldEndingOnLine (int line, out Fold fold) {
+			lock (mutex) {
+				fold = null;
+				if (rootFold != null) {					
+					return rootFold.TryGetFoldEndingOnLine (line, ref fold);
+				}
+				return false;
+			}
+		}		
 		public Fold GetFoldContainingLine (int line) {	
 			lock (mutex) {
 				return rootFold == null ? null : rootFold.GetFoldContainingLine (line);
+			}
+		}
+		public Fold GetFoldContainingLineSpan (int lineStart, int lineEnd, bool inclusive = true) {	
+			lock (mutex) {
+				return rootFold == null ? null : rootFold.GetFoldContainingLineSpan (lineStart, lineEnd, inclusive);
 			}
 		}
 		public bool TryToogleFold (int line) {
@@ -158,24 +87,72 @@ namespace Crow.Coding
 		public int TotalFoldedLinesCount {
 			get {
 				lock (mutex) {
-					return rootFold == null ? 0 : rootFold.GetFoldedLinesCount ();
+					return rootFold == null ? 0 : rootFold.GetHiddenLinesCount ();
 				}
 			}
 		}			
-		public int GetLineIndexAtScroll (int targetLine){
-			lock (mutex) {
-				int hiddenLines = 0;
-				return rootFold == null ? 0 : rootFold.GetTarget (targetLine, ref hiddenLines);
-			}
-		}
-		public int GetHiddenLinesAtScroll (int targetLine){
+
+		public int GetHiddenLinesAtScroll (int targetScroll){
 			lock (mutex) {				
-				return rootFold == null ? 0 : rootFold.GetHiddenLines (targetLine, 0);
+				return rootFold == null ? 0 : rootFold.GetHiddenLines (targetScroll, 0);
+			}
+		}
+		public int GetHiddenLinesUntilLine (int targetLine){
+			lock (mutex) {				
+				return rootFold == null ? 0 : rootFold.GetHiddenLinesUntilLine (targetLine, 0);
 			}
 		}
 
+		public void updatefolds (SourceText oldText, TextChange change, SyntaxNode newSyntaxNode) {
+			Console.WriteLine ("update fold");
+			lock (mutex) {
+				LinePositionSpan lps = oldText.Lines.GetLinePositionSpan (change.Span);
+				Fold fold = GetFoldContainingLineSpan (lps.Start.Line, lps.End.Line, false);
+				fold.IsFolded = false;
 
-		public void updatefolds (TextChange change) {
+				int lineShrink = lps.End.Line - lps.Start.Line;
+				int lineDiff = -lineShrink;
+
+				if (lineShrink > 0) {
+					IEnumerable<Fold> intersectingFolds = fold.GetChildFoldsIntersectingSpan (lps.Start.Line, lps.End.Line);
+					foreach (Fold f in intersectingFolds)
+						fold.Children.Remove (f);
+				}
+
+				if (!string.IsNullOrEmpty (change.NewText)) {
+					string[] newLinesStr = Regex.Split (change.NewText, @"\r\n|\r|\n|\\\n");
+					lineDiff += newLinesStr.Length - 1;
+				}
+
+				if (lineDiff != 0) {
+					Fold firstFoldAfterSpan = fold.Children.FirstOrDefault (f => f.LineStart > lps.Start.Line);
+					if (firstFoldAfterSpan != null) {
+						for (int i = fold.Children.IndexOf(firstFoldAfterSpan); i < fold.Children.Count; i++)
+							fold.Children[i].ShiftPosition (lineDiff);
+					}
+					fold.Length += lineDiff;
+					Fold ancestor = fold.Parent;
+					while (ancestor != null) {						
+						ancestor.Length += lineDiff;
+						firstFoldAfterSpan = ancestor.Children.FirstOrDefault (f => f.LineStart > lps.Start.Line);
+						if (firstFoldAfterSpan != null) {
+							for (int i = ancestor.Children.IndexOf(firstFoldAfterSpan); i < ancestor.Children.Count; i++)
+								ancestor.Children[i].ShiftPosition (lineDiff);
+						}
+						ancestor = ancestor.Parent;
+					}
+
+
+					/*Fold startFold = GetFoldContainingLine (lps.Start.Line);
+					Fold endFold = GetFoldContainingLine (lps.End.Line);*/
+				}
+
+			/*if (lineShrink > 0) {
+				
+				curFold = fold;
+				SyntaxNode node = newSyntaxNode.FindNode (change.Span, false, true);
+			}*/
+
 			/*if (refs == null)
 				return;
 			var Enumerator = refs.Values.GetEnumerator();
@@ -188,12 +165,13 @@ namespace Crow.Coding
 					continue;
 				//f.sp
             }*/
-			
+			}
         }
 
 
 
-		public void CreateFolds (SyntaxNode node) {			
+		public void CreateFolds (SyntaxNode node) {	
+			Console.WriteLine ("create fold");		
 			CrowIDE ide = editor.IFace as CrowIDE;
 			autoFoldRegions = ide.AutoFoldRegions;
 			AutoFoldComments = ide.AutoFoldComments;			
@@ -205,20 +183,23 @@ namespace Crow.Coding
 				Visit (node);
 			}
         }
-		
-		void addRef(RegionDirectiveTriviaSyntax node) {
-			int start = node.GetLocation ().GetLineSpan ().Span.Start.Line;
-			Fold reg = new Fold (
-				start,
-				start, node.Kind(), node.ToFullString());
-			if (start < curFold.LineStart) {
+		Fold addContainerFold (SyntaxNode node) {
+			LinePositionSpan lps = node.GetLocation ().GetLineSpan ().Span;
+			Fold fold = new Fold (
+				lps.Start.Line,
+				lps.End.Line, node.Kind(), node.ToFullString());
+			if (lps.Start.Line < curFold.LineStart) {
 				curFold.Parent.Children.Remove (curFold);
-				curFold.Parent.AddChild (reg);
-				reg.AddChild (curFold);				
+				curFold.Parent.AddChild (fold);
+				fold.AddChild (curFold);				
 			} else {
-				curFold.AddChild (reg);				
-				curFold = reg;
-			}
+				curFold.AddChild (fold);				
+				curFold = fold;
+			}			
+			return fold;
+		}
+		void addRef(RegionDirectiveTriviaSyntax node) {
+			Fold reg = addContainerFold (node);
 			if (autoFoldRegions)
 				reg.IsFolded = true;
 		}
@@ -295,6 +276,24 @@ namespace Crow.Coding
 				}
 			}			
 		}*/
+		public override void VisitTrivia (SyntaxTrivia trivia) {
+			if (trivia.IsKind (SyntaxKind.MultiLineCommentTrivia)) {
+				LinePositionSpan lps = trivia.GetLocation ().GetLineSpan ().Span;
+				int endL = lps.End.Character == 0 ? lps.End.Line - 1 : lps.End.Line;
+				if (lps.Start.Line < endL) {
+					Fold doc = new Fold (lps.Start.Line, endL, trivia.Kind ());
+					if (endL < curFold.LineStart) {
+						curFold.Parent.Children.Remove (curFold);
+						curFold.Parent.AddChild (doc);
+						curFold.Parent.AddChild (curFold);
+					} else
+						curFold.AddChild (doc);
+					if (AutoFoldComments)
+						doc.IsFolded = true;
+				}				
+			}
+			base.VisitTrivia (trivia);
+		}
 		public override void VisitRegionDirectiveTrivia(RegionDirectiveTriviaSyntax node)
 		{
 			addRef (node);
@@ -313,8 +312,27 @@ namespace Crow.Coding
 			}
 			base.VisitEndRegionDirectiveTrivia(node);
 		}
+		public override void VisitSkippedTokensTrivia(SkippedTokensTriviaSyntax node) {
+			LinePositionSpan lps = node.GetLocation ().GetLineSpan ().Span;
+			int endL = lps.End.Line;
+			if (lps.Start.Line < endL) {
+				Fold doc = new Fold (lps.Start.Line, endL, node.Kind ());
+				if (endL < curFold.LineStart) {
+					curFold.Parent.Children.Remove (curFold);
+					curFold.Parent.AddChild (doc);
+					curFold.Parent.AddChild (curFold);
+				} else
+					curFold.AddChild (doc);				
+				/*if (AutoFoldComments)
+					doc.IsFolded = true;*/
+			}			
+			base.VisitSkippedTokensTrivia (node);
+		}
+		public override void VisitIfDirectiveTrivia(IfDirectiveTriviaSyntax node) {
+			base.VisitIfDirectiveTrivia (node);
+		}
 
-		public override void VisitDocumentationCommentTrivia (DocumentationCommentTriviaSyntax node) {			
+		public override void VisitDocumentationCommentTrivia (DocumentationCommentTriviaSyntax node) {
 			LinePositionSpan lps = node.GetLocation ().GetLineSpan ().Span;
 			int endL = lps.End.Character == 0 ? lps.End.Line - 1 : lps.End.Line;
 			if (lps.Start.Line < endL) {

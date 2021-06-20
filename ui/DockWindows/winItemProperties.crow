@@ -1,0 +1,66 @@
+﻿<?xml version="1.0"?>
+<DockWindow Caption="Item Properties and Metadata"  Width="70%" Height="60%">
+	<VerticalStack DataSource="{CurrentSolution}">
+		<Label Text="{SelectedItem}" />
+		
+			<Table DataSource="{SelectedItem}" Columns="name,Fit;value,Stretched"  Height="Fit" RootDataLevel="true" >
+				<TableRow>
+					<Label Text="ItemType" />
+					<Label Text="{Item.ItemType}" />
+				</TableRow>
+				<TableRow>
+					<Label Text="UnevaluatedInclude" />
+					<Label Text="{Item.UnevaluatedInclude}" />
+				</TableRow>
+				<TableRow>
+					<Label Text="EvaluatedInclude" />
+					<Label Text="{Item.EvaluatedInclude}" />
+				</TableRow>
+				<TableRow>
+					<Label Text="IsImported" />
+					<Label Text="{Item.IsImported}" />
+				</TableRow>
+				<TableRow>
+					<Label Text="LogicalName" />
+					<Label Text="{LogicalName}" />
+				</TableRow>
+				<TableRow>
+					<Label Text="Link" />
+					<Label Text="{Link}" />
+				</TableRow>
+				<TableRow>
+					<Label Text="{Item}" />
+				</TableRow>
+			</Table>
+		
+			<ListBox DataSource="{SelectedItem}" Data="{Item.Metadata}" RootDataLevel="true" Height="Fit">
+				<Template>
+					<Scroller  Name="scroller1"  >
+						<Table Columns="name,Fit;value,Stretched;xml,100" 
+							Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
+					</Scroller>			
+				</Template>
+				<ItemTemplate>
+					<TableRow>
+						<Label Text="{Name}"  />
+						<TextBox Text="{EvaluatedValue}" Tooltip="{UnevaluatedValue}"/>
+						<Label Text="{Xml}"  />
+					</TableRow>
+				</ItemTemplate>
+			</ListBox>
+			<ListBox DataSource="{SelectedItem}" Data="{Item.DirectMetadata}" RootDataLevel="true" Height="Fit" >
+				<Template>
+					<Scroller  Name="scroller1"  >
+						<Table Columns="name,Fit;value,Stretched" 
+							Height="Fit" Name="ItemsContainer" VerticalAlignment="Top"/>
+					</Scroller>			
+				</Template>
+				<ItemTemplate>
+					<TableRow >
+						<Label Text="{Name}"  />
+						<TextBox Text="{EvaluatedValue}" Tooltip="{UnevaluatedValue}"/>
+					</TableRow>
+				</ItemTemplate>
+			</ListBox>		
+	</VerticalStack>
+</DockWindow>

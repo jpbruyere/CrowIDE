@@ -1,6 +1,101 @@
 ﻿<?xml version="1.0"?>
 <VerticalStack DataSourceType="CrowIDE" Background="${IdeBackground}">
-	<Menu>
+	<Menu Data="{AllIdeCommands}">
+		<ItemTemplate DataType="CommandGroup" >
+			<MenuItem Data="{Commands}" Width="Fit" IsEnabled="{CanExecute}">
+				<Template>
+					<Popper PopDirection="Bottom" Caption="{Caption}"
+									PopWidth="{./PopWidth}" PopHeight="{./PopHeight}"
+									MouseEnter="{Background=${ControlHighlight}}"
+									MouseLeave="{Background=Transparent}">
+						<Template>
+							<Label Text="{./Caption}" Width="Stretched" Height="Stretched" Margin="3"
+								Background="{./Background}"/>
+						</Template>
+						<Border Foreground="DimGrey" Width="{../PopWidth}" Height="{../PopHeight}" Background="DarkGrey">
+							<VerticalStack Name="ItemsContainer"/>
+						</Border>
+					</Popper>
+					<!--<Popper PopDirection="Bottom" Caption="{Caption}"
+									MouseEnter="{Background=${ControlHighlight}}"
+									MouseLeave="{Background=Transparent}">
+						<Template>
+							<Label Text="{./Caption}" Width="Stretched" Height="Fit" Margin="3"
+								Background="{./Background}"/>
+						</Template>
+						<VerticalStack Name="ItemsContainer" Fit="true" Background="Jet"/>
+					</Popper>-->
+				</Template>
+				<ItemTemplate DataType="Command">
+					<Button Style="menuEntryButton" Command="{}"/>
+				</ItemTemplate>					
+				<ItemTemplate DataType="CommandGroup" >
+					<MenuItem Data="{Commands}" IsEnabled="{CanExecute}">
+						<Template>
+							<Popper PopDirection="Right" Caption="{Caption}"
+									MouseEnter="{Background=${ControlHighlight}}"
+									MouseLeave="{Background=Transparent}">
+							<Template>
+								<Label Text="{./Caption}" Width="Stretched" Height="Fit" Margin="3"
+									Background="{./Background}"/>
+							</Template>
+							<VerticalStack Name="ItemsContainer" Fit="true" Background="Jet"/>
+						</Popper>
+						</Template>
+						<ItemTemplate DataType="Command">
+							<Button Style="menuEntryButton" Command="{}"/>
+						</ItemTemplate>
+					</MenuItem>
+				</ItemTemplate>
+			</MenuItem>
+		</ItemTemplate>
+	</Menu>
+	<!--<Menu Data="{AllIdeCommands}">
+		<Template>
+			<HorizontalStack Name="ItemsContainer" Height="Fit" Background="{./Background}" Spacing="5"/>
+		</Template>
+		<ItemTemplate DataType="CommandGroup" >
+			<MenuItem Data="{Commands}" Width="Fit" IsEnabled="{CanExecute}">
+				<Template>
+					<Popper PopDirection="Bottom" Caption="{Caption}"
+									MouseEnter="{Background=${ControlHighlight}}"
+									MouseLeave="{Background=Transparent}">
+						<Template>
+							<Label Text="{./Caption}" Width="Stretched" Height="Stretched" Margin="3"
+								Background="{./Background}"/>
+						</Template>
+						<Border Foreground="DimGrey" Width="{../PopWidth}" Height="{../PopHeight}" Background="DarkGrey">
+							<VerticalStack Name="ItemsContainer"/>
+						</Border>
+					</Popper>
+				</Template>
+				<ItemTemplate DataType="Command">
+					<Button Style="menuEntryButton" Command="{}"/>
+				</ItemTemplate>					
+				<ItemTemplate DataType="CommandGroup" >
+					<MenuItem Data="{Commands}" Width="Fit"  IsEnabled="{CanExecute}">
+						<Template>
+							<Popper PopDirection="Right" Caption="{Caption}"
+									MouseEnter="{Background=${ControlHighlight}}"
+									MouseLeave="{Background=Transparent}">
+								<Template>
+									<Label Text="{./Caption}" Width="Stretched" Height="Stretched" Margin="3"
+										Background="{./Background}"/>
+								</Template>		
+								<Border Foreground="DimGrey" Width="{../PopWidth}" Height="{../PopHeight}" Background="DarkGrey">
+									<VerticalStack Name="ItemsContainer"/>
+								</Border>
+							</Popper>
+						</Template>
+						<ItemTemplate DataType="Command">
+							<Button Style="menuEntryButton" Command="{}"/>
+						</ItemTemplate>
+					</MenuItem>
+				</ItemTemplate>
+			</MenuItem>
+		</ItemTemplate>
+	</Menu>-->
+	<!--<Menu>
 		<MenuItem Caption="File" Width="Fit" PopWidth="120" DataSource="{CurrentSolution}"  RootDataLevel="true">
 			<MenuItem Command="{CMDNew}" />
 			<MenuItem Command="{CMDOpen}" />
@@ -18,33 +113,8 @@
 			<MenuItem Command="{CMDPaste}" />
 			<MenuItem Command="{CMDOptions}" />
 		</MenuItem>
-		<MenuItem Caption="View" Fit="true" PopWidth="150">
-			<MenuItem Command="{CMDViewSolution}" />
-			<MenuItem Command="{CMDViewEditor}" />
-			<MenuItem Command="{CMDViewProperties}" />
-			<MenuItem Command="{CMDViewDesign}" />
-			<MenuItem Command="{CMDViewStyling}" />
-			<MenuItem Command="{CMDViewToolbox}" />
-			<MenuItem Command="{CMDViewErrors}" />
-			<MenuItem Command="{CMDViewLog}" />
-			<MenuItem Command="{CMDViewSyntaxTree}" />
-			<MenuItem Command="{CMDViewGTExp}" />
-			<MenuItem Command="{CMDViewSchema}" />
-			<MenuItem Command="{CMDViewSyntaxThemeEditor}" />
-			<MenuItem Command="{CMDViewDebugger}" />
-			<MenuItem Caption="Debug..." PopWidth="150">
-				<MenuItem Data="{DebugCommands}">
-					<Template>
-						<VerticalStack Name="ItemsContainer"/>
-					</Template>
-					<ItemTemplate>
-						<MenuItem Command="{}" Width="Stretched"/>
-					</ItemTemplate>
-				</MenuItem>
-			</MenuItem>
+		<MenuItem Data="{ViewCommands}" />
 
-
-		</MenuItem>
 		<MenuItem Caption="Project" Fit="true" PopWidth="120">
 			<MenuItem Command="{CMDBuild}" />
 			<MenuItem Command="{CMDClean}" />
@@ -55,7 +125,7 @@
 			<MenuItem Caption="About" />
 			<MenuItem Command="{CMDHelp}" />
 		</MenuItem>
-	</Menu>
+	</Menu>-->
 	<HorizontalStack RootDataLevel="true" DataSource="{CurrentSolution}" Height="Fit" >
 		<!--<Label Margin="3" Text="{}" Background="Jet" Width="Fit"/>
 		<Label Margin="3" Text="{ActiveConfiguration}" Background="Jet" Width="100"/>

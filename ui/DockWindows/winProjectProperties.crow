@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<DockWindow Name="winProjectProperties" Caption="Project Properties"  Width="20%">
+<DockWindow Caption="Project Properties"  Width="20%">
 	<VerticalStack DataSource="{CurrentSolution}">
 		<Label Text="{SelectedItem}" />
 		<VerticalStack Height="Fit" DataSource="{../lbProj.SelectedItem}">

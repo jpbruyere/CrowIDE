@@ -29,14 +29,31 @@ namespace Crow.Coding
 
 		Crow.Command cmdSave, cmdOpen, cmdSetAsStartProj, cmdNewFile;
 
-		ITaskItem[] resolvedReferences;
+		ITaskItem[] resolvedReferences, resolvedTargetPathes;
 		public ITaskItem[] ResolvedReferences {
 			get => resolvedReferences;
 			set {
 				resolvedReferences = value;
 				Task.Run (() => getcompilation ());
 
-				loadInDesignCrowAssembly ();
+				loadInDesignReferencedAssemblies ();
+			}
+		}
+		public ITaskItem[] ResolvedTargetPathes {
+			get => resolvedTargetPathes;
+			set {
+				resolvedTargetPathes = value;
+
+				Task.Run (() => testTargetPathes());				
+			}
+		}
+
+		void testTargetPathes () {
+			if (resolvedTargetPathes == null)
+				return;
+			foreach (var item in resolvedTargetPathes) {
+				if (TryGetProjectFileFromPath (item.GetMetadata("Identity"), out ProjectFileNode pf))
+					pf.ResolvedTargetPath = item.GetMetadata ("TargetPath").NormalizePath ();				
 			}
 		}
 
@@ -76,18 +93,34 @@ namespace Crow.Coding
 			if (constants != null)
 				parseOptions = parseOptions.WithPreprocessorSymbols (constants.EvaluatedValue.Split (';'));
 
-			populateTreeNodes ();
-
-			inDesignLoadCtx = new AssemblyLoadContext("CrowIDEInDesignLoadContext");
+			populateTreeNodes ();			
 		}
         #endregion
 
-		void loadInDesignCrowAssembly () {
-			string crowDllPath = resolvedReferences.FirstOrDefault (i => i.GetMetadata("PackageName") == "Crow")?.ToString();
-			if (string.IsNullOrEmpty(crowDllPath)) 
-				inDesignCrowAssembly = null;
-			else
-				inDesignCrowAssembly = inDesignLoadCtx.LoadFromAssemblyPath (crowDllPath);			
+		void loadInDesignReferencedAssemblies () {
+
+			inDesignLoadCtx?.Unload ();
+			inDesignCrowAssembly = null;
+			inDesignLoadCtx = new AssemblyLoadContext("CrowIDEInDesignLoadContext", true);
+
+			foreach (ITaskItem item in resolvedReferences) {
+				Console.WriteLine ($"[RESOLVEDASSEMBLY] {item}");
+
+				foreach (string mdname in item.MetadataNames)
+					Console.WriteLine ($"\t{mdname} = {item.GetMetadata (mdname)}");
+
+				//dont load framework dll
+				if (!string.IsNullOrEmpty (item.GetMetadata ("FrameworkReferenceName")))
+					continue;
+				try {
+					if (item.GetMetadata("PackageName") == "Crow")				
+						inDesignCrowAssembly = inDesignLoadCtx.LoadFromAssemblyPath (item.GetMetadata ("FullPath"));
+					else
+						inDesignLoadCtx.LoadFromAssemblyPath (item.GetMetadata ("FullPath"));
+				}catch (Exception e) {
+					Console.WriteLine ($"[RESOLVEDASSEMBLY] unable to load assembly in design context {item}");
+				}
+			}
 		}
 		
 
@@ -351,9 +384,8 @@ namespace Crow.Coding
 		public void Compile () => Compile ("Build");
 		public void Compile (params string[] targets)
 		{
-			//solution.projectCollection.SetGlobalProperty ("CrowIDEResolveCache", resolvedCacheFile);
 			ProjectInstance pi = BuildManager.DefaultBuildManager.GetProjectInstanceForBuild (project);			
-			BuildRequestData request = new BuildRequestData (pi, targets);			
+			BuildRequestData request = new BuildRequestData (pi, targets,null,BuildRequestDataFlags.ProvideProjectStateAfterBuild);			
 			BuildResult result = BuildManager.DefaultBuildManager.Build (Solution.buildParams, request);
 		}
 
@@ -381,14 +413,57 @@ namespace Crow.Coding
 			
 			return false;
 		}
-		public bool TryGetStreamFromPath (string path, out Stream stream) {
-			stream = null;
-			if (path.StartsWith ("#", StringComparison.Ordinal)) {
-				if (inDesignCrowAssembly == null) 
-					return false;
-				stream = inDesignCrowAssembly.GetManifestResourceStream(path.Substring (1));
+		/// <summary>
+		/// try to find project file from running crow application target path as called by a running app.
+		/// </summary>
+		public bool TryGetProjectFileFromTargetPath (string path, out ProjectFileNode pi, bool caseSensitive = false)
+		{
+			if (path.StartsWith ("#", StringComparison.Ordinal))
+				pi = Flatten.OfType<ProjectFileNode> ().FirstOrDefault
+					(f => f.Type == ItemType.EmbeddedResource && f.LogicalName == path.Substring (1));
+			else {
+				pi = Flatten.OfType<ProjectFileNode> ().FirstOrDefault 
+					(pp => pp.CopyToOutputDirectory != CopyToOutputState.Never &&
+						 string.Equals (pp.ResolvedTargetPath, path, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
 			}
-			return stream != null;
+
+			if (pi != null)
+				return true;
+
+			foreach (ProjectItemNode pr in Flatten.OfType<ProjectItemNode> ().Where (pn => pn.Type == ItemType.ProjectReference)) {
+				ProjectView p =  Solution.Projects.FirstOrDefault (pp => string.Equals (pp.FullPath, pr.FullPath, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
+				if (p == null)
+					continue;
+				if (p.TryGetProjectFileFromTargetPath (path, out pi))
+					return true;
+			}
+			
+			return false;
+		}
+
+		/// <summary>
+		/// try find resource stream in referenced assemblies loaded in inDesignAssemblies
+		/// </summary>
+		public bool TryGetStreamFromReferencedAssemblies (string path, out Stream stream) {
+			stream = null;
+			if (inDesignLoadCtx == null)
+				return false;
+			if (path.StartsWith ("#", StringComparison.Ordinal)) {
+				string resId = path.Substring (1);
+				string[] assemblyNames = resId.Split ('.');
+
+				if (inDesignLoadCtx.Assemblies.FirstOrDefault (aa => aa.GetName ().Name == assemblyNames[0])
+						.TryGetResource (resId, out stream))
+					return true;
+				if (assemblyNames.Length > 3 &&
+					inDesignLoadCtx.Assemblies.FirstOrDefault (aa => aa.GetName ().Name == $"{assemblyNames[0]}.{assemblyNames[1]}")
+						.TryGetResource (resId, out stream))
+					return true;				
+				/*if (inDesignCrowAssembly == null) 
+					return false;
+				stream = inDesignCrowAssembly.GetManifestResourceStream(path.Substring (1));*/
+			}
+			return false;
 		}
 
 		public void GetDefaultTemplates ()

@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -264,5 +265,11 @@ namespace Crow
 			}
 			return diag.Location.ToString();
 		}
+
+		/// <summary>
+		/// replace all path separators with '/'
+		/// </summary>
+		public static string NormalizePath (this string path) 
+			=> path.Split ('\\', '/', StringSplitOptions.RemoveEmptyEntries).Aggregate ((a,b) => $"{a}/{b}");		
 	}
 }

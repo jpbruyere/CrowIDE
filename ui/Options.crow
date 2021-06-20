@@ -10,17 +10,17 @@
 			<HorizontalStack Height="Fit">
 				<Label Width="200" Text="DotNet SDK folder"/>
 				<TextBox Width="Stretched" Text="{²SDKFolder}"/>
-				<Button Caption="..." MouseClick="onClickSelectSDKFolder" MinimumSize="0,0"/>
+				<Button Command="{CMDOptions_SelectSDKFolder}" MinimumSize="0,0"/>
 			</HorizontalStack>
 			<HorizontalStack Height="Fit">
 				<Label Width="200" Text="MSBuild root folder"/>
 				<TextBox Width="Stretched" Text="{²MSBuildRoot}"/>
-				<Button Caption="..." MouseClick="onClickSelectMSBuildRoot" MinimumSize="0,0"/>
+				<Button Command="{CMDOptions_SelectMSBuildRoot}" MinimumSize="0,0"/>
 			</HorizontalStack>
 			<HorizontalStack Height="Fit">
 				<Label Width="200" Text="Netcoredbg path"/>
 				<TextBox Width="Stretched" Text="{²NetcoredbgPath}"/>
-				<Button Command="{CMDOptions_SelectNetcoredbgPath}" MinimumSize="0,0"/><!--Caption="..." MouseClick="onClickSelectNetcoredbgPath" />-->
+				<Button Command="{CMDOptions_SelectNetcoredbgPath}" MinimumSize="0,0"/>
 			</HorizontalStack>
 			<HorizontalStack Height="Fit">
 				<Label Width="200" Text="Syntax themes folder"/>

@@ -10,7 +10,8 @@
 <ItemTemplate DataType="System.Boolean" >
 	<HorizontalStack Style="MemberViewHStack" ContextCommands="{Commands}">
 		<Label Style="MemberViewLabel" Text="{Name}" Foreground = "{LabForeground}" />
-		<CheckBox Background="White" Foreground = "{LabForeground}" Height="Stretched" Caption="" IsChecked="{²Value}"/>
+		<CheckBox Background="White" Foreground = "{LabForeground}" Height="Stretched" Caption="" IsChecked="{²Value}"
+			BubbleMouseEvent="true"/>
 	</HorizontalStack>
 </ItemTemplate>
 <ItemTemplate Path="#ui.Enum.itemp" DataType="System.Enum" />

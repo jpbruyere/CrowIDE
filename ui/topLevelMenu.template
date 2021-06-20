@@ -1,0 +1,2 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<HorizontalStack Name="ItemsContainer" Height="Fit" Background="{./Background}" Spacing="5"/>

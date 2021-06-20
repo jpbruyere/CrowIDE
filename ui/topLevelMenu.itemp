@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<ItemTemplate DataType="CommandGroup" >
+	<MenuItem Data="{Commands}" Width="Fit" IsEnabled="{CanExecute}">
+		<Template>
+			<Popper PopDirection="Bottom" Caption="{Caption}"
+							MouseEnter="{Background=${ControlHighlight}}"
+							MouseLeave="{Background=Transparent}">
+				<Template>
+					<Label Text="{./Caption}" Width="Stretched" Height="Stretched" Margin="3"
+						Background="{./Background}"/>
+				</Template>
+				<Border Foreground="DimGrey" Width="{../PopWidth}" Height="{../PopHeight}" Background="DarkGrey">
+					<VerticalStack Name="ItemsContainer"/>
+				</Border>
+			</Popper>
+		</Template>
+		<ItemTemplate DataType="Command">
+			<Button Style="menuEntryButton" Command="{}"/>
+		</ItemTemplate>					
+		<ItemTemplate DataType="CommandGroup" >
+			<MenuItem Data="{Commands}" Width="Fit"  IsEnabled="{CanExecute}">
+				<Template>
+					<Popper PopDirection="Right" Caption="{Caption}"
+							MouseEnter="{Background=${ControlHighlight}}"
+							MouseLeave="{Background=Transparent}">
+						<Template>
+							<Label Text="{./Caption}" Width="Stretched" Height="Stretched" Margin="3"
+								Background="{./Background}"/>
+						</Template>		
+						<Border Foreground="DimGrey" Width="{../PopWidth}" Height="{../PopHeight}" Background="DarkGrey">
+							<VerticalStack Name="ItemsContainer"/>
+						</Border>
+					</Popper>
+				</Template>
+				<ItemTemplate DataType="Command">
+					<Button Style="menuEntryButton" Command="{}"/>
+				</ItemTemplate>
+			</MenuItem>
+		</ItemTemplate>
+	</MenuItem>
+</ItemTemplate>

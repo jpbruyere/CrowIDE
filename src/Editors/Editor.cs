@@ -16,11 +16,12 @@ namespace Crow.Coding
 		public Command CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste;
 
 		void initCommands () {
-			CMDUndo = new Command (new Action (undo)) { Caption = "Undo", Icon = CrowIDE.IcoUndo, CanExecute = false };
-			CMDRedo = new Command (new Action (redo)) { Caption = "Redo", Icon = CrowIDE.IcoRedo, CanExecute = false };
-			CMDCut = new Command (new Action (cut)) { Caption = "Cut", Icon = CrowIDE.IcoCut, CanExecute = false };
-			CMDCopy = new Command (new Action (copy)) { Caption = "Copy", Icon = CrowIDE.IcoCopy, CanExecute = false };
-			CMDPaste = new Command (new Action (paste)) { Caption = "Paste", Icon = CrowIDE.IcoPaste, CanExecute = false };
+			CMDUndo = new Command ("Undo", undo, CrowIDE.IcoUndo, false);
+			CMDRedo = new Command ("Redo", redo, CrowIDE.IcoRedo, false);
+			CMDCut = new Command ("Cut", cut, CrowIDE.IcoCut, false);
+			CMDCopy = new Command ("Copy", copy, CrowIDE.IcoCopy, false);
+			CMDPaste = new Command ("Paste", paste, CrowIDE.IcoPaste, false);
+			EditCommands = new CommandGroup (CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste);
 		}
 
 		#region CTOR
@@ -38,7 +39,7 @@ namespace Crow.Coding
 
 		public virtual ProjectFileNode ProjectNode
 		{
-			get { return projFile; }
+			get => projFile;
 			set
 			{
 				if (projFile == value)
@@ -53,7 +54,9 @@ namespace Crow.Coding
 
 				if (projFile != null) {
 					projFile.RegisterEditor (this);
-					ContextCommands = projFile.Commands;
+					ContextCommands = EditCommands;
+					if (!string.IsNullOrEmpty (IFace.Clipboard))
+						CMDPaste.CanExecute = true;
 				}
 
 				NotifyValueChanged ("ProjectNode", projFile);

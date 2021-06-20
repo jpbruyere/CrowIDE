@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<HorizontalStack  Margin="3" HorizontalAlignment="Left" Width="Stretched"
+						MouseEnter="{Background=${ControlHighlight}}"
+						MouseLeave="{Background=Transparent}">
+	<Image Width="10" Height="10" Margin="1" Path="{./Icon}" />
+	<Label Text="{./Caption}" />	
+</HorizontalStack>
+<!--<Label Text="{./Caption}" Width="Stretched" Height="Stretched" Margin="3"
+					MouseEnter="{Background=${ControlHighlight}}"
+					MouseLeave="{Background=Transparent}"/>-->

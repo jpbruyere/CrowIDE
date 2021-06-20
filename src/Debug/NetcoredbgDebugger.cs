@@ -42,6 +42,7 @@ namespace Crow.Coding
 
 		ThreadInfo currentThread;
 		StackFrame currentFrame;
+		BreakPoint currentBreakPoint;
 
 		public ThreadInfo CurrentThread
 		{
@@ -71,6 +72,20 @@ namespace Crow.Coding
 					return;
 				tryGoTo(currentFrame);
 				updateWatches ();
+			}
+		}
+		public BreakPoint CurrentBreakPoint
+		{
+			get => currentBreakPoint;
+			set
+			{
+				if (currentBreakPoint == value)
+					return;
+				currentBreakPoint = value;
+				NotifyValueChanged(currentBreakPoint);
+				if (currentBreakPoint == null)
+					return;
+				//tryGoTo(currentFrame);				
 			}
 		}
 
@@ -349,22 +364,8 @@ namespace Crow.Coding
 								w.RequestObject.Update (obj);
 						} else if (request is Request<BreakPoint> bpReq) {
 							BreakPoint bp = bpReq.RequestObject;
-							MITupple bkpt = obj["bkpt"] as MITupple;
-							bp.Index = int.Parse (bkpt.GetAttributeValue("number"));
-							bp.Type = bkpt.GetAttributeValue("type");
-							bp.Disp = bkpt.GetAttributeValue("disp");
-							bp.IsEnabled = bkpt.GetAttributeValue("enabled") == "y";
-							if (bkpt.TryGetAttributeValue("warning", out string warning))
-								bp.Warning = warning;
-							else {
-								bp.Warning = null;
-								bp.Func = bkpt.GetAttributeValue("func");
-								bp.FileName = bkpt.GetAttributeValue("file");
-								bp.FileFullName = bkpt.GetAttributeValue("fullname")?.Replace("\\\\", "\\");
-								if (project.TryGetProjectFileFromPath(bp.FileFullName, out ProjectFileNode pf))
-									bp.File = pf as CSProjectItem;
-								bp.Line = int.Parse (bkpt.GetAttributeValue("line")) - 1;
-							}
+							bp.Update (project, obj["bkpt"] as MITupple);
+							
 						} else
 							DebuggerLog.Add($"=> request result not handled: {request}");
 					}
@@ -411,19 +412,16 @@ namespace Crow.Coding
 						updateWatches ();
 					}
 
-				}
-				else
+				} else
 					print_unknown_datas(e.Data);
-			}
-			else if (firstChar == '=')
-			{
-				if (data_id.SequenceEqual("message"))
-				{
+			} else if (firstChar == '=') {//EVENTS
+				if (data_id.SequenceEqual("message")) {
 					OutputLog.Add(obj.GetAttributeValue("text").ToString().Replace(@"\0", ""));
-				}
-				else
-				{
+				} else if (data_id.SequenceEqual("breakpoint-modified")) {
 					OutputLog.Add($"{e.Data}");
+					MITupple bkpt = obj["bkpt"] as MITupple;
+					BreakPoint bp = BreakPoints.FirstOrDefault (bk=>bk.Index == int.Parse (bkpt.GetAttributeValue("number")));
+					bp.Update (project, bkpt);
 				}
 			}
 			else

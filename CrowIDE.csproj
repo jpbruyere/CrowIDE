@@ -39,6 +39,8 @@
 		</None>
 		<EmbeddedResource Include="IDE.style" />
 		<EmbeddedResource Include="default.config" />
+
+		<EmbeddedResource Include="images/crow.png" />
 	</ItemGroup>
 	
 	<ItemGroup>

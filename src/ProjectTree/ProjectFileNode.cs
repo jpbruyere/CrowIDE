@@ -10,6 +10,15 @@ using System.Threading;
 using System.Xml;
 
 namespace Crow.Coding {
+	public class ProjectFileLocation {
+		public ProjectFileNode ProjectFile;
+		public int AbsolutePosition;
+		public ProjectFileLocation (ProjectFileNode projectFile, int absolutePosition) {
+			ProjectFile = projectFile;
+			AbsolutePosition = absolutePosition;
+		}
+		public override string ToString() => $"{ProjectFile.FullPath}:{AbsolutePosition}";
+	}
 	/// <summary>
 	/// represent a file node in the tree in a project
 	/// </summary>
@@ -18,7 +27,7 @@ namespace Crow.Coding {
 		DateTime accessTime;
 		string source, origSource;
 		object selectedItem;
-		int curLine, curColumn;
+		int curLine, curColumn, curPos;
 
 		internal ReaderWriterLockSlim srcEditMtx = new ReaderWriterLockSlim();
 
@@ -66,7 +75,8 @@ namespace Crow.Coding {
 		public string LogicalName =>
 			Item.HasMetadata ("LogicalName") ? Item.GetMetadata ("LogicalName").EvaluatedValue :
 				$"{Project.DisplayName}.{Item.EvaluatedInclude.Replace('/','.').Replace('\\','.')}";
-		public string Link => Item.GetMetadata ("Link")?.EvaluatedValue;
+		public string Link =>
+			Item.HasMetadata ("LogicalName") ? Item.GetMetadata ("Link")?.EvaluatedValue.Replace('/','.').Replace('\\','.') : "";
 		public CopyToOutputState CopyToOutputDirectory {
 			get => Item.HasMetadata ("CopyToOutputDirectory") ?
 				Enum.TryParse (Item.GetMetadata ("CopyToOutputDirectory").EvaluatedValue, true, out CopyToOutputState tmp) ?
@@ -77,6 +87,18 @@ namespace Crow.Coding {
 				//TODO: check if updated in xml and writable to disk with preserve formating
 				Item.SetMetadataValue ("CopyToOutputDirectory", value.ToString ());
 				NotifyValueChanged ("CopyToOutputDirectory", CopyToOutputDirectory);
+			}
+		}
+
+		//build target path obtain with CrowIdeHookTask on the build
+		string resolvedTargetPath;
+		public string ResolvedTargetPath {
+			get => resolvedTargetPath;
+			set {
+				if (resolvedTargetPath == value)
+					return;
+				resolvedTargetPath = value;
+				NotifyValueChanged (nameof(ResolvedTargetPath), resolvedTargetPath);
 			}
 		}
 
@@ -164,7 +186,7 @@ namespace Crow.Coding {
 			(DateTime.Compare (accessTime, System.IO.File.GetLastWriteTime (FullPath)) < 0);
 				
 		public int CurrentColumn{
-			get { return curColumn; }
+			get => curColumn;
 			set {
 				if (curColumn == value)
 					return;
@@ -173,12 +195,22 @@ namespace Crow.Coding {
 			}
 		}
 		public int CurrentLine{
-			get { return curLine; }
+			get => curLine;
 			set {
 				if (curLine == value)
 					return;
 				curLine = value;
 				NotifyValueChanged ("CurrentLine", curLine);
+			}
+		}
+		[XmlIgnore]public int CurrentPosition {
+			get => curPos;
+			set {
+				if (curPos == value)
+					return;
+				Project.Solution.RecordCurrentLocation ();
+				curPos = value;
+				NotifyValueChanged ("CurrentPosition", curPos);
 			}
 		}
 

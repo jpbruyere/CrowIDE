@@ -45,5 +45,6 @@
 		<ItemTemplate Path="#ui.IMLEdit.itemp" DataType=".goml"/>
 		<ItemTemplate Path="#ui.IMLEdit.itemp" DataType=".itemp"/>
 		<ItemTemplate Path="#ui.IMLEdit.itemp" DataType=".template"/>
+		<ItemTemplate Path="#ui.IMLEdit.itemp" DataType=".tmp"/>
 	</EditPane>
 </DockWindow>

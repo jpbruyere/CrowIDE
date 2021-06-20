@@ -52,8 +52,9 @@ namespace Crow.Coding
 				_pic.KeepProportions = true;
 			} catch (Exception ex) {
 				Error = ex;
+			} finally {
+				editorMutex.ExitWriteLock ();
 			}
-			editorMutex.ExitWriteLock ();
 			updateMaxScrolls ();
 			RegisterForGraphicUpdate ();
 		}
@@ -97,15 +98,15 @@ namespace Crow.Coding
 			r.Height = _pic.Dimensions.Height * zoom / 100;
 
 			gr.Save ();
-
 			editorMutex.EnterReadLock ();
-
-			gr.Translate (-ScrollX, -ScrollY);
-			if (_pic != null)
-				_pic.Paint (IFace, gr, r);
-			editorMutex.ExitReadLock ();
-
-			gr.Restore ();
+			try {
+				gr.Translate (-ScrollX, -ScrollY);
+				if (_pic != null)
+					_pic.Paint (IFace, gr, r);
+			} finally {
+				editorMutex.ExitReadLock ();
+				gr.Restore ();
+			}
 		}
 		public override void OnLayoutChanges (LayoutingType layoutType)
 		{

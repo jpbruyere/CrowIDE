@@ -43,15 +43,72 @@ namespace Crow.Coding
 
 		public static Picture IcoFileCS = new SvgPicture ("#Icons.cs-file.svg");
 		public static Picture IcoFileXML = new SvgPicture ("#Icons.file-code.svg");
+		public static Picture IcoTools = new SvgPicture("#Icons.tools.svg");
+		public static Picture IcoStyle = new SvgPicture ("#Icons.palette.svg");
+		public static Picture IcoImage = new SvgPicture ("#Icons.picture-file.svg");
 
 
-		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, cmdCloseSolution, CMDQuit,
+		static Command CMDCloseSolution = 
+			new Command("Close Solution", (sender) => ((sender as Widget).IFace as CrowIDE).closeSolution (), IcoCloseSolution, false);
+
+		public Command CMDNew, CMDOpen, CMDSave, CMDSaveAs, CMDQuit,
 		CMDUndo, CMDRedo, CMDCut, CMDCopy, CMDPaste, CMDHelp, CMDAbout, CMDOptions,
 		CMDViewGTExp, CMDViewProps, CMDViewProj, CMDViewProjProps, CMDViewErrors, CMDViewLog, CMDViewSolution, CMDViewEditor, CMDViewProperties,
 		CMDViewToolbox, CMDViewSchema, CMDViewStyling,CMDViewDesign, CMDViewSyntaxTree, CMDViewSyntaxThemeEditor, CMDViewDebugger,
 		CMDBuild, CMDClean, CMDRestore, CMDStartDebug;
 
+		public CommandGroup AllIdeCommands => new CommandGroup (
+			FileCommands,
+			ViewCommands
+		);
+		public CommandGroup FileCommands = new CommandGroup ("File",
+ 			new Command("New", (sender) => ((sender as Widget).IFace as CrowIDE).newFile (), IcoNew),
+			new Command("Open...", (sender) => ((sender as Widget).IFace as CrowIDE).openFileDialog (), IcoOpen),
+			CMDCloseSolution ,
+			new Command("Quit", (sender) => ((sender as Widget).IFace as CrowIDE).Quit (), IcoQuit),
+			new Command("Editor Options", (sender) => {
+				Widget w = sender as Widget;
+				(w.IFace as CrowIDE).loadWindow("#ui.Options.crow", w.IFace);
+			}, IcoTools)
+		);
+		public CommandGroup EditCommands = new CommandGroup("Debug");
+
+		static void loadWindowWithIdeAsDataSource(object sender, string path) {
+			Widget w = sender as Widget;
+			CrowIDE ide = w.IFace as CrowIDE;
+			ide.loadWindow (path, ide);
+		}
+			
+
+		public CommandGroup ViewCommands = new CommandGroup ("View",
+ 			new Command("Log View", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winLog.crow")),
+ 			new Command("Solution Tree", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winSolution.crow")),
+ 			new Command("Editor Pane", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winEditor.crow")),
+ 			new Command("Properties", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winProperties.crow")),
+ 			new Command("ItemProperties", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winItemProperties.crow")),
+ 			new Command("Toolbox", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winToolbox.crow")),
+ 			new Command("IML Shematic View", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winSchema.crow")),
+ 			new Command("Styling Explorer", (sender) => loadWindowWithIdeAsDataSource (sender, "")),
+ 			new Command("Graphic Tree Explorer", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winGTExplorer.crow")),
+ 			new Command("Syntax Tree", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winSyntaxTree.crow")),
+ 			new Command("Syntax Theme Editor", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winThemeEditor.crow")),
+ 			new Command("Debugger", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winDebugger.crow")),
+ 			new Command("Errors pane", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winErrors.crow")),
+			new CommandGroup ("Debug Windows",
+	 			new Command("Watches", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winWatches.crow")),
+	 			new Command("Call Stack", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winStackFrames.crow")),
+	 			new Command("Threads", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winThreads.crow")),
+	 			new Command("BreakPoints", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winBreakPoints.crow")),
+	 			new Command("Debugger Logs", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winDebuggerLog.crow")),
+	 			new Command("Debugger", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winDebuggerLog.crow"))
+			)
+		);
 		public CommandGroup DebugCommands = new CommandGroup("Debug");
+
+		Command createLoadWinIdeCommand (string caption, string window, string icon = null, bool canExecute=true)
+			=> new Command(caption, (sender) => ((sender as Widget).IFace as CrowIDE).loadWindow (window,((sender as Widget).IFace as CrowIDE)), icon, canExecute);
+		
+
 		void initCommands () {
 			CMDNew = new Command(new Action(newFile)) { Caption = "New", Icon = IcoNew, CanExecute = true};
 			CMDOpen = new Command(new Action(openFileDialog)) { Caption = "Open...", Icon = IcoOpen };
@@ -66,35 +123,6 @@ namespace Crow.Coding
             CMDHelp = new Command(new Action(() => System.Diagnostics.Debug.WriteLine("help"))) { Caption = "Help", Icon = IcoHelp };
 			CMDOptions = new Command(new Action(() => loadWindow("#ui.Options.crow", this))) { Caption = "Editor Options", Icon = new SvgPicture("#Icons.tools.svg") };
 
-			cmdCloseSolution = new Command(new Action(closeSolution))
-			{ Caption = "Close Solution", Icon = IcoCloseSolution, CanExecute = false};
-
-			CMDViewErrors = new Command(new Action(() => loadWindow ("#ui.winErrors.crow",this)))
-			{ Caption = "Errors pane"};
-			CMDViewLog = new Command(new Action(() => loadWindow ("#ui.winLog.crow",this)))
-			{ Caption = "Log View"};
-			CMDViewSolution = new Command(new Action(() => loadWindow ("#ui.winSolution.crow",this)))
-			{ Caption = "Solution Tree", CanExecute = true};
-			CMDViewEditor = new Command(new Action(() => loadWindow ("#ui.winEditor.crow",this)))
-			{ Caption = "Editor Pane"};
-			CMDViewProperties = new Command(new Action(() => loadWindow ("#ui.winProperties.crow",this)))
-			{ Caption = "Properties"};
-			CMDViewDesign = new Command(new Action(() => loadWindow ("#ui.winDesign.crow",this)))
-			{ Caption = "Quick Design", CanExecute = true};
-			CMDViewToolbox = new Command(new Action(() => loadWindow ("#ui.winToolbox.crow",this)))
-			{ Caption = "Toolbox", CanExecute = false};
-			CMDViewSchema = new Command(new Action(() => loadWindow ("#ui.winSchema.crow",this)))
-			{ Caption = "IML Shematic View", CanExecute = true};
-			CMDViewStyling = new Command(new Action(() => loadWindow ("#ui.winStyleView.crow",this)))
-			{ Caption = "Styling Explorer", CanExecute = true};
-			CMDViewGTExp = new Command(new Action(() => loadWindow ("#ui.winGTExplorer.crow",this)))
-			{ Caption = "Graphic Tree Explorer", CanExecute = true};
-			CMDViewSyntaxTree = new Command (new Action (() => loadWindow ("#ui.winSyntaxTree.crow", currentSolution)))
-			{ Caption = "Syntax Tree", CanExecute = true };
-			CMDViewSyntaxThemeEditor = new Command (new Action (() => loadWindow ("#ui.winThemeEditor.crow", this)))
-			{ Caption = "Syntax Theme Editor", CanExecute = true };
-			CMDViewDebugger = new Command (new Action (() => loadWindow ("#ui.winDebugger.crow", this)))
-			{ Caption = "Debugger", CanExecute = true };
 
 			CMDBuild = new Command(new Action(() => CurrentSolution?.Build ("Build")))
 			{ Caption = "Compile Solution", CanExecute = false};
@@ -105,12 +133,7 @@ namespace Crow.Coding
 			CMDViewProjProps = new Command (new Action (() => loadWindow ("#ui.ProjectProperties.crow")))
 			{ Caption = "Project Properties", CanExecute = false };
 
-			DebugCommands.Add (new Command ("Watches", () => loadWindow ("#ui.winWatches.crow", this)));
-			DebugCommands.Add (new Command ("Call Stack", () => loadWindow ("#ui.winStackFrames.crow", this)));
-			DebugCommands.Add (new Command ("Threads", () => loadWindow ("#ui.winThreads.crow", this)));
-			DebugCommands.Add (new Command ("BreakPoints", () => loadWindow ("#ui.winBreakPoints.crow", this)));
-			DebugCommands.Add (new Command ("Debugger Logs", () => loadWindow ("#ui.winDebuggerLog.crow", this)));
-			DebugCommands.Add (new Command ("Debugger", () => loadWindow ("#ui.winDebugger.crow", this)));
+
 		}
 
 		void openFileDialog () {			
@@ -168,6 +191,8 @@ namespace Crow.Coding
 
 		protected override void OnInitialized () {
 			base.OnInitialized ();
+
+			SetWindowIcon ("#CrowIDE.images.crow.png");
 			
 			MainIdeLogger  = new IdeLogger (this, MainLoggerVerbosity);
 			ProgressLogger = new ProgressLog (this);
@@ -286,7 +311,7 @@ namespace Crow.Coding
 				currentSolution = value;
 
 				CMDBuild.CanExecute = CMDClean.CanExecute = CMDRestore.CanExecute = (currentSolution != null);
-				cmdCloseSolution.CanExecute = (currentSolution != null);
+				CMDCloseSolution.CanExecute = (currentSolution != null);
 				lock (UpdateMutex)
 					NotifyValueChanged (currentSolution);
 			}
@@ -437,7 +462,7 @@ namespace Crow.Coding
 		}
 		
 		public Dictionary<string, TextFormatting> SyntaxTheme;
-		static void reloadSyntaxTheme (CrowIDE ide) {			
+		static void reloadSyntaxTheme (CrowIDE ide) {
 			if (!File.Exists (ide.syntaxThemeFile))
 				return;
 			ide.SyntaxTheme = new Dictionary<string, TextFormatting> ();
