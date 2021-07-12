@@ -75,7 +75,7 @@ TreeLabel {
 	Foreground="White";
 }
 Splitter {
-	Thickness="1";	
+	Thickness="1";
 	Background="Transparent";
 	MouseEnter="{Background=${IdeHighlight}}";
 	MouseLeave="{Background=Transparent}";

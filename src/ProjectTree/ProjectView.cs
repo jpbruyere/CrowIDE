@@ -30,6 +30,8 @@ namespace Crow.Coding
 		Crow.Command cmdSave, cmdOpen, cmdSetAsStartProj, cmdNewFile;
 
 		ITaskItem[] resolvedReferences, resolvedTargetPathes;
+		ITaskItem resolvedTargetPath;
+
 		public ITaskItem[] ResolvedReferences {
 			get => resolvedReferences;
 			set {
@@ -45,6 +47,12 @@ namespace Crow.Coding
 				resolvedTargetPathes = value;
 
 				Task.Run (() => testTargetPathes());				
+			}
+		}
+		public ITaskItem ResolvedTargetPath {
+			get => resolvedTargetPath;
+			set {
+				resolvedTargetPath = value;
 			}
 		}
 
@@ -178,7 +186,10 @@ namespace Crow.Coding
 		public string OutputPath => project.GetProperty ("OutputPath").EvaluatedValue;
 		public string IntermediateOutputPath => project.GetProperty ("IntermediateOutputPath").EvaluatedValue;
 		public string OutputType => project.GetProperty ("OutputType").EvaluatedValue;
-		public string OutputAssembly => Path.Combine (project.GetPropertyValue ("OutputPath"), project.GetPropertyValue ("TargetFrameworks"), AssemblyName + AssemblyExtension);
+		public string OutputAssembly =>
+			/*resolvedTargetPath != null ?
+			resolvedTargetPath.ItemSpec	:*/
+			Path.Combine (project.GetPropertyValue ("OutputPath"), project.GetPropertyValue ("TargetFrameworks"), AssemblyName + AssemblyExtension);
 		public string AssemblyExtension => RuntimeInformation.IsOSPlatform (OSPlatform.Windows) ? ".exe" : "";
 		public OutputKind OutputKind {
 			get {
@@ -292,6 +303,11 @@ namespace Crow.Coding
 			ProjectNode refs = new ProjectNode (this, ItemType.ReferenceGroup, "References");
 			root.AddChild (refs);
 
+			Commands.Add (new Crow.Command ("ResolveProjectReferences", () => Compile ("ResolveProjectReferences")));
+			Commands.Add (new Crow.Command ("ResolveAssemblyReferences", () => Compile ("ResolveAssemblyReferences")));
+			Commands.Add (new Crow.Command ("GetTargetPath", () => Compile ("GetTargetPath")));
+			
+
 			addTargetBuildCommandFromProjectItems();
 
 			foreach (ProjectItem pn in project.AllEvaluatedItems) {								
@@ -299,9 +315,7 @@ namespace Crow.Coding
 
 				switch (pn.ItemType) {
 				case "ProjectReferenceTargets":
-					Commands.Add (new Crow.Command (new Action (() => Compile (pn.EvaluatedInclude))) {
-						Caption = pn.EvaluatedInclude,
-					});
+					Commands.Add (new Crow.Command (pn.EvaluatedInclude, () => Compile (pn.EvaluatedInclude)));
 					break;
 				case "Reference":
 				case "PackageReference":

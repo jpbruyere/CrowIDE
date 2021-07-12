@@ -38,8 +38,6 @@ namespace Crow.Coding
 		[STAThread]
 		static void Main ()
 		{
-			Color c = new Color (0xff + 1);
-
 			DbgLogger.IncludeEvents = DbgEvtType.ActiveWidget;
 			DbgLogger.DiscardEvents = 0;
 

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Expandable Caption="{Name}" IsExpanded="{IsExpanded}" Background="Grey" Foreground="Black" BubbleMouseEvent="true">
+<Expandable Caption="{Name}" IsExpanded="{IsExpanded}" Background="Grey" Foreground="Black" BubbleMouseEvent="All">
 	<Template>
 		<VerticalStack>
 			<HorizontalStack Spacing="1" Height="Fit" MouseDoubleClick="./onClickForExpand" Background="Grey">

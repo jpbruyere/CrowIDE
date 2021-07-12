@@ -49,17 +49,17 @@ namespace Crow
 
 		void Lines_ListAdd (object sender, ListChangedEventArg e)
 		{
-			try
-			{
+			// try
+			// {
 				MaxScrollY = lines.Count - visibleLines;
 				if (scrollOnOutput)
 					ScrollY = MaxScrollY;
 				
-			}
-			catch (System.Exception ex)
-			{
-				Console.WriteLine ($"list add valueChange handler bug:{ex}");
-			}
+			// }
+			// catch (System.Exception ex)
+			// {
+			// 	Console.WriteLine ($"list add valueChange handler bug:{ex}");
+			// }
 		}
 
 		void Lines_ListRemove (object sender, ListChangedEventArg e)

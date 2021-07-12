@@ -1,0 +1,11 @@
+﻿<?xml version="1.0"?>
+<DockWindow DataSource="{CurrentSolution}" Caption="Output" Width="60%">
+	<VerticalStack RootDataLevel="true" DataSource="{DbgSession}">
+		<HorizontalStack Spacing="0">
+			<TextScrollerWidget Name="log" Lines="{OutputLog}" Background="${IdeLogBackground}" MaxScrollX="10000"/>
+			<ScrollBar Name="scrollbarY" Value="{²../log.ScrollY}" CursorRatio="{../log.ChildHeightRatio}" Maximum="{../log.MaxScrollY}" />
+		</HorizontalStack>
+		<TextBox Validate="OnValidateCommand"/>
+		<ScrollBar Style="HScrollBar" Name="scrollbarX" Value="{²../log.ScrollX}" Maximum="{../log.MaxScrollX}" SmallIncrement="30"/>
+	</VerticalStack>
+</DockWindow>

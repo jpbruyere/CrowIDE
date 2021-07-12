@@ -18,13 +18,17 @@
 		<HookTask HookedItemsName="ReferencePath"
 					HookedItems="@(ReferencePath)" ProjectFullPath="$(MSBuildProjectFullPath)"/>
 	</Target>
-	<Target Name="CrowIdeHookTaskResolveTargetPath" AfterTargets="GetCopyToOutputDirectoryItems">		
+	<Target Name="CrowIdeHookTaskResolveTargetPathes" AfterTargets="GetCopyToOutputDirectoryItems">		
 		<HookTask HookedItemsName="AllItemsFullPathWithTargetPath"
 					HookedItems="@(AllItemsFullPathWithTargetPath)" ProjectFullPath="$(MSBuildProjectFullPath)"/>
 	</Target>
-	<Target Name="anotherTargetTest" AfterTargets="GetCopyToOutputDirectoryItems">
+	<Target Name="CrowIdeHookTaskResolveTargetPath" AfterTargets="GetTargetPath">		
+		<HookTask HookedItemsName="TargetPath"
+					HookedItems="$(TargetPath)" ProjectFullPath="$(MSBuildProjectFullPath)"/>
+	</Target>
+	<!--<Target Name="anotherTargetTest" AfterTargets="GetCopyToOutputDirectoryItems">
         <Message Importance="high" Text="**TEST**  @(AllItemsFullPathWithTargetPath->'%(Identity)')" />			
-    </Target>
+    </Target>-->
 	<!--<Target Name="CustomAfterBuild2" AfterTargets="ResolveReferences" Outputs="@(ReferencePath)">		
         <Message Importance="high" Text="AFTER BUILD TARGET" />
         <ItemGroup>

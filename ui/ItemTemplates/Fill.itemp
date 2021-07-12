@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
 <HorizontalStack Style="MemberViewHStack" ContextCommands="{Commands}">
 	<Label Style="MemberViewLabel" Text="{Name}" Foreground = "{LabForeground}"/>	
-	<ColorPicker Style="ColorPicker2" CurrentColor="{²Value}" Background="White" Foreground="DarkGrey" BubbleMouseEvent="true"/>
+	<ColorPicker Style="ColorPicker2" CurrentColor="{²Value}" Background="White" Foreground="DarkGrey" BubbleMouseEvent="All"/>
 </HorizontalStack>

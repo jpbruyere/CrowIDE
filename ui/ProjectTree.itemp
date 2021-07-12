@@ -13,7 +13,7 @@
 </ItemTemplate>
 <ItemTemplate DataType="Crow.Coding.ProjectView" Data="Childs" DataTest="Type">
 	<Expandable DataSourceType="ProjectView" Caption="{DisplayName}" ContextCommands="{Commands}" IsExpanded="{²IsExpanded}" MouseDoubleClick="/onClickForExpand"
-				BubbleMouseEvent="true">
+				BubbleMouseEvent="All">
 		<Template>
 			<VerticalStack>
 				<Border Style="TreeItemBorder" >
@@ -43,7 +43,7 @@
 </ItemTemplate>
 <ItemTemplate DataType="Crow.Coding.SolutionNode" Data="Childs" >
 	<Expandable DataSourceType="TreeNode" Caption="{DisplayName}" Template="#ui.TreeExpandable.template" IsExpanded="{²IsExpanded}"
-				BubbleMouseEvent="true">
+				BubbleMouseEvent="All">
 		<HorizontalStack Height="Fit">
 			<Widget Width="8" Height="10"/>
 			<VerticalStack Height="Fit" Name="ItemsContainer"/>
@@ -52,7 +52,7 @@
 </ItemTemplate>
 <ItemTemplate DataSourceType="ProjectNode" DataType="ReferenceGroup" Data="Childs" DataTest="Type" >
 	<Expandable Caption="{DisplayName}" Template="#ui.TreeExpandable.template" IsExpanded="{²IsExpanded}"
-				BubbleMouseEvent="true">
+				BubbleMouseEvent="All">
 		<HorizontalStack Height="Fit">
 			<Widget Width="8" Height="10"/>
 			<VerticalStack Height="Fit" Name="ItemsContainer"/>
@@ -61,7 +61,7 @@
 </ItemTemplate>
 <ItemTemplate DataType="VirtualGroup" Data="Childs" DataTest="Type">
 	<Expandable DataSourceType="ProjectNode" Caption="{DisplayName}" Template="#ui.TreeExpandable.template" IsExpanded="{²IsExpanded}"
-				BubbleMouseEvent="true">
+				BubbleMouseEvent="All">
 		<HorizontalStack Height="Fit">
 			<Widget Width="8" Height="10"/>
 			<VerticalStack Height="Fit" Name="ItemsContainer"/>

@@ -100,7 +100,7 @@ namespace Crow.Coding
 	 			new Command("Threads", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winThreads.crow")),
 	 			new Command("BreakPoints", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winBreakPoints.crow")),
 	 			new Command("Debugger Logs", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winDebuggerLog.crow")),
-	 			new Command("Debugger", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winDebuggerLog.crow"))
+	 			new Command("Output", (sender) => loadWindowWithIdeAsDataSource (sender, "#ui.winDebuggerOutput.crow"))
 			)
 		);
 		public CommandGroup DebugCommands = new CommandGroup("Debug");

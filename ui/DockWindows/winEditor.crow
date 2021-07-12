@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<DockWindow Name="winEditor" Caption="Edit View" Background="${IdeBackground}">
+<DockWindow Caption="Edit View" Background="${IdeBackground}">
 	<EditPane DataSource="{CurrentSolution}"  RootDataLevel="true"
 		SelectedItem="{²SelectedItem}"
 		SelectedItemElement="{²SelectedItemElement}" Data="{OpenedItems}" DataTest="Extension">

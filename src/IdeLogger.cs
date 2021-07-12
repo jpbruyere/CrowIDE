@@ -136,6 +136,9 @@ namespace Crow.Coding
 				case "AllItemsFullPathWithTargetPath":
 					prj.ResolvedTargetPathes = fiHookedItems.GetValue(e) as ITaskItem[];
 					break;
+				case "TargetPath":
+					prj.ResolvedTargetPath = (fiHookedItems.GetValue(e) as ITaskItem[])[0];
+					break;
 				default:
 					Console.WriteLine($"[Error]Unhandled custom build hook: {e.Message}");
 					break;				

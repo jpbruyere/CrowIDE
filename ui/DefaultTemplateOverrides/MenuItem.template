@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0"?>
 <Popper Font="{./Font}" Caption="{./Caption}"  Background="{./Background}" PopDirection="{./PopDirection}"
-	Foreground = "{./Foreground}" CanPop="{./HasChildren}" BubbleMouseEvent="true"
+	Foreground = "{./Foreground}" CanPop="{./HasChildren}" BubbleMouseEvent="All"
 	IsPopped="{²./IsOpened}" PopWidth="{./PopWidth}" PopHeight="{./PopHeight}" IsEnabled="{./IsEnabled}">
 	<Template>
 		<Border Name="border1"
